@@ -120,6 +120,8 @@ button { font: inherit; color: inherit; border:0; background:none; cursor:pointe
 .btn.warn { background:linear-gradient(180deg,#ffa94d,#f76707); color:#fff; box-shadow:0 4px 0 #c85502; }
 .btn.ghost { background:rgba(255,255,255,.75); box-shadow:0 2px 0 var(--line); font-weight:800; }
 .btn.sm { padding:11px 12px; font-size:.85rem; border-radius:14px; }
+.btn.off, .btn:disabled { opacity:.45; box-shadow:0 2px 0 var(--line); pointer-events:none; }
+.tip { text-align:center; font-size:.72rem; color:var(--ink-soft); font-weight:700; margin-top:12px; }
 
 .quickrow { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:16px; }
 .quick {
@@ -2107,7 +2109,7 @@ const ART = (function () {
       stage.innerHTML = '<div class="artbox" style="max-width:150px">' + ART.render(it) + '</div>' +
         '<div class="ptword" style="font-size:1.15rem">' + it.pt + '</div>';
       body.appendChild(ttl); body.appendChild(stage);
-      body.appendChild(spellUI(q));
+      body.appendChild(spellUI(q, foot));
 
     } else if (q.type === 'type') {
       ttl.innerHTML = '<b>Digite</b> em inglês';
@@ -2146,7 +2148,7 @@ const ART = (function () {
   }
 
   /* ---- soletrar com letrinhas ---- */
-  function spellUI(q) {
+  function spellUI(q, foot) {
     const target = q.item.en.toUpperCase();
     const wrap = el('div');
     const slots = el('div', 'slots');
@@ -2157,6 +2159,11 @@ const ART = (function () {
     const extra = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     const bag = shuffle(letters.concat(shuffle(extra).slice(0, Math.min(4, Math.max(2, 10 - letters.length)))));
 
+    // só confere quando você mandar — dá para apagar e trocar as letras à vontade
+    const okBtn = el('button', 'btn primary', 'Conferir');
+    okBtn.onclick = function () { if (firstEmpty() < 0) check(); };
+    foot.appendChild(okBtn);
+
     function draw() {
       slots.innerHTML = '';
       let li = 0;
@@ -2165,10 +2172,24 @@ const ART = (function () {
         const v = filled[li];
         const s = el('div', 'slot' + (v ? '' : ' empty'), v || '');
         const idx = li;
-        if (v) s.onclick = function () { filled[idx] = null; usedFix(); draw(); };
+        if (v) s.onclick = function () { if (G.answered) return; clear(idx); };
         slots.appendChild(s);
         li++;
       });
+      const done = firstEmpty() < 0;
+      okBtn.disabled = !done;
+      okBtn.classList.toggle('off', !done);
+      okBtn.textContent = done ? 'Conferir' : 'Faltam letras…';
+      back.classList.toggle('off', !filled.some(function (c) { return c; }));
+    }
+    function clear(i) {
+      filled[i] = null;
+      sfx.tap(); buzz(6);
+      usedFix(); draw();
+    }
+    function lastFilled() {
+      for (let i = letters.length - 1; i >= 0; i--) if (filled[i]) return i;
+      return -1;
     }
     function usedFix() {
       // recalcula quais peças estão usadas
@@ -2196,43 +2217,63 @@ const ART = (function () {
         filled[i] = ch;
         sfx.tap(); buzz(6);
         usedFix(); draw();
-        if (firstEmpty() < 0) check();
       };
       tiles.appendChild(t);
     });
 
     function check() {
-      const got = filled.join('');
-      const want = letters.join('');
-      const good = got === want;
+      const good = filled.join('') === letters.join('');
+      // marca letra por letra: dá para ver exatamente onde errou
+      let li = 0;
       Array.prototype.forEach.call(slots.children, function (s) {
-        if (!s.classList.contains('space')) s.classList.add(good ? 'ok' : 'bad');
+        if (s.classList.contains('space')) return;
+        s.classList.add(filled[li] === letters[li] ? 'ok' : 'bad');
+        li++;
       });
+      okBtn.classList.add('off');
+      if (!good) {
+        // depois de um instante, mostra a grafia certa no lugar
+        setTimeout(function () {
+          let j = 0;
+          Array.prototype.forEach.call(slots.children, function (s) {
+            if (s.classList.contains('space')) return;
+            s.textContent = letters[j];
+            s.classList.remove('bad', 'empty');
+            s.classList.add('ok');
+            j++;
+          });
+        }, 900);
+      }
       setTimeout(function () {
-        answer(q, good, null, null, null, function () {
-          if (!good) { filled.length = 0; usedFix(); draw(); }
-        });
+        answer(q, good, null, null, null);
       }, good ? 180 : 420);
     }
 
-    draw();
-    wrap.appendChild(slots);
-    wrap.appendChild(tiles);
     const hint = el('div', 'hintrow');
+    const back = el('button', 'btn ghost sm', '⌫ Apagar');
+    back.onclick = function () {
+      if (G.answered) return;
+      const i = lastFilled();
+      if (i >= 0) clear(i);
+    };
     const hb = el('button', 'btn ghost sm', '💡 Dica');
-    hb.style.maxWidth = '140px';
     hb.onclick = function () {
+      if (G.answered) return;
       const i = firstEmpty();
       if (i < 0) return;
       filled[i] = letters[i];
+      sfx.tap();
       usedFix(); draw();
-      if (firstEmpty() < 0) check();
     };
     const sb = el('button', 'btn ghost sm', '🔊 Ouvir');
-    sb.style.maxWidth = '140px';
     sb.onclick = function () { say(q.item.en); };
-    hint.appendChild(hb); hint.appendChild(sb);
+    [back, hb, sb].forEach(function (b) { b.style.maxWidth = '120px'; hint.appendChild(b); });
+
+    wrap.appendChild(slots);
+    wrap.appendChild(tiles);
     wrap.appendChild(hint);
+    wrap.appendChild(el('div', 'tip', 'toque numa letra do quadro para apagar'));
+    draw();
     return wrap;
   }
 

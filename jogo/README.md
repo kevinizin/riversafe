@@ -32,7 +32,7 @@ Também funciona abrindo o `index.html` direto do arquivo — só o modo offline
   | Só a **sombra** → adivinhar | reconhecer a **forma** |
   | Português → inglês | traduzir |
   | Inglês → português | entender |
-  | Montar a palavra com letrinhas | **escrever** |
+  | Montar a palavra com letrinhas | **escrever** (dá para apagar e só confere quando você manda) |
   | Digitar a palavra no teclado | **escrever do zero** |
 - **Repetição espaçada**: cada palavra tem uma "força de memória"; o que você acerta
   volta cada vez mais tarde, o que erra volta em minutos (botão *Revisão*).
