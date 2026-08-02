@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>HortaPop — aprenda frutas e legumes em inglês</title>
+<meta name="description" content="Jogo para aprender os nomes de frutas, legumes e verduras em inglês: escrever, ouvir, reconhecer a forma e memorizar.">
+<meta name="theme-color" content="#2f9e44">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="HortaPop">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+/* ===================== BASE ===================== */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin:0; padding:0; height:100%; }
+html { -webkit-text-size-adjust:100%; }
+body {
+  font-family: ui-rounded, "SF Pro Rounded", "Segoe UI Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+:root {
+  --bg:#fff8ec;
+  --ink:#2c3a2e;
+  --ink-soft:#6b7c6d;
+  --card:#ffffff;
+  --line:#e7e2d4;
+  --green:#2f9e44;
+  --green-d:#227736;
+  --green-l:#8ce99a;
+  --red:#e03131;
+  --red-d:#b02525;
+  --orange:#f76707;
+  --yellow:#fcc419;
+  --purple:#7950f2;
+  --blue:#1c7ed6;
+  --r:22px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+}
+button { font: inherit; color: inherit; border:0; background:none; cursor:pointer; }
+:focus-visible { outline:3px solid var(--blue); outline-offset:2px; }
+
+/* fundo decorado */
+#bgdeco { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+#bgdeco i {
+  position:absolute; display:block; border-radius:50%;
+  filter: blur(28px); opacity:.5;
+}
+#bgdeco i:nth-child(1){ width:300px;height:300px; background:#ffd8a8; top:-90px; left:-80px; }
+#bgdeco i:nth-child(2){ width:260px;height:260px; background:#b2f2bb; bottom:-90px; right:-70px; }
+#bgdeco i:nth-child(3){ width:220px;height:220px; background:#ffc9c9; top:38%; right:-110px; }
+#bgdeco i:nth-child(4){ width:200px;height:200px; background:#d0ebff; bottom:22%; left:-100px; }
+
+/* ===================== LAYOUT ===================== */
+#app {
+  position:relative; z-index:1;
+  height:100dvh; max-width:560px; margin:0 auto;
+  display:flex; flex-direction:column;
+}
+.screen { display:none; flex:1; min-height:0; flex-direction:column; }
+.screen.on { display:flex; animation: fadeIn .22s ease both; }
+@keyframes fadeIn { from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
+.scroll { flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding: 0 16px calc(24px + var(--safe-b)); }
+
+/* ===================== TOPO ===================== */
+.topbar {
+  display:flex; align-items:center; gap:10px;
+  padding: calc(10px + var(--safe-t)) 16px 10px;
+}
+.topbar h2 { font-size:1.05rem; margin:0; font-weight:800; flex:1; text-align:center; }
+.iconbtn {
+  width:42px; height:42px; border-radius:14px; background:#fff;
+  display:grid; place-items:center; font-size:1.15rem; font-weight:800;
+  box-shadow:0 2px 0 var(--line), 0 4px 12px rgba(0,0,0,.06);
+  flex:none;
+}
+.iconbtn:active { transform: translateY(2px); box-shadow:0 0 0 var(--line); }
+
+/* cabeçalho da home */
+.hero { padding: calc(14px + var(--safe-t)) 16px 6px; }
+.hero-row { display:flex; align-items:center; gap:12px; }
+.logo {
+  width:52px; height:52px; border-radius:18px; flex:none;
+  background:linear-gradient(150deg,#51cf66,#2f9e44);
+  display:grid; place-items:center; font-size:1.6rem;
+  box-shadow:0 4px 0 #1e6b30, 0 8px 18px rgba(47,158,68,.35);
+}
+.hero h1 { margin:0; font-size:1.4rem; font-weight:900; letter-spacing:-.02em; }
+.hero p { margin:2px 0 0; font-size:.8rem; color:var(--ink-soft); font-weight:600; }
+.stats { display:flex; gap:8px; margin-top:14px; }
+.stat {
+  flex:1; background:#fff; border-radius:16px; padding:8px 6px; text-align:center;
+  box-shadow:0 2px 0 var(--line);
+}
+.stat b { display:block; font-size:1.05rem; font-weight:900; }
+.stat span { font-size:.66rem; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+
+.xpwrap { margin-top:12px; }
+.xpbar { height:12px; border-radius:99px; background:#eee7d8; overflow:hidden; box-shadow:inset 0 1px 3px rgba(0,0,0,.08); }
+.xpbar i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#ffd43b,#f76707); transition:width .5s cubic-bezier(.3,1.4,.5,1); }
+.xplabel { display:flex; justify-content:space-between; font-size:.7rem; font-weight:800; color:var(--ink-soft); margin-top:5px; }
+
+/* ===================== BOTÕES ===================== */
+.btn {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; padding:15px 16px; border-radius:18px;
+  font-weight:900; font-size:1rem; letter-spacing:.01em;
+  background:#fff; box-shadow:0 4px 0 var(--line); transition: transform .08s, box-shadow .08s;
+}
+.btn:active { transform:translateY(4px); box-shadow:0 0 0 var(--line); }
+.btn.primary { background:linear-gradient(180deg,#51cf66,#2f9e44); color:#fff; box-shadow:0 4px 0 var(--green-d); }
+.btn.primary:active { box-shadow:0 0 0 var(--green-d); }
+.btn.warn { background:linear-gradient(180deg,#ffa94d,#f76707); color:#fff; box-shadow:0 4px 0 #c85502; }
+.btn.ghost { background:rgba(255,255,255,.75); box-shadow:0 2px 0 var(--line); font-weight:800; }
+.btn.sm { padding:11px 12px; font-size:.85rem; border-radius:14px; }
+
+.quickrow { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:16px; }
+.quick {
+  background:#fff; border-radius:18px; padding:13px 12px; text-align:left;
+  box-shadow:0 3px 0 var(--line); display:flex; gap:10px; align-items:center;
+}
+.quick:active { transform:translateY(3px); box-shadow:0 0 0 var(--line); }
+.quick em { font-style:normal; font-size:1.5rem; }
+.quick b { display:block; font-size:.86rem; font-weight:900; }
+.quick span { font-size:.68rem; color:var(--ink-soft); font-weight:700; }
+
+/* ===================== TRILHA DE FASES ===================== */
+.secttl { font-size:.78rem; font-weight:900; color:var(--ink-soft); text-transform:uppercase;
+  letter-spacing:.08em; margin:22px 4px 10px; }
+.level {
+  display:flex; align-items:center; gap:13px; width:100%;
+  background:#fff; border-radius:20px; padding:13px 14px; margin-bottom:10px;
+  box-shadow:0 3px 0 var(--line); text-align:left; position:relative; overflow:hidden;
+}
+.level:active { transform:translateY(3px); box-shadow:0 0 0 var(--line); }
+.level.locked { opacity:.55; }
+.level .lvicon {
+  width:52px; height:52px; border-radius:17px; flex:none;
+  display:grid; place-items:center; font-size:1.6rem; color:#fff;
+}
+.level .lvtxt { flex:1; min-width:0; }
+.level .lvtxt b { display:block; font-size:.95rem; font-weight:900; }
+.level .lvtxt span { font-size:.72rem; color:var(--ink-soft); font-weight:700; }
+.level .stars { font-size:.85rem; letter-spacing:1px; margin-top:3px; }
+.level .lock { font-size:1.2rem; opacity:.6; }
+.badge-new { position:absolute; top:0; right:0; background:var(--orange); color:#fff;
+  font-size:.6rem; font-weight:900; padding:3px 9px; border-bottom-left-radius:10px; letter-spacing:.05em; }
+
+/* ===================== APRENDER (flashcards) ===================== */
+.card {
+  background:#fff; border-radius:26px; padding:18px; box-shadow:0 6px 24px rgba(0,0,0,.09);
+}
+.artbox { width:100%; max-width:230px; margin:0 auto; aspect-ratio:1/1; display:block; }
+.artbox svg { width:100%; height:100%; display:block; }
+.artbox.mini { max-width:none; }
+.pill {
+  display:inline-flex; align-items:center; gap:5px; padding:4px 11px; border-radius:99px;
+  font-size:.68rem; font-weight:900; color:#fff; letter-spacing:.03em;
+}
+.word { font-size:2.05rem; font-weight:900; letter-spacing:-.02em; margin:6px 0 2px; line-height:1.1; }
+.phon { font-size:.95rem; color:var(--orange); font-weight:800; }
+.ptword { font-size:1.05rem; font-weight:800; color:var(--ink-soft); margin-top:2px; }
+.sep { height:1px; background:var(--line); margin:14px 0; }
+.exline { font-size:.95rem; font-weight:700; }
+.exline small { display:block; font-size:.82rem; color:var(--ink-soft); font-weight:600; margin-top:3px; }
+.note {
+  margin-top:12px; background:#fff9db; border-radius:14px; padding:10px 12px;
+  font-size:.8rem; font-weight:700; color:#7a5c00;
+}
+.speak {
+  width:56px; height:56px; border-radius:50%; background:linear-gradient(180deg,#4dabf7,#1c7ed6);
+  color:#fff; font-size:1.4rem; display:grid; place-items:center; flex:none;
+  box-shadow:0 4px 0 #1862ab;
+}
+.speak:active { transform:translateY(4px); box-shadow:0 0 0 #1862ab; }
+.speak.small { width:44px; height:44px; font-size:1.1rem; box-shadow:0 3px 0 #1862ab; }
+.learnfoot { padding:10px 16px calc(14px + var(--safe-b)); display:flex; gap:10px; align-items:center; }
+.dotsteps { display:flex; gap:5px; justify-content:center; margin:12px 0 4px; flex-wrap:wrap; }
+.dotsteps i { width:8px; height:8px; border-radius:50%; background:#dcd6c6; display:block; }
+.dotsteps i.on { background:var(--green); transform:scale(1.25); }
+.dotsteps i.done { background:var(--green-l); }
+
+/* ===================== JOGO ===================== */
+.playhead { display:flex; align-items:center; gap:10px; padding: calc(10px + var(--safe-t)) 16px 8px; }
+.pbar { flex:1; height:14px; border-radius:99px; background:#eee7d8; overflow:hidden; box-shadow:inset 0 1px 3px rgba(0,0,0,.08); }
+.pbar i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#8ce99a,#2f9e44); transition:width .35s; }
+.scorepill { font-size:.82rem; font-weight:900; background:#fff; padding:6px 11px; border-radius:99px; box-shadow:0 2px 0 var(--line); white-space:nowrap; }
+.combo { font-size:.72rem; font-weight:900; color:var(--orange); text-align:center; height:16px; }
+
+.qtitle { text-align:center; font-size:.95rem; font-weight:800; color:var(--ink-soft); margin:4px 0 12px; }
+.qtitle b { color:var(--ink); }
+.qstage { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.bigword { font-size:2.1rem; font-weight:900; text-align:center; letter-spacing:-.02em; }
+.bigword.pt { font-size:1.7rem; color:var(--ink); }
+
+.opts { display:grid; gap:10px; margin-top:18px; }
+.opts.two { grid-template-columns:repeat(2,1fr); }
+.opt {
+  background:#fff; border-radius:18px; padding:15px 14px; font-weight:800; font-size:1rem;
+  box-shadow:0 3px 0 var(--line); text-align:center; transition:transform .08s, box-shadow .08s;
+}
+.opt:active { transform:translateY(3px); box-shadow:0 0 0 var(--line); }
+.opt.art { padding:8px; }
+.opt.art .artbox { max-width:none; }
+.opt.correct { background:#d3f9d8; box-shadow:0 3px 0 #69db7c; color:#1e6b30; }
+.opt.wrong { background:#ffe3e3; box-shadow:0 3px 0 #ff8787; color:#a72020; }
+.opt.dim { opacity:.45; }
+
+/* soletrar */
+.slots { display:flex; flex-wrap:wrap; gap:7px; justify-content:center; margin:14px 0 6px; min-height:52px; }
+.slot {
+  width:40px; height:50px; border-radius:12px; background:#fff; box-shadow:0 3px 0 var(--line);
+  display:grid; place-items:center; font-size:1.25rem; font-weight:900; text-transform:uppercase;
+}
+.slot.empty { background:rgba(255,255,255,.5); box-shadow:inset 0 0 0 2px var(--line); }
+.slot.space { width:16px; box-shadow:none; background:none; }
+.slot.ok { background:#d3f9d8; box-shadow:0 3px 0 #69db7c; }
+.slot.bad { background:#ffe3e3; box-shadow:0 3px 0 #ff8787; animation:shake .35s; }
+.tiles { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:16px; }
+.tile {
+  width:44px; height:50px; border-radius:12px; background:#fff; box-shadow:0 3px 0 var(--line);
+  font-size:1.2rem; font-weight:900; text-transform:uppercase;
+}
+.tile:active { transform:translateY(3px); box-shadow:0 0 0 var(--line); }
+.tile.used { opacity:.25; pointer-events:none; }
+
+/* digitar */
+.typein {
+  width:100%; padding:15px 16px; border-radius:18px; border:2px solid var(--line);
+  font-size:1.25rem; font-weight:800; text-align:center; background:#fff; color:var(--ink);
+}
+.typein:focus { border-color:var(--green); outline:none; }
+.hintrow { display:flex; justify-content:center; gap:8px; margin-top:10px; }
+
+/* feedback */
+.fb {
+  position:fixed; left:0; right:0; bottom:0; z-index:50;
+  background:#fff; border-radius:26px 26px 0 0; padding:16px 16px calc(16px + var(--safe-b));
+  box-shadow:0 -8px 30px rgba(0,0,0,.15); transform:translateY(110%); transition:transform .28s cubic-bezier(.2,1.2,.4,1);
+  max-width:560px; margin:0 auto;
+}
+.fb.on { transform:none; }
+.fb.good { background:#ebfbee; }
+.fb.bad { background:#fff5f5; }
+.fbhead { display:flex; align-items:center; gap:10px; }
+.fbhead .em { font-size:1.8rem; }
+.fbhead b { font-size:1.1rem; font-weight:900; }
+.fbhead small { display:block; font-size:.8rem; font-weight:700; color:var(--ink-soft); }
+.fb .btn { margin-top:12px; }
+
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)} 40%{transform:translateX(7px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+.shake { animation:shake .38s; }
+@keyframes pop { 0%{transform:scale(.85); opacity:0} 60%{transform:scale(1.05)} 100%{transform:scale(1); opacity:1} }
+.pop { animation:pop .32s cubic-bezier(.3,1.5,.5,1) both; }
+@keyframes floaty { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+.floaty { animation:floaty 3.4s ease-in-out infinite; }
+.plusone {
+  position:fixed; z-index:60; font-weight:900; color:var(--green); font-size:1.4rem;
+  pointer-events:none; animation: up .9s ease-out forwards;
+}
+@keyframes up { from{opacity:1; transform:translateY(0)} to{opacity:0; transform:translateY(-60px)} }
+
+/* ===================== RESULTADO ===================== */
+.result { text-align:center; padding-top:10px; }
+.bigstars { font-size:2.6rem; letter-spacing:6px; }
+.bigscore { font-size:3rem; font-weight:900; letter-spacing:-.03em; line-height:1; margin:6px 0; }
+.misslist { text-align:left; margin-top:16px; }
+.missitem { display:flex; align-items:center; gap:11px; background:#fff; border-radius:16px; padding:9px 12px; margin-bottom:8px; box-shadow:0 2px 0 var(--line); }
+.missitem .artbox { width:46px; max-width:46px; }
+.missitem b { font-size:.95rem; font-weight:900; display:block; }
+.missitem span { font-size:.75rem; color:var(--ink-soft); font-weight:700; }
+
+/* confete */
+#confetti { position:fixed; inset:0; pointer-events:none; z-index:70; overflow:hidden; }
+#confetti b { position:absolute; width:10px; height:14px; border-radius:2px; animation: fall linear forwards; }
+@keyframes fall { to { transform: translateY(105vh) rotate(720deg); opacity:.2; } }
+
+/* ===================== DICIONÁRIO ===================== */
+.filters { display:flex; gap:7px; overflow-x:auto; padding:2px 0 10px; }
+.chip { padding:8px 14px; border-radius:99px; background:#fff; font-size:.8rem; font-weight:800;
+  box-shadow:0 2px 0 var(--line); white-space:nowrap; }
+.chip.on { background:var(--green); color:#fff; box-shadow:0 2px 0 var(--green-d); }
+.grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.gcell { background:#fff; border-radius:18px; padding:8px 6px 10px; box-shadow:0 3px 0 var(--line); text-align:center; }
+.gcell:active { transform:translateY(3px); box-shadow:0 0 0 var(--line); }
+.gcell .artbox { max-width:none; }
+.gcell b { display:block; font-size:.74rem; font-weight:900; margin-top:2px; }
+.gcell span { display:block; font-size:.64rem; color:var(--ink-soft); font-weight:700; }
+.strength { height:5px; border-radius:99px; background:#eee7d8; margin:5px 8px 0; overflow:hidden; }
+.strength i { display:block; height:100%; background:linear-gradient(90deg,#8ce99a,#2f9e44); }
+
+/* folha modal */
+.sheetwrap { position:fixed; inset:0; z-index:80; display:none; }
+.sheetwrap.on { display:block; }
+.sheetbg { position:absolute; inset:0; background:rgba(20,30,22,.45); animation:fadeIn .2s both; }
+.sheet {
+  position:absolute; left:0; right:0; bottom:0; max-width:560px; margin:0 auto;
+  background:var(--bg); border-radius:26px 26px 0 0; padding:16px 16px calc(20px + var(--safe-b));
+  max-height:88dvh; overflow-y:auto; animation: slideup .28s cubic-bezier(.2,1.1,.4,1) both;
+}
+@keyframes slideup { from{transform:translateY(100%)} to{transform:none} }
+.grab { width:44px; height:5px; border-radius:99px; background:#d8d2c2; margin:0 auto 12px; }
+
+/* texto do método */
+.prose { font-size:.92rem; line-height:1.55; font-weight:600; }
+.prose h3 { font-size:1rem; font-weight:900; margin:18px 0 6px; }
+.prose p { margin:0 0 10px; }
+.prose ul { margin:0 0 10px; padding-left:20px; }
+.prose li { margin-bottom:6px; }
+.stepcard { background:#fff; border-radius:18px; padding:13px 15px; margin-bottom:10px; box-shadow:0 3px 0 var(--line); }
+.stepcard b { display:block; font-size:.95rem; font-weight:900; margin-bottom:3px; }
+.stepcard span { font-size:.83rem; color:var(--ink-soft); font-weight:600; line-height:1.45; }
+
+/* opções */
+.setrow { display:flex; align-items:center; justify-content:space-between; gap:12px;
+  background:#fff; border-radius:18px; padding:14px 15px; margin-bottom:10px; box-shadow:0 3px 0 var(--line); }
+.setrow b { font-size:.92rem; font-weight:900; }
+.setrow small { display:block; font-size:.74rem; color:var(--ink-soft); font-weight:600; }
+.sw { width:54px; height:32px; border-radius:99px; background:#ded8c8; position:relative; flex:none; transition:background .2s; }
+.sw i { position:absolute; top:3px; left:3px; width:26px; height:26px; border-radius:50%; background:#fff; transition:left .2s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+.sw.on { background:var(--green); }
+.sw.on i { left:25px; }
+
+.empty { text-align:center; color:var(--ink-soft); font-weight:700; padding:40px 20px; font-size:.9rem; }
+.hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<div id="bgdeco"><i></i><i></i><i></i><i></i></div>
+
+<div id="app">
+
+  <!-- ================= HOME ================= -->
+  <section class="screen on" id="s-home">
+    <div class="hero">
+      <div class="hero-row">
+        <div class="logo floaty">🥑</div>
+        <div style="flex:1">
+          <h1>HortaPop</h1>
+          <p id="hello">Frutas, legumes e verduras em inglês</p>
+        </div>
+        <button class="iconbtn" data-go="s-settings" aria-label="Ajustes">⚙️</button>
+      </div>
+
+      <div class="xpwrap">
+        <div class="xpbar"><i id="xpfill" style="width:0%"></i></div>
+        <div class="xplabel"><span id="xplevel">Nível 1</span><span id="xptext">0 / 100 XP</span></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><b id="st-words">0</b><span>palavras</span></div>
+        <div class="stat"><b id="st-streak">0</b><span>dias seguidos</span></div>
+        <div class="stat"><b id="st-score">0</b><span>pontos</span></div>
+      </div>
+    </div>
+
+    <div class="scroll">
+      <div class="quickrow">
+        <button class="quick" id="btn-review"><em>🔁</em><div><b>Revisão</b><span id="review-count">tudo em dia</span></div></button>
+        <button class="quick" data-go="s-dex"><em>📖</em><div><b>Dicionário</b><span>ver todas</span></div></button>
+        <button class="quick" data-go="s-method"><em>🧠</em><div><b>Como aprender</b><span>o método</span></div></button>
+        <button class="quick" id="btn-random"><em>🎲</em><div><b>Treino livre</b><span>mistura tudo</span></div></button>
+      </div>
+
+      <div class="secttl">Fases</div>
+      <div id="levels"></div>
+      <div style="height:10px"></div>
+    </div>
+  </section>
+
+  <!-- ================= APRENDER ================= -->
+  <section class="screen" id="s-learn">
+    <div class="topbar">
+      <button class="iconbtn" data-go="s-home" aria-label="Voltar">←</button>
+      <h2 id="learn-title">Aprender</h2>
+      <div style="width:42px"></div>
+    </div>
+    <div class="scroll">
+      <div class="dotsteps" id="learn-dots"></div>
+      <div class="card" id="learn-card"></div>
+    </div>
+    <div class="learnfoot">
+      <button class="btn ghost" id="learn-prev" style="flex:0 0 90px">Voltar</button>
+      <button class="btn primary" id="learn-next">Próxima</button>
+    </div>
+  </section>
+
+  <!-- ================= JOGAR ================= -->
+  <section class="screen" id="s-play">
+    <div class="playhead">
+      <button class="iconbtn" id="play-quit" aria-label="Sair">✕</button>
+      <div class="pbar"><i id="play-progress" style="width:0%"></i></div>
+      <div class="scorepill">⭐ <span id="play-score">0</span></div>
+    </div>
+    <div class="combo" id="play-combo"></div>
+    <div class="scroll" id="play-body"></div>
+    <div style="padding:0 16px calc(14px + var(--safe-b))" id="play-foot"></div>
+  </section>
+
+  <!-- ================= RESULTADO ================= -->
+  <section class="screen" id="s-result">
+    <div class="scroll" style="padding-top:calc(24px + var(--safe-t))">
+      <div class="result">
+        <div class="bigstars" id="res-stars">⭐⭐⭐</div>
+        <div class="bigscore" id="res-score">0</div>
+        <div style="font-weight:800; color:var(--ink-soft)" id="res-sub">pontos</div>
+        <div class="card" style="margin-top:18px; text-align:left" id="res-card"></div>
+        <div id="res-miss"></div>
+      </div>
+    </div>
+    <div style="padding:10px 16px calc(14px + var(--safe-b)); display:grid; gap:10px">
+      <button class="btn primary" id="res-next">Continuar</button>
+      <button class="btn ghost" id="res-again">Jogar de novo</button>
+      <button class="btn ghost" data-go="s-home">Voltar ao início</button>
+    </div>
+  </section>
+
+  <!-- ================= DICIONÁRIO ================= -->
+  <section class="screen" id="s-dex">
+    <div class="topbar">
+      <button class="iconbtn" data-go="s-home" aria-label="Voltar">←</button>
+      <h2>Dicionário</h2>
+      <div style="width:42px"></div>
+    </div>
+    <div class="scroll">
+      <div class="filters" id="dex-filters"></div>
+      <div class="grid" id="dex-grid"></div>
+      <div style="height:16px"></div>
+    </div>
+  </section>
+
+  <!-- ================= MÉTODO ================= -->
+  <section class="screen" id="s-method">
+    <div class="topbar">
+      <button class="iconbtn" data-go="s-home" aria-label="Voltar">←</button>
+      <h2>Como aprender de verdade</h2>
+      <div style="width:42px"></div>
+    </div>
+    <div class="scroll">
+      <div class="card prose">
+        <p><b>Esse jogo não é só um quiz.</b> Ele usa cinco técnicas que a ciência da
+        memória mostra serem as mais eficientes para decorar palavras novas — e usa
+        todas juntas, sem você precisar pensar nisso.</p>
+      </div>
+
+      <div class="secttl">As 5 técnicas</div>
+
+      <div class="stepcard"><b>1. Ver, ouvir e ler ao mesmo tempo</b>
+        <span>Cada palavra aparece com desenho, som e escrita. O cérebro guarda a mesma
+        informação em três lugares diferentes — três caminhos para lembrar depois.</span></div>
+
+      <div class="stepcard"><b>2. Puxar da memória (retrieval practice)</b>
+        <span>Reler não fixa quase nada. O que fixa é <i>tentar lembrar</i>. Por isso o
+        jogo pergunta antes de mostrar a resposta, mesmo quando você ainda não tem certeza.</span></div>
+
+      <div class="stepcard"><b>3. Repetição espaçada</b>
+        <span>Palavras que você acerta voltam cada vez mais tarde (1 dia, 3 dias, 1 semana…).
+        Palavras que você erra voltam em minutos. É o botão “Revisão” da tela inicial.</span></div>
+
+      <div class="stepcard"><b>4. Misturar os tipos de pergunta</b>
+        <span>Ver a imagem, ouvir o som, reconhecer só a sombra, escrever letra por letra.
+        Misturar é mais difícil no começo e por isso mesmo faz lembrar muito melhor depois.</span></div>
+
+      <div class="stepcard"><b>5. Produzir, não só reconhecer</b>
+        <span>Escolher entre 4 opções é fácil. Escrever a palavra do zero é o que prova
+        que você realmente sabe — e é o que mais fixa.</span></div>
+
+      <div class="secttl">Como usar no dia a dia</div>
+      <div class="card prose">
+        <ul>
+          <li><b>10 minutos por dia</b> valem mais do que 2 horas no sábado.</li>
+          <li>Comece sempre pela <b>Revisão</b>. Depois abra uma fase nova.</li>
+          <li><b>Fale em voz alta</b> junto com o áudio. A boca ajuda a memória.</li>
+          <li>Errou? Ótimo. O erro seguido da resposta certa fixa mais que o acerto fácil.</li>
+          <li>Não tente decorar 30 palavras de uma vez. <b>6 por fase</b> já é bastante.</li>
+        </ul>
+      </div>
+      <div style="height:16px"></div>
+    </div>
+  </section>
+
+  <!-- ================= AJUSTES ================= -->
+  <section class="screen" id="s-settings">
+    <div class="topbar">
+      <button class="iconbtn" data-go="s-home" aria-label="Voltar">←</button>
+      <h2>Ajustes</h2>
+      <div style="width:42px"></div>
+    </div>
+    <div class="scroll">
+      <div class="setrow"><div><b>Som</b><small>efeitos de acerto e erro</small></div>
+        <div class="sw on" id="sw-sound"><i></i></div></div>
+      <div class="setrow"><div><b>Voz</b><small>falar as palavras em inglês</small></div>
+        <div class="sw on" id="sw-voice"><i></i></div></div>
+      <div class="setrow"><div><b>Vibrar</b><small>resposta do celular ao tocar</small></div>
+        <div class="sw on" id="sw-haptic"><i></i></div></div>
+      <div class="setrow"><div><b>Escrever à mão</b><small>usar o teclado em vez das letrinhas</small></div>
+        <div class="sw" id="sw-typing"><i></i></div></div>
+
+      <div class="secttl">Instalar no celular</div>
+      <div class="card prose" style="font-size:.86rem">
+        <p><b>Android (Chrome):</b> menu ⋮ → <i>Adicionar à tela inicial</i>.</p>
+        <p><b>iPhone (Safari):</b> botão compartilhar <span style="font-size:1.1em">􀈂</span> → <i>Adicionar à Tela de Início</i>.</p>
+        <p style="margin:0">Depois disso o jogo abre em tela cheia, como um aplicativo,
+        e funciona mesmo sem internet.</p>
+      </div>
+
+      <div class="secttl">Progresso</div>
+      <button class="btn ghost" id="btn-reset" style="color:var(--red)">Apagar todo o progresso</button>
+      <div style="height:24px"></div>
+      <div style="text-align:center; font-size:.7rem; color:var(--ink-soft); font-weight:700">HortaPop • feito com carinho 🌱</div>
+      <div style="height:20px"></div>
+    </div>
+  </section>
+
+</div>
+
+<!-- feedback do jogo -->
+<div class="fb" id="fb">
+  <div class="fbhead">
+    <div class="em" id="fb-em">✅</div>
+    <div style="flex:1"><b id="fb-title">Isso!</b><small id="fb-sub"></small></div>
+    <button class="speak small" id="fb-speak" aria-label="Ouvir">🔊</button>
+  </div>
+  <button class="btn primary" id="fb-next">Continuar</button>
+</div>
+
+<!-- folha do dicionário -->
+<div class="sheetwrap" id="sheet">
+  <div class="sheetbg" data-close="1"></div>
+  <div class="sheet"><div class="grab"></div><div id="sheet-body"></div></div>
+</div>
+
+<div id="confetti"></div>
+
+<script src="data.js"></script>
+<script src="art.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
