@@ -1,7 +1,8 @@
 # 🥑 HortaPop
 
-Jogo para **aprender em inglês os nomes de frutas, legumes, verduras e temperos** —
-feito para uma pessoa só, para usar no celular.
+Jogo para **aprender em inglês os nomes de frutas, legumes, verduras e temperos**,
+feito para usar no celular. Suporta **vários perfis no mesmo aparelho** — cada pessoa
+escolhe (ou cria) seu perfil e joga com seu próprio progresso, separado dos outros.
 
 A interface é em **português**; o conteúdo a ser aprendido é em **inglês**.
 
@@ -18,6 +19,19 @@ Depois de instalado ele abre em tela cheia, sem barra do navegador, e **funciona
 
 Também funciona abrindo o `index.html` direto do arquivo — só o modo offline instalado
 (service worker) precisa de um servidor.
+
+## Perfis
+
+Na primeira vez, o jogo pergunta "Quem vai jogar?" — toque em *Novo perfil*, escolha um
+nome e um emoji. O progresso de cada perfil (fases, estrelas, pontos, memória de cada
+palavra) fica isolado dos demais. Para trocar de perfil depois, toque no emoji redondo
+ao lado da engrenagem na tela inicial, ou em Ajustes → Perfil → *Trocar*. Dá para editar
+o nome/emoji ou excluir um perfil a qualquer momento (ícone de lápis no card do perfil).
+
+Importante: **isso não é uma conta online**. Os perfis ficam salvos só neste aparelho/
+navegador — trocar de celular ou limpar os dados do navegador não leva o progresso junto.
+Quem já jogava antes dos perfis existirem não perde nada: na primeira abertura depois da
+atualização, o progresso antigo vira automaticamente o primeiro perfil ("Jogador 1").
 
 ## O que tem dentro
 

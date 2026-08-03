@@ -26,20 +26,48 @@
     d = d || new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
 
-  /* ==================== ESTADO ==================== */
-  const KEY = 'hortapop.v1';
+  /* ==================== PERFIS ==================== */
+  /* Cada perfil tem seu próprio progresso, guardado neste mesmo aparelho
+     (não é uma conta online — troca de aparelho não leva o progresso junto). */
+  const LEGACY_KEY = 'hortapop.v1';     // versão sem perfis, mantida só para migração
+  const PROFILES_KEY = 'hortapop.profiles';
+  const ACTIVE_KEY = 'hortapop.active';
+  const saveKey = function (id) { return 'hortapop.save.' + id; };
+
   const DEFAULT = {
     v: 1, xp: 0, score: 0,
     levels: {}, srs: {},
     set: { sound: 1, voice: 1, haptic: 1, typing: 0 },
     streak: { n: 0, last: '' },
   };
-  let S = load();
+  const EMOJIS = ['🥑', '🍎', '🍓', '🍉', '🍇', '🍍', '🥕', '🌽', '🥦', '🍒', '🥭', '🍋', '🍑', '🥝', '🍌', '🌶️', '🧅', '🍐', '🫐', '🥔'];
 
-  function load() {
+  function loadProfiles() {
+    try { return JSON.parse(localStorage.getItem(PROFILES_KEY)) || []; } catch (e) { return []; }
+  }
+  function saveProfiles() {
+    try { localStorage.setItem(PROFILES_KEY, JSON.stringify(PROFILES)); } catch (e) {}
+  }
+  function getActiveId() {
+    try { return localStorage.getItem(ACTIVE_KEY) || ''; } catch (e) { return ''; }
+  }
+  function setActiveId(id) {
+    try { localStorage.setItem(ACTIVE_KEY, id); } catch (e) {}
+  }
+
+  let PROFILES = loadProfiles();
+  let ACTIVE = '';
+  let S = JSON.parse(JSON.stringify(DEFAULT));
+
+  function loadState(id) {
     try {
-      const raw = localStorage.getItem(KEY);
+      const raw = localStorage.getItem(saveKey(id));
       if (!raw) return JSON.parse(JSON.stringify(DEFAULT));
       const d = JSON.parse(raw);
       return Object.assign(JSON.parse(JSON.stringify(DEFAULT)), d, {
@@ -49,7 +77,55 @@
     } catch (e) { return JSON.parse(JSON.stringify(DEFAULT)); }
   }
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+    if (!ACTIVE) return;
+    try { localStorage.setItem(saveKey(ACTIVE), JSON.stringify(S)); } catch (e) {}
+  }
+
+  /* progresso de antes de existirem perfis (v1) vira o primeiro perfil, sem perder nada */
+  function migrateLegacy() {
+    if (PROFILES.length) return;
+    let legacy = null;
+    try { const raw = localStorage.getItem(LEGACY_KEY); if (raw) legacy = JSON.parse(raw); } catch (e) {}
+    if (!legacy) return;
+    const id = 'p' + Date.now();
+    PROFILES = [{ id: id, name: 'Jogador 1', emoji: '🥑', createdAt: Date.now() }];
+    saveProfiles();
+    try { localStorage.setItem(saveKey(id), JSON.stringify(legacy)); } catch (e) {}
+    setActiveId(id);
+    try { localStorage.removeItem(LEGACY_KEY); } catch (e) {}
+  }
+
+  function peekStats(id) {
+    const st = loadState(id);
+    const words = ITEMS.filter(function (i) { return st.srs[i.id] && st.srs[i.id].seen > 0; }).length;
+    const stars = Object.keys(st.levels).reduce(function (sum, k) { return sum + (st.levels[k].stars || 0); }, 0);
+    return { words: words, stars: stars };
+  }
+
+  function createProfile(name, emoji) {
+    const id = 'p' + Date.now() + Math.floor(Math.random() * 1000);
+    const prof = { id: id, name: name, emoji: emoji, createdAt: Date.now() };
+    PROFILES.push(prof);
+    saveProfiles();
+    return prof;
+  }
+  function updateProfile(id, patch) {
+    const p = PROFILES.filter(function (pp) { return pp.id === id; })[0];
+    if (!p) return;
+    Object.assign(p, patch);
+    saveProfiles();
+  }
+  function deleteProfile(id) {
+    PROFILES = PROFILES.filter(function (p) { return p.id !== id; });
+    saveProfiles();
+    try { localStorage.removeItem(saveKey(id)); } catch (e) {}
+    if (ACTIVE === id) { ACTIVE = ''; setActiveId(''); }
+  }
+  function switchProfile(id) {
+    ACTIVE = id;
+    setActiveId(id);
+    S = loadState(id);
+    updateProfile(id, { lastPlayed: Date.now() });
   }
 
   /* ==================== REPETIÇÃO ESPAÇADA ==================== */
@@ -146,7 +222,7 @@
   }
 
   /* ==================== NAVEGAÇÃO ==================== */
-  let current = 's-home';
+  let current = '';
   function go(id) {
     if (id === current) return;
     $$('.screen').forEach(function (s) { s.classList.toggle('on', s.id === id); });
@@ -155,10 +231,12 @@
     if (sc) sc.scrollTop = 0;
     if (id === 's-home') renderHome();
     if (id === 's-dex') renderDex();
+    if (id === 's-settings') renderSettingsProfile();
     try {
       if (id === 's-home') history.replaceState({ scr: id }, ''); else history.pushState({ scr: id }, '');
     } catch (e) {}
   }
+  function goProfiles(mode) { renderProfiles(mode); go('s-profiles'); }
   document.addEventListener('click', function (e) {
     const t = e.target.closest('[data-go]');
     if (t) { sfx.tap(); go(t.getAttribute('data-go')); }
@@ -167,6 +245,11 @@
   });
   window.addEventListener('popstate', function () {
     if ($('#sheet').classList.contains('on')) { closeSheet(); return; }
+    if (current === 's-profiles' && !ACTIVE) {
+      // sem perfil escolhido ainda: não deixa "voltar" sair dessa tela
+      try { history.pushState({ scr: 's-profiles' }, ''); } catch (e) {}
+      return;
+    }
     if (current !== 's-home') { $$('.screen').forEach(function (s) { s.classList.toggle('on', s.id === 's-home'); }); current = 's-home'; renderHome(); }
   });
 
@@ -177,6 +260,129 @@
     try { history.pushState({ sheet: 1 }, ''); } catch (e) {}
   }
   function closeSheet() { $('#sheet').classList.remove('on'); }
+
+  /* ==================== PERFIS (UI) ==================== */
+  let profilesMode = 'forced';
+
+  function renderProfiles(mode) {
+    profilesMode = mode;
+    $('#profiles-back').style.visibility = mode === 'switch' ? 'visible' : 'hidden';
+    $('#profiles-title').textContent = mode === 'switch' ? 'Trocar de perfil' : 'Quem vai jogar?';
+
+    const box = $('#profiles-grid');
+    box.innerHTML = '';
+    PROFILES.forEach(function (p) {
+      const stats = peekStats(p.id);
+      const b = el('button', 'profcard' + (p.id === ACTIVE ? ' cur' : ''));
+      b.innerHTML =
+        '<div class="pavatar">' + p.emoji + '</div>' +
+        '<b>' + escapeHtml(p.name) + '</b>' +
+        '<span>' + stats.words + ' palavra' + (stats.words === 1 ? '' : 's') + (stats.stars ? ' · ' + stats.stars + '⭐' : '') + '</span>' +
+        '<div class="pedit" data-edit="' + p.id + '">✏️</div>';
+      b.onclick = function (e) {
+        if (e.target.closest('.pedit')) return;
+        sfx.tap(); selectProfile(p.id);
+      };
+      box.appendChild(b);
+    });
+    const add = el('button', 'profcard add');
+    add.innerHTML = '<div class="pavatar">➕</div><b>Novo perfil</b><span>criar</span>';
+    add.onclick = function () { sfx.tap(); openProfileEditor(null); };
+    box.appendChild(add);
+
+    Array.prototype.forEach.call(box.querySelectorAll('[data-edit]'), function (btn) {
+      btn.onclick = function (e) {
+        e.stopPropagation();
+        sfx.tap();
+        const id = btn.getAttribute('data-edit');
+        const p = PROFILES.filter(function (pp) { return pp.id === id; })[0];
+        if (p) openProfileEditor(p);
+      };
+    });
+  }
+
+  function selectProfile(id) {
+    switchProfile(id);
+    hello();
+    go('s-home');
+  }
+
+  function renderSettingsProfile() {
+    const p = PROFILES.filter(function (pp) { return pp.id === ACTIVE; })[0];
+    $('#settings-prof-name').textContent = p ? (p.emoji + ' ' + p.name) : '—';
+  }
+
+  function openProfileEditor(profile) {
+    const isNew = !profile;
+    let chosen = profile ? profile.emoji : pick(EMOJIS);
+    const html =
+      '<h3 style="margin:0 0 4px">' + (isNew ? 'Novo perfil' : 'Editar perfil') + '</h3>' +
+      '<p style="color:var(--ink-soft);font-weight:700;font-size:.85rem;margin:0">Escolha um nome e um desenho</p>' +
+      '<input class="typein" id="prof-name" maxlength="18" placeholder="Nome" value="' + (profile ? escapeHtml(profile.name) : '') + '" style="margin-top:12px">' +
+      '<div class="emojpick" id="prof-emoji"></div>' +
+      '<button class="btn primary" id="prof-save">Salvar</button>' +
+      (isNew ? '' : '<div style="height:10px"></div><button class="btn ghost" id="prof-delete" style="color:var(--red)">Excluir perfil</button>') +
+      '<div style="height:10px"></div><button class="btn ghost" data-close="1">Cancelar</button>';
+    openSheet(html);
+
+    const grid = $('#prof-emoji');
+    EMOJIS.forEach(function (em) {
+      const b = el('button', em === chosen ? 'on' : '', em);
+      b.onclick = function () {
+        chosen = em;
+        Array.prototype.forEach.call(grid.children, function (c) { c.classList.toggle('on', c.textContent === em); });
+        sfx.tap();
+      };
+      grid.appendChild(b);
+    });
+
+    const nameInput = $('#prof-name');
+    setTimeout(function () { try { nameInput.focus(); } catch (e) {} }, 250);
+    nameInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#prof-save').click(); });
+
+    $('#prof-save').onclick = function () {
+      const name = nameInput.value.trim().slice(0, 18) || 'Jogador';
+      if (isNew) {
+        const p = createProfile(name, chosen);
+        closeSheet();
+        selectProfile(p.id);
+      } else {
+        updateProfile(profile.id, { name: name, emoji: chosen });
+        closeSheet();
+        renderProfiles(profilesMode);
+        if (ACTIVE === profile.id) hello();
+      }
+    };
+
+    if (!isNew) {
+      $('#prof-delete').onclick = function () { openConfirmDeleteProfile(profile); };
+    }
+  }
+
+  function openConfirmDeleteProfile(profile) {
+    openSheet('<div style="text-align:center;padding:8px 6px">' +
+      '<div style="font-size:2.4rem">⚠️</div>' +
+      '<h3 style="margin:8px 0 4px">Excluir "' + escapeHtml(profile.name) + '"?</h3>' +
+      '<p style="color:var(--ink-soft);font-weight:700;font-size:.9rem">Todo o progresso desse perfil será perdido, sem volta.</p>' +
+      '<button class="btn" id="do-del-prof" style="margin-top:12px;color:var(--red)">Sim, excluir</button>' +
+      '<div style="height:10px"></div><button class="btn ghost" data-close="1">Cancelar</button></div>');
+    $('#do-del-prof').onclick = function () {
+      const wasActive = ACTIVE === profile.id;
+      deleteProfile(profile.id);
+      closeSheet();
+      if (wasActive) {
+        S = JSON.parse(JSON.stringify(DEFAULT));
+        if (PROFILES.length) selectProfile(PROFILES[0].id);
+        else renderProfiles('forced');
+      } else {
+        renderProfiles(profilesMode);
+      }
+    };
+  }
+
+  $('#btn-profile').onclick = function () { sfx.tap(); goProfiles('switch'); };
+  $('#btn-switch-profile').onclick = function () { sfx.tap(); goProfiles('switch'); };
+  $('#profiles-back').onclick = function () { sfx.tap(); if (profilesMode === 'switch') go('s-home'); };
 
   /* ==================== HOME ==================== */
   function levelState(lv, idx) {
@@ -190,6 +396,10 @@
   }
 
   function renderHome() {
+    const activeProf = PROFILES.filter(function (p) { return p.id === ACTIVE; })[0];
+    $('#btn-profile').textContent = activeProf ? activeProf.emoji : '🙂';
+    $('#btn-profile').setAttribute('aria-label', activeProf ? ('Perfil: ' + activeProf.name) : 'Trocar de perfil');
+
     const x = xpLevel();
     $('#xpfill').style.width = Math.round((x.cur / x.need) * 100) + '%';
     $('#xplevel').textContent = 'Nível ' + x.lv;
@@ -902,8 +1112,8 @@
 
   $('#btn-reset').onclick = function () {
     openSheet('<div style="text-align:center;padding:8px 6px"><div style="font-size:2.4rem">⚠️</div>' +
-      '<h3 style="margin:8px 0 4px">Apagar tudo?</h3>' +
-      '<p style="color:var(--ink-soft);font-weight:700;font-size:.9rem">Pontos, estrelas e memória das palavras serão perdidos.</p>' +
+      '<h3 style="margin:8px 0 4px">Apagar o progresso deste perfil?</h3>' +
+      '<p style="color:var(--ink-soft);font-weight:700;font-size:.9rem">Pontos, estrelas e memória das palavras deste perfil serão perdidos. Os outros perfis não são afetados.</p>' +
       '<button class="btn" id="do-reset" style="margin-top:12px;color:var(--red)">Sim, apagar</button>' +
       '<div style="height:10px"></div><button class="btn ghost" data-close="1">Cancelar</button></div>');
     $('#do-reset').onclick = function () {
@@ -926,8 +1136,23 @@
     document.removeEventListener('touchstart', once);
   }, { passive: true });
 
-  hello();
-  renderHome();
+  migrateLegacy();
+  ACTIVE = getActiveId();
+  const activeProfile = PROFILES.filter(function (p) { return p.id === ACTIVE; })[0];
+  if (activeProfile) {
+    S = loadState(ACTIVE);
+    hello();
+    current = 's-home';
+    $$('.screen').forEach(function (s) { s.classList.toggle('on', s.id === 's-home'); });
+    renderHome();
+    try { history.replaceState({ scr: 's-home' }, ''); } catch (e) {}
+  } else {
+    ACTIVE = '';
+    current = 's-profiles';
+    renderProfiles('forced');
+    $$('.screen').forEach(function (s) { s.classList.toggle('on', s.id === 's-profiles'); });
+    try { history.replaceState({ scr: 's-profiles' }, ''); } catch (e) {}
+  }
 
   if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     navigator.serviceWorker.register('sw.js').catch(function () {});

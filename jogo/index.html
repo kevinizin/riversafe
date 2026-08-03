@@ -301,6 +301,39 @@ button { font: inherit; color: inherit; border:0; background:none; cursor:pointe
 .strength { height:5px; border-radius:99px; background:#eee7d8; margin:5px 8px 0; overflow:hidden; }
 .strength i { display:block; height:100%; background:linear-gradient(90deg,#8ce99a,#2f9e44); }
 
+/* ===================== PERFIS ===================== */
+.profbtn {
+  width:42px; height:42px; border-radius:14px; flex:none; font-size:1.25rem;
+  background:linear-gradient(150deg,#ffe082,#ffb300); display:grid; place-items:center;
+  box-shadow:0 2px 0 #c98a00, 0 4px 12px rgba(0,0,0,.06);
+}
+.profbtn:active { transform:translateY(2px); box-shadow:0 0 0 #c98a00; }
+.profgrid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; padding-top:6px; }
+.profcard {
+  position:relative; background:#fff; border-radius:22px; padding:20px 12px 16px;
+  box-shadow:0 3px 0 var(--line); text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px;
+}
+.profcard:active { transform:translateY(3px); box-shadow:0 0 0 var(--line); }
+.profcard .pavatar {
+  width:64px; height:64px; border-radius:50%; font-size:2rem; display:grid; place-items:center;
+  background:linear-gradient(150deg,#b2f2bb,#51cf66); box-shadow:0 3px 0 var(--green-d);
+}
+.profcard b { font-size:.92rem; font-weight:900; }
+.profcard span { font-size:.7rem; color:var(--ink-soft); font-weight:700; }
+.profcard .pedit {
+  position:absolute; top:8px; right:8px; width:30px; height:30px; border-radius:50%;
+  background:#f4f1e6; font-size:.85rem; display:grid; place-items:center;
+}
+.profcard.cur { box-shadow:0 3px 0 var(--green-d), inset 0 0 0 2px var(--green-l); }
+.profcard.add { justify-content:center; min-height:150px; background:rgba(255,255,255,.55); box-shadow:inset 0 0 0 2px var(--line); }
+.profcard.add .pavatar { background:#fff; box-shadow:0 2px 0 var(--line); color:var(--ink-soft); font-weight:900; }
+.emojpick { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin:14px 0; }
+.emojpick button {
+  aspect-ratio:1; border-radius:14px; background:#fff; font-size:1.4rem; box-shadow:0 2px 0 var(--line);
+  display:grid; place-items:center;
+}
+.emojpick button.on { background:#d3f9d8; box-shadow:0 2px 0 var(--green-d); }
+
 /* folha modal */
 .sheetwrap { position:fixed; inset:0; z-index:80; display:none; }
 .sheetwrap.on { display:block; }
@@ -343,8 +376,21 @@ button { font: inherit; color: inherit; border:0; background:none; cursor:pointe
 
 <div id="app">
 
+  <!-- ================= PERFIS ================= -->
+  <section class="screen" id="s-profiles">
+    <div class="topbar">
+      <button class="iconbtn" id="profiles-back" aria-label="Voltar">←</button>
+      <h2 id="profiles-title">Quem vai jogar?</h2>
+      <div style="width:42px"></div>
+    </div>
+    <div class="scroll">
+      <div class="profgrid" id="profiles-grid"></div>
+      <div style="height:16px"></div>
+    </div>
+  </section>
+
   <!-- ================= HOME ================= -->
-  <section class="screen on" id="s-home">
+  <section class="screen" id="s-home">
     <div class="hero">
       <div class="hero-row">
         <div class="logo floaty">🥑</div>
@@ -352,6 +398,7 @@ button { font: inherit; color: inherit; border:0; background:none; cursor:pointe
           <h1>HortaPop</h1>
           <p id="hello">Frutas, legumes e verduras em inglês</p>
         </div>
+        <button class="profbtn" id="btn-profile" aria-label="Trocar de perfil">🙂</button>
         <button class="iconbtn" data-go="s-settings" aria-label="Ajustes">⚙️</button>
       </div>
 
@@ -509,6 +556,12 @@ button { font: inherit; color: inherit; border:0; background:none; cursor:pointe
       <div class="setrow"><div><b>Escrever à mão</b><small>usar o teclado em vez das letrinhas</small></div>
         <div class="sw" id="sw-typing"><i></i></div></div>
 
+      <div class="secttl">Perfil</div>
+      <div class="setrow" id="row-profile">
+        <div><b id="settings-prof-name">—</b><small>progresso salvo só neste aparelho</small></div>
+        <button class="btn ghost sm" id="btn-switch-profile" style="width:auto">Trocar</button>
+      </div>
+
       <div class="secttl">Instalar no celular</div>
       <div class="card prose" style="font-size:.86rem">
         <p><b>Android (Chrome):</b> menu ⋮ → <i>Adicionar à tela inicial</i>.</p>
@@ -518,7 +571,7 @@ button { font: inherit; color: inherit; border:0; background:none; cursor:pointe
       </div>
 
       <div class="secttl">Progresso</div>
-      <button class="btn ghost" id="btn-reset" style="color:var(--red)">Apagar todo o progresso</button>
+      <button class="btn ghost" id="btn-reset" style="color:var(--red)">Apagar progresso deste perfil</button>
       <div style="height:24px"></div>
       <div style="text-align:center; font-size:.7rem; color:var(--ink-soft); font-weight:700">HortaPop • feito com carinho 🌱</div>
       <div style="height:20px"></div>
