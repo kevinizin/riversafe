@@ -121,8 +121,15 @@ if (!migrated) {
     console.log('    Starting PostgreSQL and Redis with Docker Compose...');
     if (!tryRun('docker compose up -d')) {
       fail(
-        'Docker Compose could not start the database.',
-        'Start PostgreSQL yourself, point DATABASE_URL in .env at it, then re-run: npm run setup',
+        'Docker is installed but did not answer, so the database could not be started.',
+        [
+          'Most likely Docker Desktop is not running yet. Open it, wait until it',
+          'reports "Running", then re-run: npm run setup',
+          '',
+          'Or skip Docker entirely: point DATABASE_URL in .env at any PostgreSQL 16',
+          'you can reach — a local install or a free hosted one — and re-run the same',
+          'command.',
+        ].join('\n'),
       );
     }
     process.stdout.write('    Waiting for PostgreSQL');
