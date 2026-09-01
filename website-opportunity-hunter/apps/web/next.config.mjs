@@ -1,3 +1,10 @@
+import { loadEnvFileIfPresent } from '../../scripts/load-env.mjs';
+
+// Next.js reads `.env` from this app directory, but configuration for the whole
+// workspace lives in one file at the repository root. This runs before the
+// server boots, for dev, build and start alike.
+loadEnvFileIfPresent();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,

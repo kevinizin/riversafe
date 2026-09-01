@@ -8,6 +8,7 @@ import {
   type JobPayloads,
   type JobType,
 } from '@woh/core';
+import { loadEnvFileIfPresent } from '../../../scripts/load-env.mjs';
 import { prisma } from '@woh/db';
 import { Worker, type Job } from 'bullmq';
 
@@ -18,6 +19,9 @@ import { Worker, type Job } from 'bullmq';
  * runs jobs itself and this process should not be started at all — it says so
  * and exits rather than sitting idle pretending to work.
  */
+// Must run before loadEnv(): a plain Node process does not read .env itself.
+loadEnvFileIfPresent();
+
 async function main(): Promise<void> {
   const env = loadEnv();
   const log = createLogger();

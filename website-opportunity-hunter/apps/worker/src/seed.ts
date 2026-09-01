@@ -17,6 +17,7 @@ import {
   upsertCompany,
   type PageFacts,
 } from '@woh/core';
+import { loadEnvFileIfPresent } from '../../../scripts/load-env.mjs';
 import { prisma, type Prisma } from '@woh/db';
 
 /**
@@ -28,6 +29,9 @@ import { prisma, type Prisma } from '@woh/db';
  * against canned HTML, so what you see in the dashboard is produced by the same
  * engine that will run against live data — not by hardcoded numbers.
  */
+// Must run before loadEnv(): a plain Node process does not read .env itself.
+loadEnvFileIfPresent();
+
 async function main(): Promise<void> {
   const env = loadEnv();
   const ctx = createPipelineContext(env, { db: prisma, persistLogs: false });

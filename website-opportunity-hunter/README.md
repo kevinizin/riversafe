@@ -63,33 +63,46 @@ never publishes a website, and never fills a gap in its knowledge with a guess.
 
 ## Installation
 
-Requires **Node 20.11+** and **PostgreSQL 16**. Redis is optional (see *Queue*).
+Requires **Node 20.11+**. PostgreSQL 16 too — or Docker, and the setup script
+starts one for you. Redis is optional (see *Queue*).
 
 ```bash
 git clone <this repo>
 cd website-opportunity-hunter
 npm install
-
-cp .env.example .env
-# edit .env: DATABASE_URL and AUTH_SECRET are required
-#   openssl rand -base64 48   → AUTH_SECRET
-
-npm run db:generate      # Prisma client
-npm run db:migrate       # create the schema
-npm run db:seed          # fictional demo data + a login
-
-npm run dev              # http://localhost:3000
+npm run setup
+npm run dev            # http://localhost:3000
 ```
 
-`npm run db:seed` prints the demo credentials it created
-(`demo@example.com` / `demo-password-1` unless you set `SEED_EMAIL` /
-`SEED_PASSWORD`). **Change them before deploying anywhere.**
+`npm run setup` does the rest: writes a `.env` with a freshly generated
+`AUTH_SECRET`, starts PostgreSQL through Docker Compose if it cannot reach one,
+applies the migrations and seeds the fictional demo data. It is safe to re-run —
+an existing `.env` is never touched.
 
-A ready-made Postgres and Redis are in `docker-compose.yml`:
+It prints the demo credentials it created (`demo@example.com` /
+`demo-password-1` unless you set `SEED_EMAIL` / `SEED_PASSWORD`). **Change them
+before deploying anywhere.**
+
+<details>
+<summary>Doing it by hand instead</summary>
 
 ```bash
-docker compose up -d
+cp .env.example .env
+# DATABASE_URL and AUTH_SECRET are required
+#   openssl rand -base64 48   -> AUTH_SECRET
+
+docker compose up -d     # or point DATABASE_URL at your own PostgreSQL
+npm run db:generate
+npm run db:migrate
+npm run db:seed
 ```
+</details>
+
+**Where configuration is read from.** There is one `.env`, at the repository
+root. Next.js and a plain Node process each look somewhere else by default, so
+`scripts/load-env.mjs` loads that file for the web app, the worker and the seed
+alike. Variables already set in the environment always win, so a hosting
+platform's real configuration is never overridden by a file inside the image.
 
 ## Environment variables
 

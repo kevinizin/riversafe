@@ -12,6 +12,7 @@
     "apps/*"
   ],
   "scripts": {
+    "setup": "node scripts/setup.mjs",
     "db:generate": "npm run -w @woh/db generate",
     "db:migrate": "npm run -w @woh/db migrate",
     "db:deploy": "npm run -w @woh/db deploy",
