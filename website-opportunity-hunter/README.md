@@ -36,10 +36,14 @@ never publishes a website, and never fills a gap in its knowledge with a guess.
    from public web search. It never logs into a platform or scrapes a feed.
 6. **Detects activity signals** — recent incorporation, "now open", "coming soon",
    a placeholder website, recent reviews — always with the text that triggered it.
-7. **Scores the opportunity** 0–100 across five components, and explains every
+7. **Identifies the decision maker** from the public officer register — the
+   active, non-corporate director most likely to be the founder. Roles and
+   appointment dates only, unless you opt into collecting names.
+8. **Scores the opportunity** 0–100 across five components, and explains every
    point (`SCORING.md`).
-8. **Prepares outreach** from established facts only, and a brief for a demo
-   homepage. Both are drafts for you to review.
+9. **Prepares outreach** from established facts only, and a brief for a demo
+   homepage — which it can also render as a self-contained HTML concept page for
+   you to download. Everything is a draft for you to review.
 
 ## Screens
 
@@ -48,7 +52,7 @@ never publishes a website, and never fills a gap in its knowledge with a guess.
 | Dashboard | Totals, priority leads, outreach funnel, recent runs |
 | New search | Country, industries, location, company age, website status, score |
 | Leads | Filterable list of lead cards |
-| Lead detail | Overview, digital presence, website analysis, score breakdown, evidence, outreach, preview brief, notes, data handling |
+| Lead detail | Overview, digital presence, decision maker, website analysis, score breakdown, evidence, outreach, preview brief and demo page, notes, data handling |
 | CRM | The pipeline from NEW to WON/LOST |
 | History | Every saved search, with its runs and counts; re-runnable |
 | Analytics | Discovery and conversion rates, API and AI cost |
@@ -110,6 +114,7 @@ fast with a readable message rather than at the first request. None is prefixed
 | `WEBSITE_ANALYSIS_TTL_HOURS` | no | Do not re-analyse a site more often than this (default 168h) |
 | `WEBSITE_USER_AGENT` | no | Identify yourself honestly, with a contact address |
 | `RESPECT_ROBOTS_TXT` | no | Default `true`. Leave it true |
+| `COLLECT_OFFICER_NAMES` | no | Default `false`. When true, officer names are stored — personal data, so it is an explicit choice |
 | `AI_PROVIDER`, `ANTHROPIC_API_KEY`, `AI_MODEL` | no | Optional outreach personalisation |
 | `AI_MONTHLY_BUDGET_GBP` | no | Hard monthly cap; calls stop when it is reached |
 | `DATA_RETENTION_DAYS` | no | Default retention period for company records |
@@ -206,6 +211,13 @@ Stated plainly, because a prospecting tool that overstates itself wastes your ti
   frequently an accountant's address rather than where the business trades.
 - **No blocks are worked around.** A 403, a CAPTCHA or a robots.txt disallow ends
   the attempt and is recorded. There is no proxy rotation and no bypass.
+- **The decision maker is inferred from role and appointment date**, not
+  confirmed. A director appointed at incorporation is usually the founder; it is
+  a strong heuristic, not a fact, and the reasoning is shown on the lead.
+- **The demo homepage is a concept, not a website.** It carries a banner naming
+  who prepared it and stating it was not commissioned, it is `noindex`, and
+  anything unconfirmed is visibly marked as a placeholder. The system never
+  publishes it anywhere.
 - **UK only**, for now.
 
 ## What this system deliberately does not do

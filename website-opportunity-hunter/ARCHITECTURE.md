@@ -26,9 +26,10 @@ website-opportunity-hunter/
 │       ├── social/        Social profile discovery
 │       ├── signals/       Business activity signal detection
 │       ├── scoring/       Opportunity score
+│       ├── enrichment/    Decision-maker selection from the officer register
 │       ├── dedup/         Normalisation, identity keys, duplicate matching
 │       ├── search/        Search filter schema
-│       ├── outreach/      Fact model, message generator, preview briefing
+│       ├── outreach/      Fact model, message generator, preview briefing and HTML
 │       ├── ai/            AI provider abstraction with a monthly budget
 │       ├── export/        CSV writer
 │       ├── auth/          Password hashing
@@ -66,12 +67,12 @@ CompanySourceProvider  dedup/upsertCompany     searchRunResult
                                      ▼  per company, concurrency 4
                             pipeline/enrichCompany
                                      │
-   ┌──────────┬──────────┬───────────┼───────────┬──────────┬─────────┐
-   ▼          ▼          ▼           ▼           ▼          ▼         ▼
-industry   places    website     website      social    signals    scoring
-classify   lookup    discovery   analysis     discovery detection
-   │          │          │           │           │          │         │
-   └──────────┴──────────┴───────────┴───────────┴──────────┴─────────┘
+   ┌─────────┬─────────┬─────────┬──────────┬─────────┬────────┬────────┐
+   ▼         ▼         ▼         ▼          ▼         ▼        ▼        ▼
+industry  officer   places   website    website   social   signals  scoring
+classify  lookup    lookup   discovery  analysis  discov.  detect
+   │         │         │         │          │         │        │        │
+   └─────────┴─────────┴─────────┴──────────┴─────────┴────────┴────────┘
                     each stage records its own StageStatus;
                     a failure never removes the lead
 ```
@@ -97,6 +98,10 @@ failure, so a fresh install does not report every run as degraded.
 timeout, capped body, exponential backoff with full jitter, a shared per-provider
 rate limiter, and a circuit breaker. Query strings are stripped before logging,
 because some providers put the API key there.
+
+**A type is a stronger promise than a policy.** `OfficerRecord` has no field for
+an address, a date of birth or a nationality, so the officer stage cannot store
+them however the code changes around it.
 
 **Costs are visible.** Every call is written to `api_usage`, every AI call to
 `ai_usage` with an estimated cost, and both appear on Analytics. Website

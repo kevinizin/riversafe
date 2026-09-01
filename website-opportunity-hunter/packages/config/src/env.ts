@@ -57,6 +57,15 @@ export const envSchema = z
       .default('WebsiteOpportunityHunter/0.1 (+https://example.com/bot)'),
     RESPECT_ROBOTS_TXT: bool.default(true),
 
+    /**
+     * Whether to store officer names from the public register.
+     *
+     * Off by default. Role and appointment date already tell you whether a
+     * company is owner-operated; a name is personal data, so collecting it is
+     * an explicit choice the controller makes, not a default.
+     */
+    COLLECT_OFFICER_NAMES: bool.default(false),
+
     AI_PROVIDER: z.enum(['none', 'anthropic']).default('none'),
     ANTHROPIC_API_KEY: z.string().default(''),
     AI_MODEL: z.string().default('claude-sonnet-5'),

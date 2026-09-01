@@ -21,6 +21,8 @@ export interface FixtureCompany extends Omit<SourceCompany, 'provider' | 'extern
     rating?: number;
     /** Date of the most recent review, when the listing source reports one. */
     latestReviewAt?: Date;
+    /** Fictional officers, so the decision-maker stage has something to read. */
+    officers?: { name: string; role: string; appointedDaysAgo: number; occupation?: string; corporate?: boolean }[];
   };
 }
 
@@ -77,6 +79,10 @@ export const FIXTURE_COMPANIES: FixtureCompany[] = [
       reviewCount: 127,
       rating: 4.9,
       latestReviewAt: daysAgo(6),
+      officers: [
+        { name: 'DEMO, Alex', role: 'director', appointedDaysAgo: 4, occupation: 'Dentist' },
+        { name: 'DEMO, Sam', role: 'secretary', appointedDaysAgo: 4 },
+      ],
     },
   },
   {
@@ -88,7 +94,11 @@ export const FIXTURE_COMPANIES: FixtureCompany[] = [
     incorporationDate: daysAgo(11),
     sicCodes: ['43220'],
     address: { line1: '2 Example Road', city: 'Leeds', postcode: 'LS1 1AA', country: 'England' },
-    fixture: {},
+    fixture: {
+      officers: [
+        { name: 'DEMO, Jordan', role: 'director', appointedDaysAgo: 11, occupation: 'Heating Engineer' },
+      ],
+    },
   },
   {
     countryCode: 'GB',
@@ -159,6 +169,10 @@ export const FIXTURE_COMPANIES: FixtureCompany[] = [
     sicCodes: ['86900'],
     address: { line1: '7 Example Parade', city: 'Bristol', postcode: 'BS1 1AA', country: 'England' },
     fixture: {
+      officers: [
+        { name: 'DEMO HOLDINGS LTD', role: 'corporate-director', appointedDaysAgo: 19, corporate: true },
+        { name: 'DEMO, Riley', role: 'director', appointedDaysAgo: 19, occupation: 'Director' },
+      ],
       socials: [
         { platform: 'INSTAGRAM', url: 'https://www.instagram.com/demo_aesthetics' },
         { platform: 'FACEBOOK', url: 'https://www.facebook.com/demoaesthetics' },

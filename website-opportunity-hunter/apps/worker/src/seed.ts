@@ -1,6 +1,7 @@
 import { loadEnv } from '@woh/config';
 import {
   FIXTURE_COMPANIES,
+  FixtureCompanyProvider,
   buildOutreachFacts,
   calculateOpportunityScore,
   classify,
@@ -12,6 +13,7 @@ import {
   primaryIndustry,
   qualityBand,
   scoreWebsite,
+  selectDecisionMaker,
   upsertCompany,
   type PageFacts,
 } from '@woh/core';
@@ -30,6 +32,7 @@ async function main(): Promise<void> {
   const env = loadEnv();
   const ctx = createPipelineContext(env, { db: prisma, persistLogs: false });
 
+  const fixtureProvider = new FixtureCompanyProvider();
   const password = process.env.SEED_PASSWORD ?? 'demo-password-1';
   const email = process.env.SEED_EMAIL ?? 'demo@example.com';
 
@@ -116,6 +119,29 @@ async function main(): Promise<void> {
         },
         update: { isPrimary: index === 0 },
       });
+    }
+
+    // --- decision maker ------------------------------------------------------
+    const officerLookup = await fixtureProvider.getOfficers(fixture.externalId, {
+      includeNames: env.COLLECT_OFFICER_NAMES,
+    });
+    if (officerLookup.kind === 'FOUND') {
+      const selection = selectDecisionMaker(officerLookup.data.value, company.incorporationDate);
+      await prisma.contact.deleteMany({ where: { companyId: company.id, kind: 'OFFICER_ROLE' } });
+      for (const candidate of [selection.best, ...selection.others].filter(Boolean).slice(0, 3)) {
+        await prisma.contact.create({
+          data: {
+            companyId: company.id,
+            kind: 'OFFICER_ROLE',
+            role: candidate!.roleLabel,
+            name: candidate!.officer.name ?? null,
+            isPersonal: !!candidate!.officer.name,
+            source: 'fixture:officers',
+            confidence: 'HIGH',
+            evidence: candidate!.reason,
+          },
+        });
+      }
     }
 
     // --- website + analysis --------------------------------------------------

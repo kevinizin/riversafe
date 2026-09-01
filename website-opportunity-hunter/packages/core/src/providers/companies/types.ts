@@ -1,5 +1,29 @@
 import type { CountryCode, Lookup, SourceCompany } from '../../domain/types.js';
 
+/**
+ * An officer of a company, reduced to what a B2B approach actually needs.
+ *
+ * The registry publishes far more than this — correspondence address, month and
+ * year of birth, nationality, country of residence, former names, an internal
+ * person number. None of it is represented here, because a type that cannot
+ * carry a field is a stronger guarantee than a policy saying we will not read
+ * it. See PRIVACY.md.
+ */
+export interface OfficerRecord {
+  /** Present only when the deployment sets COLLECT_OFFICER_NAMES=true. */
+  name?: string;
+  /** Registry role string, e.g. "director", "llp-designated-member". */
+  role: string;
+  appointedOn?: Date;
+  /** Self-declared occupation, when the registry has one. */
+  occupation?: string;
+  /** True when the officer is another company rather than a person. */
+  isCorporate: boolean;
+  /** True when the registry still lists the appointment as current. */
+  isActive: boolean;
+  sourceUrl?: string;
+}
+
 export interface CompanySearchFilters {
   countryCode: CountryCode;
   /** Registry classification codes (SIC for GB). Empty means "any". */
@@ -42,4 +66,10 @@ export interface CompanySourceProvider {
   isConfigured(): boolean;
   searchCompanies(filters: CompanySearchFilters, options?: CompanySearchOptions): Promise<CompanySearchPage>;
   getCompanyDetails(companyId: string): Promise<Lookup<SourceCompany>>;
+  /**
+   * Officers, where the registry publishes them. Optional: a source that has no
+   * officer register simply does not implement it, and the pipeline records the
+   * stage as SKIPPED rather than failing.
+   */
+  getOfficers?(companyId: string, options?: { includeNames?: boolean }): Promise<Lookup<OfficerRecord[]>>;
 }

@@ -14,6 +14,7 @@ import type {
   CompanySearchOptions,
   CompanySearchPage,
   CompanySourceProvider,
+  OfficerRecord,
 } from './types.js';
 
 /**
@@ -56,6 +57,30 @@ interface ChSearchResponse {
   hits?: string | number;
   items?: ChSearchItem[];
   kind?: string;
+}
+
+/**
+ * The subset of the documented officerList resource we read.
+ *
+ * The full resource also carries `address`, `date_of_birth`, `nationality`,
+ * `country_of_residence`, `former_names`, `person_number` and identity
+ * verification details. They are deliberately absent from this interface so the
+ * code physically cannot pick them up.
+ */
+interface ChOfficerItem {
+  name?: string;
+  officer_role?: string;
+  appointed_on?: string;
+  resigned_on?: string;
+  occupation?: string;
+  identification?: { identification_type?: string };
+  links?: { self?: string };
+}
+
+interface ChOfficerListResponse {
+  active_count?: number;
+  items?: ChOfficerItem[];
+  total_results?: number;
 }
 
 interface ChProfileResponse extends ChSearchItem {
@@ -220,6 +245,62 @@ export class CompaniesHouseProvider implements CompanySourceProvider {
         sourceUrl: `https://find-and-update.company-information.service.gov.uk/company/${clean}`,
         detectedAt: new Date(),
         excerpt: `company_status=${body.company_status ?? 'unknown'}`,
+      }),
+    );
+  }
+
+  /**
+   * Active officers for a company.
+   *
+   * `includeNames` defaults to false: the role and appointment date are enough
+   * to tell an owner-operated company from a large board, and a name is personal
+   * data that a deployment must opt into collecting.
+   */
+  async getOfficers(
+    companyNumber: string,
+    options: { includeNames?: boolean } = {},
+  ): Promise<Lookup<OfficerRecord[]>> {
+    this.assertConfigured();
+    const clean = companyNumber.trim().toUpperCase();
+    if (!/^[A-Z0-9]{6,10}$/.test(clean)) {
+      return notFound(['companies_house:officers'], `"${companyNumber}" is not a valid company number`);
+    }
+
+    const url = `${this.baseUrl}/company/${encodeURIComponent(clean)}/officers?items_per_page=50&order_by=appointed_on`;
+    const res = await this.http.request({
+      url,
+      headers: { authorization: this.authHeader, accept: 'application/json' },
+      expectedStatuses: [404],
+    });
+    if (res.status === 404) {
+      return notFound(['companies_house:officers'], `no officer register for ${clean}`);
+    }
+
+    const body = parseJson<ChOfficerListResponse>(res.text, `company/${clean}/officers`);
+    const officers = (body.items ?? []).map((item): OfficerRecord => {
+      const role = (item.officer_role ?? 'unknown').toLowerCase();
+      const appointedOn = parseChDate(item.appointed_on);
+      return {
+        ...(options.includeNames && item.name ? { name: item.name.trim() } : {}),
+        role,
+        ...(appointedOn ? { appointedOn } : {}),
+        ...(item.occupation ? { occupation: item.occupation } : {}),
+        isCorporate: role.startsWith('corporate-') || !!item.identification?.identification_type,
+        isActive: !item.resigned_on,
+        sourceUrl: `https://find-and-update.company-information.service.gov.uk/company/${clean}/officers`,
+      };
+    });
+
+    if (officers.length === 0) {
+      return notFound(['companies_house:officers'], `Companies House lists no officers for ${clean}`);
+    }
+
+    return found(
+      sourced(officers, 'HIGH', {
+        source: PROVIDER,
+        sourceUrl: `https://find-and-update.company-information.service.gov.uk/company/${clean}/officers`,
+        detectedAt: new Date(),
+        excerpt: `${body.active_count ?? officers.filter((o) => o.isActive).length} active officer(s)`,
       }),
     );
   }

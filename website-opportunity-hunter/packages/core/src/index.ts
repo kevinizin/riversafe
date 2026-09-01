@@ -37,6 +37,8 @@ export { isExcludedHost } from './discovery/excluded.js';
 export * from './social/discover.js';
 export * from './signals/detect.js';
 
+export * from './enrichment/officers.js';
+
 export * from './scoring/config.js';
 export * from './scoring/opportunity.js';
 
@@ -52,6 +54,7 @@ export * from './queue/index.js';
 
 export * from './outreach/message.js';
 export * from './outreach/preview.js';
+export * from './outreach/previewHtml.js';
 export * from './ai/index.js';
 
 export * from './export/csv.js';

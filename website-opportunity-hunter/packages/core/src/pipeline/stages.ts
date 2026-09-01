@@ -6,6 +6,7 @@ import { describeError } from '../domain/errors.js';
 import type { BusinessActivitySignal, Confidence } from '../domain/types.js';
 import { discoverWebsite } from '../discovery/website.js';
 import { classify, primaryIndustry } from '../industry/classify.js';
+import { selectDecisionMaker } from '../enrichment/officers.js';
 import type { PlaceRecord } from '../providers/places/types.js';
 import { calculateOpportunityScore } from '../scoring/opportunity.js';
 import { detectSignals } from '../signals/detect.js';
@@ -118,7 +119,56 @@ export async function enrichCompany(
     }
   });
 
-  // --- 2. Business listing (reviews, rating, phone, hours) -------------------
+  // --- 2. Decision maker (public officer register) ---------------------------
+  await stage('enrichmentStatus', 'officer_lookup', async () => {
+    const source = await ctx.db.companySource.findFirst({
+      where: { companyId, externalId: { not: null } },
+      orderBy: { fetchedAt: 'desc' },
+    });
+    const provider = source
+      ? ctx.providers.companySources.find((p) => p.name === source.provider)
+      : undefined;
+    if (!source?.externalId || !provider?.getOfficers) {
+      await setStage(ctx.db, companyId, 'enrichmentStatus', 'SKIPPED');
+      return;
+    }
+
+    const includeNames = ctx.env.COLLECT_OFFICER_NAMES;
+    const lookup = await provider.getOfficers(source.externalId, { includeNames });
+    if (lookup.kind !== 'FOUND') return;
+
+    const selection = selectDecisionMaker(lookup.data.value, company.incorporationDate);
+    if (!selection.best) return;
+
+    // Rewritten wholesale so a resignation or a new appointment is reflected
+    // rather than accumulating stale rows alongside the current ones.
+    await ctx.db.contact.deleteMany({ where: { companyId, kind: 'OFFICER_ROLE' } });
+
+    const retentionUntil = new Date(
+      ctx.now().getTime() + ctx.env.DATA_RETENTION_DAYS * 86_400_000,
+    );
+
+    for (const candidate of [selection.best, ...selection.others].slice(0, 3)) {
+      await ctx.db.contact.create({
+        data: {
+          companyId,
+          kind: 'OFFICER_ROLE',
+          role: candidate.roleLabel,
+          name: candidate.officer.name ?? null,
+          // A name is the only personal datum here, and only when opted in.
+          isPersonal: !!candidate.officer.name,
+          url: candidate.officer.sourceUrl ?? null,
+          source: `${provider.name}:officers`,
+          sourceUrl: candidate.officer.sourceUrl ?? null,
+          confidence: lookup.data.confidence,
+          evidence: candidate.reason,
+          retentionUntil,
+        },
+      });
+    }
+  });
+
+  // --- 3. Business listing (reviews, rating, phone, hours) -------------------
   let place: PlaceRecord | null = null;
   let placeLookedUp = false;
   await stage('enrichmentStatus', 'places_lookup', async () => {
@@ -142,7 +192,7 @@ export async function enrichCompany(
     }
   });
 
-  // --- 3. Website discovery --------------------------------------------------
+  // --- 4. Website discovery --------------------------------------------------
   let websiteId: string | undefined;
   let websiteUrl: string | undefined;
   const discovery = await stage('websiteDiscoveryStatus', 'website_discovery', async () => {
@@ -206,7 +256,7 @@ export async function enrichCompany(
     return result;
   });
 
-  // --- 4. Website analysis ---------------------------------------------------
+  // --- 5. Website analysis ---------------------------------------------------
   let websiteFacts: PageFacts | undefined;
   let websiteQualityScore: number | undefined;
   let underConstruction = false;
@@ -251,7 +301,7 @@ export async function enrichCompany(
     await setStage(ctx.db, companyId, 'websiteAnalysisStatus', 'SKIPPED', 'analysis disabled for this search');
   }
 
-  // --- 5. Social profiles ----------------------------------------------------
+  // --- 6. Social profiles ----------------------------------------------------
   await stage('socialDiscoveryStatus', 'social_discovery', async () => {
     const result = await discoverSocialProfiles(
       {
@@ -282,7 +332,7 @@ export async function enrichCompany(
     }
   });
 
-  // --- 6. Activity signals ---------------------------------------------------
+  // --- 7. Activity signals ---------------------------------------------------
   await stage('signalsStatus', 'activity_signals', async () => {
     const signals = detectSignals({
       companyName: company.name,
@@ -315,7 +365,7 @@ export async function enrichCompany(
     }
   });
 
-  // --- 7. Score --------------------------------------------------------------
+  // --- 8. Score --------------------------------------------------------------
   const scored = await stage('scoringStatus', 'scoring', async () => {
     return scoreCompany(ctx, companyId);
   });

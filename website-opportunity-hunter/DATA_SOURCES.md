@@ -23,6 +23,7 @@ and no source used against its terms.
 | --- | --- |
 | `GET /advanced-search/companies` | Find companies by SIC code, location and incorporation date |
 | `GET /company/{companyNumber}` | Full profile for one company |
+| `GET /company/{companyNumber}/officers` | Identify the decision maker |
 
 **Query parameters used**, from the published specification:
 `company_name_includes`, `company_name_excludes`, `company_status`,
@@ -46,8 +47,19 @@ often generic. The `location` filter matches the registered office, which for
 small companies is frequently an accountant's address rather than where the
 business trades. Both are surfaced in the UI rather than papered over.
 
-**Not used:** the Streaming API, and officer personal data beyond role titles
-(see `PRIVACY.md`).
+**Officer fields consumed**, from the "officerList" resource:
+`active_count`, `items[].name` (only when `COLLECT_OFFICER_NAMES=true`),
+`.officer_role`, `.appointed_on`, `.resigned_on`, `.occupation`,
+`.identification.identification_type` (to detect corporate officers).
+
+**Officer fields deliberately not read:** `address`, `date_of_birth`,
+`nationality`, `country_of_residence`, `former_names`, `person_number`,
+`principal_office_address`, `identity_verification_details`. The
+`OfficerRecord` type has no field for any of them, so the code cannot pick them
+up even by accident.
+
+**Not used:** the Streaming API, and the officer appointments endpoint (which
+would build a profile of an individual across companies — outside the purpose).
 
 ---
 

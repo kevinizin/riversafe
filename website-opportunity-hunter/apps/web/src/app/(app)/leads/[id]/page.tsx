@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { industryLabel, qualityBand, type PreviewBriefing } from '@woh/core';
+import { greetingName, industryLabel, qualityBand, type PreviewBriefing } from '@woh/core';
 import { prisma } from '@woh/db';
 import { Card, ClassificationBadge, ConfidenceBadge, KeyValue, Notice, ScoreDial, SectionTitle, Unknown } from '@/components/ui';
 import { requireUser } from '@/lib/auth';
@@ -61,6 +61,9 @@ export default async function LeadDetailPage({ params }: PageProps) {
   const briefingRow = company.outreach.find((o) => o.channel === 'website_preview' && o.previewBriefing);
   const briefing = briefingRow?.previewBriefing as PreviewBriefing | undefined;
   const checks = (analysis?.checks ?? []) as { key: string; label: string; passed: boolean; applicable: boolean; evidence: string }[];
+  const officers = company.contacts.filter((c) => c.kind === 'OFFICER_ROLE');
+  const decisionMaker = officers[0];
+  const suggestedGreeting = greetingName(decisionMaker?.name);
 
   return (
     <div className="space-y-4">
@@ -213,6 +216,56 @@ export default async function LeadDetailPage({ params }: PageProps) {
           </dl>
         </Card>
       </div>
+
+      <Card>
+        <SectionTitle hint="From the public officer register. Roles only, unless this deployment opts into names.">
+          Decision maker
+        </SectionTitle>
+        {officers.length ? (
+          <ul className="space-y-2 text-sm">
+            {officers.map((officer, index) => (
+              <li key={officer.id} className="border-b border-slate-100 pb-2 last:border-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium">{officer.name ?? officer.role ?? 'Officer'}</span>
+                  {officer.name ? (
+                    <span className="chip border border-slate-200 bg-slate-100 text-slate-600">
+                      {officer.role}
+                    </span>
+                  ) : null}
+                  {index === 0 ? (
+                    <span className="chip border border-emerald-200 bg-emerald-50 text-emerald-700">
+                      Best contact
+                    </span>
+                  ) : null}
+                  <ConfidenceBadge value={officer.confidence} />
+                </div>
+                <p className="text-slate-600">{officer.evidence}</p>
+                {officer.sourceUrl ? (
+                  <a
+                    href={officer.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="text-xs text-brand hover:underline"
+                  >
+                    Public officer register
+                  </a>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-slate-500">
+            No individual decision maker recorded. Either the register lists no active individual
+            officer, or the officer lookup has not run for this company.
+          </p>
+        )}
+        {officers.length > 0 && !decisionMaker?.name ? (
+          <p className="mt-2 text-xs text-slate-500">
+            Officer names are not collected in this deployment. Set COLLECT_OFFICER_NAMES=true to
+            store them — they are personal data, so that is a deliberate choice.
+          </p>
+        ) : null}
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
@@ -391,7 +444,13 @@ export default async function LeadDetailPage({ params }: PageProps) {
             </div>
             <div>
               <label className="label" htmlFor="recipientName">Recipient name</label>
-              <input id="recipientName" name="recipientName" className="input" placeholder="Optional" />
+              <input
+                id="recipientName"
+                name="recipientName"
+                defaultValue={suggestedGreeting ?? ''}
+                className="input"
+                placeholder={suggestedGreeting ? undefined : 'Optional'}
+              />
             </div>
             <div className="sm:col-span-3">
               <button type="submit" className="btn-primary">Prepare outreach</button>
@@ -422,10 +481,27 @@ export default async function LeadDetailPage({ params }: PageProps) {
           <SectionTitle hint="An internal brief for a demo homepage. Never published to the prospect.">
             Website preview brief
           </SectionTitle>
-          <form action={generatePreviewAction}>
-            <input type="hidden" name="companyId" value={company.id} />
-            <button type="submit" className="btn-primary">Generate preview brief</button>
-          </form>
+          <div className="flex flex-wrap items-center gap-2">
+            <form action={generatePreviewAction}>
+              <input type="hidden" name="companyId" value={company.id} />
+              <button type="submit" className="btn-primary">Generate preview brief</button>
+            </form>
+            <a
+              href={`/api/leads/${company.id}/preview`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="btn-ghost"
+            >
+              Open demo homepage
+            </a>
+            <a href={`/api/leads/${company.id}/preview?download=1`} className="btn-ghost">
+              Download HTML
+            </a>
+          </div>
+          <p className="mt-2 text-xs text-slate-500">
+            The demo page is generated on request and shown only to you. It carries a banner saying
+            who prepared it and that it was not commissioned, and it is never published anywhere.
+          </p>
 
           {briefing ? (
             <div className="mt-4 space-y-3 text-sm">

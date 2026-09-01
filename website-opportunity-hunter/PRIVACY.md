@@ -38,12 +38,26 @@ The system prefers, in order:
 1. a business email (`info@`, `enquiries@`) published by the business
 2. a business phone number
 3. an enquiry form URL
-4. an officer's **role title** from the public register (Director, Managing
-   Director) — used to address a message, not to identify an individual
+4. an officer's **role title** and appointment date from the public register
+   (Director, Designated member) — enough to tell an owner-operated company from
+   a large board, and enough to address a message appropriately
+
+**Officer names are opt-in.** `COLLECT_OFFICER_NAMES` is `false` by default: the
+officer stage stores the role and appointment date and leaves the name null. Set
+it to `true` only if you have decided that addressing people by name is
+proportionate for your outreach; the lead page tells you which mode you are in.
+
+From the officer register the system reads role, appointment date, resignation
+status, occupation and whether the officer is a corporate body. It does **not**
+read — and the `OfficerRecord` type has no field for — correspondence address,
+month and year of birth, nationality, country of residence, former names, the
+registry's internal person number, or identity-verification details.
 
 It deliberately does **not** collect personal mobile numbers or personal email
 addresses, does not enrich individuals against third-party people-data brokers,
-and does not build profiles of individuals.
+does not query the officer *appointments* endpoint (which would build a picture
+of one person across many companies), and does not build profiles of
+individuals.
 
 ## Lawful basis
 
@@ -85,6 +99,25 @@ objection immediately.
 - Personal data is confined to `contacts`, with its own retention state.
 - Nothing is inferred and stored as fact. Where a value is unknown it stays
   UNKNOWN and the score records the gap.
+
+## The demonstration homepage
+
+The system can render a concept homepage for a lead. It is a sales aid, and it
+is built so it cannot be mistaken for the business's own site or pass as
+something they commissioned:
+
+- a banner at the top names it a concept, names who prepared it, and states
+  plainly that it is not affiliated with or commissioned by the business;
+- `noindex, nofollow`, so a stray copy never competes with their real pages;
+- no services, prices, accreditations or staff names are asserted — anything not
+  backed by a stored fact is rendered as a visibly marked placeholder;
+- placeholder imagery only. Photographs are never taken from the prospect's site
+  or social profiles;
+- no scripts, no external requests, no tracking of any kind.
+
+It is generated on request, shown only to the signed-in operator, and never
+published. There is no publish step and no hosting — deploying it anywhere is a
+decision you take outside this system, and never to a domain you do not control.
 
 ## Transparency
 

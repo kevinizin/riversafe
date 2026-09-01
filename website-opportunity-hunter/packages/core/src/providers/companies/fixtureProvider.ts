@@ -5,6 +5,7 @@ import type {
   CompanySearchOptions,
   CompanySearchPage,
   CompanySourceProvider,
+  OfficerRecord,
 } from './types.js';
 
 const PROVIDER = 'fixture';
@@ -66,6 +67,32 @@ export class FixtureCompanyProvider implements CompanySourceProvider {
       total: matched.length,
       ...(consumed < matched.length ? { nextStartIndex: consumed } : {}),
     };
+  }
+
+  async getOfficers(
+    companyId: string,
+    options: { includeNames?: boolean } = {},
+  ): Promise<Lookup<OfficerRecord[]>> {
+    const match = this.data.find((c) => c.externalId === companyId);
+    const officers = match?.fixture.officers ?? [];
+    if (officers.length === 0) {
+      return notFound(['fixture:officers'], `no fixture officers for ${companyId}`);
+    }
+    const records = officers.map((o): OfficerRecord => ({
+      ...(options.includeNames ? { name: o.name } : {}),
+      role: o.role,
+      appointedOn: new Date(Date.now() - o.appointedDaysAgo * 86_400_000),
+      ...(o.occupation ? { occupation: o.occupation } : {}),
+      isCorporate: o.corporate ?? false,
+      isActive: true,
+    }));
+    return found(
+      sourced(records, 'HIGH', {
+        source: PROVIDER,
+        detectedAt: new Date(),
+        excerpt: 'fixture dataset (fictional officers)',
+      }),
+    );
   }
 
   async getCompanyDetails(companyId: string): Promise<Lookup<SourceCompany>> {
