@@ -1,0 +1,21 @@
+{
+  "name": "@woh/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "seed": "tsx src/seed.ts"
+  },
+  "dependencies": {
+    "@woh/config": "*",
+    "@woh/core": "*",
+    "@woh/db": "*",
+    "bullmq": "^5.34.6",
+    "ioredis": "^5.4.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "name": "website-opportunity-hunter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Find UK businesses that are in the best possible moment to buy a website.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "db:generate": "npm run -w @woh/db generate",
+    "db:migrate": "npm run -w @woh/db migrate",
+    "db:deploy": "npm run -w @woh/db deploy",
+    "db:seed": "npm run -w @woh/worker seed",
+    "dev": "npm run -w @woh/web dev",
+    "dev:worker": "npm run -w @woh/worker dev",
+    "build": "npm run db:generate && npm run -w @woh/web build",
+    "start": "npm run -w @woh/web start",
+    "start:worker": "npm run -w @woh/worker start",
+    "typecheck": "tsc --noEmit -p packages/config/tsconfig.json && tsc --noEmit -p packages/db/tsconfig.json && tsc --noEmit -p packages/core/tsconfig.json && tsc --noEmit -p apps/worker/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "TEST_DATABASE_URL=$TEST_DATABASE_URL vitest run packages/core/src/pipeline",
+    "verify": "npm run typecheck && npm run test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "prisma": "^6.2.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}
