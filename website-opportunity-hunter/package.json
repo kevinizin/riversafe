@@ -25,7 +25,7 @@
     "typecheck": "tsc --noEmit -p packages/config/tsconfig.json && tsc --noEmit -p packages/db/tsconfig.json && tsc --noEmit -p packages/core/tsconfig.json && tsc --noEmit -p apps/worker/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "TEST_DATABASE_URL=$TEST_DATABASE_URL vitest run packages/core/src/pipeline",
+    "test:integration": "vitest run packages/core/src/pipeline",
     "verify": "npm run typecheck && npm run test"
   },
   "devDependencies": {

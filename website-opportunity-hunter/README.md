@@ -74,6 +74,10 @@ npm run setup
 npm run dev            # http://localhost:3000
 ```
 
+On Windows, run these in PowerShell or cmd exactly as written, one line each —
+and clone somewhere like `%USERPROFILE%\Documents`, never inside
+`C:\Windows\System32`.
+
 `npm run setup` does the rest: writes a `.env` with a freshly generated
 `AUTH_SECRET`, starts PostgreSQL through Docker Compose if it cannot reach one,
 applies the migrations and seeds the fictional demo data. It is safe to re-run —
@@ -160,24 +164,35 @@ npm test               # unit tests
 npm run verify         # typecheck + tests
 ```
 
-Integration tests need a database with the migrations applied:
+Integration tests need a database with the migrations applied, named by
+`TEST_DATABASE_URL`. Without that variable the integration suite skips rather
+than passing silently.
 
 ```bash
+# macOS / Linux
 createdb woh_test
 DATABASE_URL=postgresql://woh:woh@localhost:5432/woh_test npm run -w @woh/db deploy
 TEST_DATABASE_URL=postgresql://woh:woh@localhost:5432/woh_test npm test
 ```
 
-Without `TEST_DATABASE_URL` the integration suite skips rather than passing
-silently.
+```powershell
+# Windows PowerShell
+$env:DATABASE_URL="postgresql://woh:woh@localhost:5432/woh_test"
+npm run -w @woh/db deploy
+$env:TEST_DATABASE_URL=$env:DATABASE_URL
+npm test
+```
 
 ## Production
 
 ```bash
 npm run build
-npm start              # web
+npm start              # web, on PORT (default 3000)
 npm run start:worker   # worker, with QUEUE_DRIVER=redis
 ```
+
+Every script is plain cross-platform npm: no shell-specific syntax, so the same
+commands work in bash, zsh, PowerShell and cmd.
 
 Checklist before going live:
 
