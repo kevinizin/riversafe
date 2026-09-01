@@ -149,11 +149,16 @@ if (!migrated) {
   fail(
     `Cannot reach the database at ${databaseUrl.replace(/:\/\/[^@]*@/, '://***@')}`,
     [
-      'Either:',
-      '  - install Docker Desktop and run this again, and it will start Postgres for you, or',
-      '  - run PostgreSQL 16 yourself, create a database, and set DATABASE_URL in .env',
+      'Point DATABASE_URL in .env at a PostgreSQL 16 you can reach. Any of:',
       '',
-      'Then re-run: npm run setup',
+      '  - a free hosted database (Neon, Supabase, Railway): create one, copy its',
+      '    connection string into .env, and re-run. Nothing to install.',
+      '  - Docker Desktop: install it, start it, and re-run — this script will',
+      '    bring the database up for you.',
+      '  - a local PostgreSQL install: create a database and point DATABASE_URL at it.',
+      '',
+      'The .env file is in this folder. Edit the DATABASE_URL line, then re-run:',
+      '  npm run setup',
     ].join('\n'),
   );
 }
