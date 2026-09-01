@@ -102,6 +102,18 @@ npm run db:seed
 ```
 </details>
 
+**Using a PostgreSQL you installed yourself.** Nothing named `woh` exists on a
+fresh install, so point `DATABASE_URL` at the superuser and the database that
+always do exist, and let the migrations create the tables there:
+
+```
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/postgres?schema=public
+```
+
+Keep that password to letters and digits, or URL-encode it — a `@`, `:`, `/` or
+`#` inside a connection string changes where the URL is parsed and the
+connection fails with a confusing error.
+
 **Where configuration is read from.** There is one `.env`, at the repository
 root. Next.js and a plain Node process each look somewhere else by default, so
 `scripts/load-env.mjs` loads that file for the web app, the worker and the seed
