@@ -102,6 +102,20 @@ npm run db:seed
 ```
 </details>
 
+### Starting it again later
+
+Once the setup above has run, `start.cmd` (Windows) and `start.sh` (macOS,
+Linux) are double-click launchers. Each one checks Node, installs dependencies
+if they are missing, builds the first time, starts the server and opens the
+browser as soon as the port answers. If the app is already running it just opens
+the browser instead of failing on a busy port.
+
+Closing the window stops the server — deliberately, because a background server
+nobody can see is a server nobody remembers to stop.
+
+On Windows, right-click `start.cmd` and choose *Show more options → Send to →
+Desktop (create shortcut)* to get an icon you can double-click from anywhere.
+
 **Using a PostgreSQL you installed yourself.** Nothing named `woh` exists on a
 fresh install, so point `DATABASE_URL` at the superuser and the database that
 always do exist, and let the migrations create the tables there:
