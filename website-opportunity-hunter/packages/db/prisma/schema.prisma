@@ -1,0 +1,727 @@
+// Website Opportunity Hunter — data model.
+//
+// Design rules encoded here:
+//  * Every externally-obtained fact carries a source, a timestamp and a
+//    confidence. There is no column that mixes "confirmed" with "inferred".
+//  * Companies are deduplicated on an explicit `dedupeKey`, not on a name.
+//  * Pipeline stages record their own status, so a failure in one stage never
+//    loses the lead.
+//  * Personal data is isolated in `contacts` and carries retention metadata.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum Confidence {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum CompanyStatus {
+  ACTIVE
+  DISSOLVED
+  LIQUIDATION
+  ADMINISTRATION
+  CLOSED
+  OTHER
+  UNKNOWN
+}
+
+/// Deliberately phrased as what we *found*, never as what the company *has*.
+enum WebsiteStatus {
+  NOT_CHECKED
+  NO_WEBSITE_FOUND
+  WEBSITE_UNCERTAIN
+  WEBSITE_FOUND
+}
+
+enum DiscoveryMethod {
+  SOURCE_RECORD
+  DOMAIN_CANDIDATE
+  WEB_SEARCH_NAME
+  WEB_SEARCH_NAME_LOCATION
+  WEB_SEARCH_PHONE
+  WEB_SEARCH_ADDRESS
+  PLACES_PROVIDER
+  SOCIAL_PROFILE_LINK
+  WEBSITE_LINK
+  MANUAL
+}
+
+enum SocialPlatform {
+  INSTAGRAM
+  FACEBOOK
+  LINKEDIN
+  X
+  TIKTOK
+  YOUTUBE
+  GOOGLE_BUSINESS
+}
+
+enum SignalType {
+  RECENT_INCORPORATION
+  OPENING_SOON
+  NOW_OPEN
+  GRAND_OPENING
+  NEW_BUSINESS
+  NEW_LOCATION
+  COMING_SOON
+  RECENT_REVIEWS
+  RECENT_SOCIAL_ACTIVITY
+  RECENTLY_REGISTERED_DOMAIN
+  UNDER_CONSTRUCTION_WEBSITE
+  HIRING
+}
+
+enum Classification {
+  HOT
+  HIGH_OPPORTUNITY
+  WARM
+  LOW_PRIORITY
+  IGNORE
+}
+
+/// Per-stage outcome. UNAVAILABLE means "the source would not answer", which is
+/// distinct from FAILED ("we broke") and from DONE with an empty result.
+enum StageStatus {
+  PENDING
+  RUNNING
+  DONE
+  SKIPPED
+  FAILED
+  UNAVAILABLE
+}
+
+enum LeadStatus {
+  NEW
+  QUALIFIED
+  PREVIEW_CREATED
+  CONTACT_READY
+  CONTACTED
+  REPLIED
+  INTERESTED
+  DEMO
+  PROPOSAL
+  WON
+  LOST
+  DISCARDED
+}
+
+enum ContactKind {
+  BUSINESS_EMAIL
+  BUSINESS_PHONE
+  CONTACT_FORM
+  OFFICER_ROLE
+}
+
+enum RetentionStatus {
+  ACTIVE
+  ANONYMISED
+  DELETED
+}
+
+enum RunStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  PARTIAL
+  FAILED
+  CANCELLED
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+}
+
+enum IndustryMethod {
+  SIC_CODE
+  KEYWORD
+  AI_CLASSIFIER
+  MANUAL
+}
+
+enum OutreachStatus {
+  DRAFT
+  READY
+  APPROVED
+  SENT
+  DISCARDED
+}
+
+// ---------------------------------------------------------------------------
+// Identity
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(USER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  searches   Search[]
+  notes      Note[]
+  auditLogs  AuditLog[]
+  settings   Setting[]
+
+  @@map("users")
+}
+
+/// Per-user overrides for score thresholds, default country, retention, etc.
+model Setting {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid
+  key       String
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@map("settings")
+}
+
+// ---------------------------------------------------------------------------
+// Companies
+// ---------------------------------------------------------------------------
+
+model Company {
+  id             String   @id @default(uuid()) @db.Uuid
+  countryCode    String   @default("GB") @db.VarChar(2)
+
+  /// Registry identifier (Companies House number for GB). Null when the company
+  /// came from a source that has no registry id.
+  companyNumber  String?
+  name           String
+  /// Lowercased, legal-suffix-stripped, punctuation-free. Used for matching only.
+  normalizedName String
+  /// Stable identity used to prevent duplicates. See core/dedup.
+  dedupeKey      String   @unique
+
+  status             CompanyStatus @default(UNKNOWN)
+  incorporationDate  DateTime?
+  sicCodes           String[]      @default([])
+
+  addressLine1 String?
+  addressLine2 String?
+  city         String?
+  region       String?
+  postcode     String?
+  country      String?
+  /// Normalised postcode with the space removed, for exact-match dedup.
+  postcodeKey  String?
+
+  /// Business contact points only. Personal data lives in `contacts`.
+  phone String?
+  email String?
+
+  websiteStatus     WebsiteStatus @default(NOT_CHECKED)
+  websiteConfidence Confidence?
+  /// Human-readable reason for the websiteStatus, e.g. "no result after 4
+  /// permitted discovery methods". Never rendered as "has no website".
+  websiteStatusNote String?
+  primaryWebsiteId  String?       @db.Uuid
+
+  reviewCount Int?
+  rating      Float?
+
+  // --- pipeline bookkeeping -------------------------------------------------
+  enrichmentStatus       StageStatus @default(PENDING)
+  websiteDiscoveryStatus StageStatus @default(PENDING)
+  websiteAnalysisStatus  StageStatus @default(PENDING)
+  socialDiscoveryStatus  StageStatus @default(PENDING)
+  signalsStatus          StageStatus @default(PENDING)
+  scoringStatus          StageStatus @default(PENDING)
+  lastPipelineError      String?
+
+  // --- CRM ------------------------------------------------------------------
+  leadStatus     LeadStatus @default(NEW)
+  leadStatusAt   DateTime   @default(now())
+  contactedAt    DateTime?
+  discardedAt    DateTime?
+
+  // --- denormalised current score (kept in sync with the latest Score row) ---
+  currentScore          Int?
+  currentClassification Classification?
+  scoredAt              DateTime?
+
+  // --- GDPR bookkeeping -----------------------------------------------------
+  dataSource      String
+  collectedAt     DateTime        @default(now())
+  purpose         String          @default("B2B prospecting: assessing website need")
+  retentionStatus RetentionStatus @default(ACTIVE)
+  retentionUntil  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sources      CompanySource[]
+  industries   CompanyIndustry[]
+  websites     Website[]
+  socials      SocialProfile[]
+  signals      BusinessSignal[]
+  contacts     Contact[]
+  scores       Score[]
+  notes        Note[]
+  outreach     OutreachCandidate[]
+  runResults   SearchRunResult[]
+
+  @@index([countryCode, city])
+  @@index([countryCode, region])
+  @@index([postcodeKey])
+  @@index([incorporationDate])
+  @@index([websiteStatus])
+  @@index([currentScore])
+  @@index([currentClassification])
+  @@index([leadStatus])
+  @@index([normalizedName])
+  @@index([companyNumber])
+  @@map("companies")
+}
+
+/// One row per (company, provider) telling us where the record came from and
+/// what the provider actually returned. Raw payloads make every claim auditable.
+model CompanySource {
+  id         String     @id @default(uuid()) @db.Uuid
+  companyId  String     @db.Uuid
+  provider   String
+  externalId String?
+  sourceUrl  String?
+  confidence Confidence @default(HIGH)
+  fetchedAt  DateTime   @default(now())
+  payload    Json?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, externalId])
+  @@index([companyId])
+  @@map("company_sources")
+}
+
+model CompanyIndustry {
+  id            String         @id @default(uuid()) @db.Uuid
+  companyId     String         @db.Uuid
+  industryKey   String
+  subIndustryKey String?
+  method        IndustryMethod
+  confidence    Confidence
+  isPrimary     Boolean        @default(false)
+  evidence      String?
+  createdAt     DateTime       @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, industryKey])
+  @@index([industryKey])
+  @@map("company_industries")
+}
+
+// ---------------------------------------------------------------------------
+// Web presence
+// ---------------------------------------------------------------------------
+
+model Website {
+  id              String          @id @default(uuid()) @db.Uuid
+  companyId       String          @db.Uuid
+  url             String
+  domain          String
+  discoveryMethod DiscoveryMethod
+  confidence      Confidence
+  /// Why we believe this domain belongs to this company (matched postcode,
+  /// matched phone, exact name in <title>, ...). Never empty for HIGH.
+  evidence        String?
+  isPrimary       Boolean         @default(false)
+  firstSeenAt     DateTime        @default(now())
+  lastCheckedAt   DateTime?
+
+  company  Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  analyses WebsiteAnalysis[]
+
+  @@unique([companyId, domain])
+  @@index([domain])
+  @@map("websites")
+}
+
+model WebsiteAnalysis {
+  id        String   @id @default(uuid()) @db.Uuid
+  websiteId String   @db.Uuid
+  fetchedAt DateTime @default(now())
+
+  /// Null when the site could not be reached at all.
+  httpStatus Int?
+  /// e.g. WEBSITE_UNAVAILABLE, ROBOTS_DISALLOWED, TIMEOUT, TOO_LARGE
+  errorCode  String?
+  errorMessage String?
+
+  finalUrl        String?
+  responseTimeMs  Int?
+  htmlBytes       Int?
+
+  https              Boolean?
+  validCertificate   Boolean?
+  hasViewportMeta    Boolean?
+  mobileResponsive   Boolean?
+  title              String?
+  titleLength        Int?
+  metaDescription    String?
+  h1Count            Int?
+  hasCta             Boolean?
+  hasPhone           Boolean?
+  hasEmail           Boolean?
+  hasContactForm     Boolean?
+  hasOnlineBooking   Boolean?
+  hasWhatsApp        Boolean?
+  hasMap             Boolean?
+  hasSocialLinks     Boolean?
+  servicePageCount   Int?
+  locationPageCount  Int?
+  hasTestimonials    Boolean?
+  hasTrustSignals    Boolean?
+  hasPrivacyPage     Boolean?
+  hasCookieNotice    Boolean?
+  imagesMissingAlt   Int?
+  totalImages        Int?
+  hasLangAttribute   Boolean?
+  brokenLinkCount    Int?
+  checkedLinkCount   Int?
+  outdatedTechHints  String[] @default([])
+  detectedPlatform   String?
+  /// Distinctive colours sampled from the page; a hint for the demo design,
+  /// never presented as the business's official brand palette.
+  brandColourHints   String[] @default([])
+
+  qualityScore Int?
+  weaknesses   String[] @default([])
+  /// Full per-check detail: { key, label, passed, weight, evidence }.
+  checks       Json?
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@index([websiteId, fetchedAt])
+  @@map("website_analysis")
+}
+
+model SocialProfile {
+  id              String          @id @default(uuid()) @db.Uuid
+  companyId       String          @db.Uuid
+  platform        SocialPlatform
+  url             String
+  handle          String?
+  discoveryMethod DiscoveryMethod
+  confidence      Confidence
+  evidence        String?
+  /// Only stored when a permitted source reports it. Never estimated.
+  followers       Int?
+  lastActivityAt  DateTime?
+  detectedAt      DateTime        @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, platform, url])
+  @@index([companyId])
+  @@map("social_profiles")
+}
+
+model BusinessSignal {
+  id         String     @id @default(uuid()) @db.Uuid
+  companyId  String     @db.Uuid
+  type       SignalType
+  source     String
+  sourceUrl  String?
+  detectedAt DateTime   @default(now())
+  /// When the underlying event happened, if the source states it.
+  occurredAt DateTime?
+  confidence Confidence
+  /// Verbatim excerpt or structured fact that triggered the signal.
+  evidence   String
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, type, source])
+  @@index([companyId])
+  @@index([type])
+  @@map("business_signals")
+}
+
+// ---------------------------------------------------------------------------
+// Contacts (personal-data boundary)
+// ---------------------------------------------------------------------------
+
+model Contact {
+  id        String      @id @default(uuid()) @db.Uuid
+  companyId String      @db.Uuid
+  kind      ContactKind
+  /// Role title only (Director, Managing Director...). Present for OFFICER_ROLE.
+  role      String?
+  name      String?
+  email     String?
+  phone     String?
+  url       String?
+
+  /// True when the datum is plausibly personal rather than a company channel.
+  /// The pipeline refuses to store these unless explicitly enabled.
+  isPersonal Boolean @default(false)
+
+  source     String
+  sourceUrl  String?
+  confidence Confidence
+  evidence   String?
+
+  collectedAt     DateTime        @default(now())
+  purpose         String          @default("B2B prospecting: contacting the business about its website")
+  retentionStatus RetentionStatus @default(ACTIVE)
+  retentionUntil  DateTime?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("contacts")
+}
+
+// ---------------------------------------------------------------------------
+// Scoring
+// ---------------------------------------------------------------------------
+
+model Score {
+  id             String         @id @default(uuid()) @db.Uuid
+  companyId      String         @db.Uuid
+  version        Int
+  score          Int
+  classification Classification
+  confidence     Confidence
+  /// [{ component, points, max, reason }]
+  breakdown      Json
+  reasons        String[]       @default([])
+  /// Facts that were missing and capped the confidence.
+  gaps           String[]       @default([])
+  computedAt     DateTime       @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, computedAt])
+  @@index([score])
+  @@map("scores")
+}
+
+// ---------------------------------------------------------------------------
+// Searches and runs
+// ---------------------------------------------------------------------------
+
+model Search {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  name      String
+  /// Validated against core/search/filters.ts before it is stored.
+  filters   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  runs SearchRun[]
+
+  @@index([userId, createdAt])
+  @@map("searches")
+}
+
+model SearchRun {
+  id         String    @id @default(uuid()) @db.Uuid
+  searchId   String    @db.Uuid
+  status     RunStatus @default(QUEUED)
+  jobId      String?
+  startedAt  DateTime?
+  finishedAt DateTime?
+  error      String?
+
+  companiesFound     Int @default(0)
+  companiesNew       Int @default(0)
+  companiesDuplicate Int @default(0)
+  noWebsite          Int @default(0)
+  weakWebsite        Int @default(0)
+  hotLeads           Int @default(0)
+  highOpportunity    Int @default(0)
+  warmLeads          Int @default(0)
+  stageFailures      Int @default(0)
+
+  /// Per-stage counters and provider call counts.
+  stats     Json?
+  createdAt DateTime @default(now())
+
+  search  Search            @relation(fields: [searchId], references: [id], onDelete: Cascade)
+  results SearchRunResult[]
+
+  @@index([searchId, createdAt])
+  @@index([status])
+  @@map("search_runs")
+}
+
+model SearchRunResult {
+  id          String   @id @default(uuid()) @db.Uuid
+  searchRunId String   @db.Uuid
+  companyId   String   @db.Uuid
+  isNew       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  searchRun SearchRun @relation(fields: [searchRunId], references: [id], onDelete: Cascade)
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([searchRunId, companyId])
+  @@index([companyId])
+  @@map("search_run_results")
+}
+
+// ---------------------------------------------------------------------------
+// Outreach (prepared only — this system never sends)
+// ---------------------------------------------------------------------------
+
+model OutreachCandidate {
+  id        String         @id @default(uuid()) @db.Uuid
+  companyId String         @db.Uuid
+  status    OutreachStatus @default(DRAFT)
+  channel   String         @default("email")
+
+  subject String?
+  body    String?
+  /// The factual observations the message is allowed to reference, each with
+  /// its evidence. The generator may not state anything outside this list.
+  facts   Json?
+
+  /// Structured brief for building a demo homepage. Never auto-published.
+  previewBriefing Json?
+
+  generatedBy  String?
+  aiModel      String?
+  inputTokens  Int?
+  outputTokens Int?
+
+  generatedAt DateTime  @default(now())
+  approvedAt  DateTime?
+  /// Set by the user after they send the message themselves.
+  markedSentAt DateTime?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, generatedAt])
+  @@index([status])
+  @@map("outreach_candidates")
+}
+
+model Note {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @db.Uuid
+  userId    String?  @db.Uuid
+  body      String
+  createdAt DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, createdAt])
+  @@map("notes")
+}
+
+// ---------------------------------------------------------------------------
+// Operations
+// ---------------------------------------------------------------------------
+
+model JobRecord {
+  id         String    @id @default(uuid()) @db.Uuid
+  jobId      String    @unique
+  queue      String
+  type       String
+  status     RunStatus @default(QUEUED)
+  attempts   Int       @default(0)
+  startedAt  DateTime?
+  finishedAt DateTime?
+  error      String?
+  payload    Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([queue, status])
+  @@index([createdAt])
+  @@map("job_records")
+}
+
+model SystemLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  level     LogLevel
+  event     String
+  message   String
+  jobId     String?
+  companyId String?  @db.Uuid
+  context   Json?
+  createdAt DateTime @default(now())
+
+  @@index([level, createdAt])
+  @@index([event, createdAt])
+  @@index([companyId])
+  @@map("system_logs")
+}
+
+/// One row per external call, so cost and quota are observable.
+model ApiUsage {
+  id         String   @id @default(uuid()) @db.Uuid
+  provider   String
+  endpoint   String
+  status     Int?
+  ok         Boolean  @default(true)
+  durationMs Int?
+  cached     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([provider, createdAt])
+  @@map("api_usage")
+}
+
+model AiUsage {
+  id               String   @id @default(uuid()) @db.Uuid
+  purpose          String
+  model            String
+  inputTokens      Int      @default(0)
+  outputTokens     Int      @default(0)
+  estimatedCostGbp Float    @default(0)
+  companyId        String?  @db.Uuid
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([purpose, createdAt])
+  @@map("ai_usage")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid
+  action    String
+  entity    String
+  entityId  String?
+  ip        String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}
