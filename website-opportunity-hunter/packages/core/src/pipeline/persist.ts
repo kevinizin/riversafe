@@ -4,6 +4,7 @@ import { requireCountry } from '../countries/registry.js';
 import { dedupeKeys } from '../dedup/key.js';
 import { findDuplicate, type MatchCandidate } from '../dedup/match.js';
 import { deriveRegion } from '../geo/uk.js';
+import { findMunicipality } from '../geo/br.js';
 import { normalisePhone } from '../dedup/normalize.js';
 
 export interface UpsertResult {
@@ -71,7 +72,7 @@ export async function upsertCompany(
     candidates,
   );
 
-  const region = deriveRegion(source.address.city, source.address.postcode) ?? source.address.region ?? null;
+  const region = deriveRegionFor(source) ?? source.address.region ?? null;
 
   if (match) {
     const current = existing.find((c) => c.id === match.candidate.id)!;
@@ -87,6 +88,10 @@ export async function upsertCompany(
     if (!current.region && region) fillIn.region = region;
     if (!current.phone && source.phone) fillIn.phone = source.phone;
     if (current.status === 'UNKNOWN' && source.status !== 'UNKNOWN') fillIn.status = source.status;
+    if (!current.porte && source.sizeSignals?.porte) fillIn.porte = source.sizeSignals.porte;
+    if (current.capitalSocial === null && source.sizeSignals?.capitalSocial !== undefined) {
+      fillIn.capitalSocial = source.sizeSignals.capitalSocial;
+    }
 
     const company =
       Object.keys(fillIn).length > 0
@@ -115,12 +120,36 @@ export async function upsertCompany(
       postcodeKey: keys.postcodeKey,
       country: source.address.country ?? null,
       phone: source.phone ?? null,
+      porte: source.sizeSignals?.porte ?? null,
+      capitalSocial: source.sizeSignals?.capitalSocial ?? null,
       dataSource,
     },
   });
 
   await recordSource(db, company.id, source);
   return { company, isNew: true };
+}
+
+/**
+ * The administrative region, derived by the rules of the company's own country.
+ *
+ * This used to call the UK helper for every company regardless of country. It
+ * happened to return null for a Brazilian CEP rather than a wrong answer — a UK
+ * postcode area needs leading letters and a CEP has none — but a function that
+ * is only correct by accident is one bad input away from labelling a Manaus
+ * company as being in England.
+ */
+function deriveRegionFor(source: SourceCompany): string | null {
+  switch (source.countryCode.toUpperCase()) {
+    case 'GB':
+      return deriveRegion(source.address.city, source.address.postcode);
+    case 'BR':
+      // Only Amazonas municipalities are loaded, so a match is a match; a miss
+      // leaves the field to whatever the source itself stated.
+      return findMunicipality(source.address.city) ? 'Amazonas' : null;
+    default:
+      return null;
+  }
 }
 
 async function recordSource(db: Db, companyId: string, source: SourceCompany): Promise<void> {

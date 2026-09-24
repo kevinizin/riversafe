@@ -20,7 +20,7 @@ const PROVIDER = 'fixture';
  */
 export class FixtureCompanyProvider implements CompanySourceProvider {
   readonly name = PROVIDER;
-  readonly countries = ['GB'];
+  readonly countries = ['GB', 'BR'];
 
   constructor(private readonly data: FixtureCompany[] = FIXTURE_COMPANIES) {}
 

@@ -1,5 +1,5 @@
 import type { CountryProfile } from './types.js';
-import { UK_CITIES, UK_NATIONS, normalisePostcode } from '../geo/uk.js';
+import { UK_CITIES, UK_NATIONS, normalisePostcode, postcodeKey } from '../geo/uk.js';
 
 export const UNITED_KINGDOM: CountryProfile = {
   code: 'GB',
@@ -17,6 +17,7 @@ export const UNITED_KINGDOM: CountryProfile = {
     'company', 'co', 'holdings', 'group', 'uk',
   ],
   normalisePostcode,
+  postcodeKey,
   privacyNotes: [
     'Company registry data is published by Companies House under the Open Government Licence.',
     'Officer records may contain personal data; only role and business contact details are stored.',

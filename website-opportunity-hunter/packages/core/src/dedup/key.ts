@@ -1,5 +1,5 @@
-import { postcodeKey as ukPostcodeKey } from '../geo/uk.js';
 import { normaliseCompanyName, normaliseDomain, normalisePhone } from './normalize.js';
+import { getCountry } from '../countries/registry.js';
 
 export interface DedupeInput {
   countryCode: string;
@@ -33,7 +33,15 @@ export interface DedupeCandidateKeys {
 export function dedupeKeys(input: DedupeInput): DedupeCandidateKeys {
   const country = input.countryCode.toUpperCase();
   const normalisedName = normaliseCompanyName(input.name, input.legalSuffixes);
-  const pcKey = country === 'GB' ? ukPostcodeKey(input.postcode) : (input.postcode?.replace(/\s+/g, '').toUpperCase() ?? null);
+  // Each country knows how to reduce its own postcode to a comparison key.
+  // This used to special-case GB and fall through to a whitespace strip for
+  // everything else, which left a Brazilian CEP carrying its hyphen: the same
+  // company written "69000-000" by one source and "69000000" by another failed
+  // to match. Countries with no rule of their own keep that old behaviour.
+  const profile = getCountry(country);
+  const pcKey = profile
+    ? profile.postcodeKey(input.postcode)
+    : (input.postcode?.replace(/\s+/g, '').toUpperCase() ?? null);
   const domain = normaliseDomain(input.website);
   const phoneKey = normalisePhone(input.phone, country);
 

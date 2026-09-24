@@ -1,5 +1,5 @@
 import type { CountryProfile } from './types.js';
-import { AMAZONAS_MUNICIPALITIES, HOME_MUNICIPALITY, normaliseCep } from '../geo/br.js';
+import { AMAZONAS_MUNICIPALITIES, HOME_MUNICIPALITY, cepKey, normaliseCep } from '../geo/br.js';
 
 /**
  * Brazil.
@@ -39,6 +39,7 @@ export const BRAZIL: CountryProfile = {
     'cia', 'companhia', 'sociedade', 'simples', 'empresarial', 'eirl',
   ],
   normalisePostcode: normaliseCep,
+  postcodeKey: cepKey,
   privacyNotes: [
     'CNPJ registry data is published by the Receita Federal as open data.',
     'The dump includes the full partner list (QSA) with names; it is excluded from the load by default, because a partner is a natural person and the prospecting purpose does not require their identity.',

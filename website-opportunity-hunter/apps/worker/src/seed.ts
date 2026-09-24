@@ -4,6 +4,7 @@ import {
   FixtureCompanyProvider,
   buildOutreachFacts,
   calculateOpportunityScore,
+  calculateSystemScore,
   classify,
   createPipelineContext,
   detectSignals,
@@ -11,6 +12,7 @@ import {
   getIndustry,
   hashPassword,
   primaryIndustry,
+  estimateSizeFromPorte,
   qualityBand,
   scoreWebsite,
   selectDecisionMaker,
@@ -299,6 +301,27 @@ async function main(): Promise<void> {
       });
     }
 
+    // --- estimated size ------------------------------------------------------
+    // Only the Brazilian fixtures carry a porte. The UK ones leave these
+    // columns null, which is what "we do not know" looks like in this system.
+    const sizeEstimate = estimateSizeFromPorte(
+      fixture.sizeSignals?.porte,
+      fixture.sizeSignals?.capitalSocial,
+      { source: 'fixture', detectedAt: new Date() },
+    );
+    if (sizeEstimate) {
+      await prisma.company.update({
+        where: { id: company.id },
+        data: {
+          sizeBand: sizeEstimate.value.band,
+          sizeEmployeesFrom: sizeEstimate.value.employeesFrom,
+          sizeEmployeesTo: sizeEstimate.value.employeesTo ?? null,
+          sizeConfidence: sizeEstimate.confidence,
+          sizeBasis: sizeEstimate.value.basis,
+        },
+      });
+    }
+
     // --- score ---------------------------------------------------------------
     const fresh = await prisma.company.findUniqueOrThrow({
       where: { id: company.id },
@@ -324,17 +347,49 @@ async function main(): Promise<void> {
       })),
     });
 
-    await prisma.score.create({
-      data: {
-        companyId: company.id,
-        version: 1,
-        score: score.score,
-        classification: score.classification,
-        confidence: score.confidence,
-        breakdown: score.components as unknown as Prisma.InputJsonValue,
-        reasons: score.reasons,
-        gaps: score.gaps,
-      },
+    const systemScore = calculateSystemScore({
+      companyStatus: fresh.status,
+      incorporationDate: fresh.incorporationDate,
+      industryKey: primary?.industryKey,
+      industryConfidence: primary?.confidence,
+      sizeEstimate: sizeEstimate?.value,
+      websiteAnalysed: qualityScore !== undefined,
+      websitePassedChecks: facts?.hasBookingSignal ? ['booking'] : [],
+      noWebsiteFound: fresh.websiteStatus === 'NO_WEBSITE_FOUND',
+      signals: fresh.signals.map((s) => ({
+        type: s.type,
+        source: s.source,
+        detectedAt: s.detectedAt,
+        confidence: s.confidence,
+        evidence: s.evidence,
+      })),
+    });
+
+    await prisma.score.createMany({
+      data: [
+        {
+          companyId: company.id,
+          axis: 'WEBSITE' as const,
+          version: 1,
+          score: score.score,
+          classification: score.classification,
+          confidence: score.confidence,
+          breakdown: score.components as unknown as Prisma.InputJsonValue,
+          reasons: score.reasons,
+          gaps: score.gaps,
+        },
+        {
+          companyId: company.id,
+          axis: 'SYSTEM' as const,
+          version: 1,
+          score: systemScore.score,
+          classification: systemScore.classification,
+          confidence: systemScore.confidence,
+          breakdown: systemScore.components as unknown as Prisma.InputJsonValue,
+          reasons: systemScore.reasons,
+          gaps: systemScore.gaps,
+        },
+      ],
     });
     await prisma.company.update({
       where: { id: company.id },
@@ -342,6 +397,10 @@ async function main(): Promise<void> {
         currentScore: score.score,
         currentClassification: score.classification,
         scoredAt: new Date(),
+        systemScore: systemScore.score,
+        systemClassification: systemScore.classification,
+        systemScoredAt: new Date(),
+        sizeFit: systemScore.sizeFit,
         scoringStatus: 'DONE',
         enrichmentStatus: 'DONE',
         socialDiscoveryStatus: 'DONE',

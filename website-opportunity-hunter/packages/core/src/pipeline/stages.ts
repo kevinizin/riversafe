@@ -9,6 +9,8 @@ import { classify, primaryIndustry } from '../industry/classify.js';
 import { selectDecisionMaker } from '../enrichment/officers.js';
 import type { PlaceRecord } from '../providers/places/types.js';
 import { calculateOpportunityScore } from '../scoring/opportunity.js';
+import { calculateSystemScore } from '../scoring/system.js';
+import { estimateSizeFromAccounts, estimateSizeFromPorte, type SizeEstimate } from '../enrichment/size.js';
 import { detectSignals } from '../signals/detect.js';
 import { discoverSocialProfiles } from '../social/discover.js';
 import type { PipelineContext } from './context.js';
@@ -166,6 +168,48 @@ export async function enrichCompany(
         },
       });
     }
+  });
+
+  // --- 2b. Estimated size ----------------------------------------------------
+  // The single most requested filter — "companies with ten to fifteen people" —
+  // and the one no registry can answer. What is written here is always an
+  // estimate: a band, a plausible range, and the sentences it rests on, so the
+  // operator can see the reasoning and overrule it.
+  await stage('enrichmentStatus', 'size_estimate', async () => {
+    const evidence = {
+      source: company.dataSource,
+      detectedAt: ctx.now(),
+    };
+
+    let estimate: ReturnType<typeof estimateSizeFromPorte>;
+    if (company.porte) {
+      estimate = estimateSizeFromPorte(
+        company.porte,
+        company.capitalSocial === null ? undefined : Number(company.capitalSocial),
+        evidence,
+      );
+    } else {
+      const accountsType = await latestAccountsType(ctx.db, companyId);
+      estimate = estimateSizeFromAccounts(accountsType, { ...evidence, source: `${company.dataSource}:accounts` });
+    }
+
+    if (!estimate) {
+      // Nothing to say. The columns stay null, which the UI renders as
+      // "porte desconhecido" — never as "small".
+      await setStage(ctx.db, companyId, 'enrichmentStatus', 'SKIPPED');
+      return;
+    }
+
+    await ctx.db.company.update({
+      where: { id: companyId },
+      data: {
+        sizeBand: estimate.value.band,
+        sizeEmployeesFrom: estimate.value.employeesFrom,
+        sizeEmployeesTo: estimate.value.employeesTo ?? null,
+        sizeConfidence: estimate.confidence,
+        sizeBasis: estimate.value.basis,
+      },
+    });
   });
 
   // --- 3. Business listing (reviews, rating, phone, hours) -------------------
@@ -379,11 +423,18 @@ export async function enrichCompany(
   };
 }
 
-/** Recomputes the score from what is currently stored. Safe to call any time. */
+/**
+ * Recomputes both scores from what is currently stored. Safe to call any time.
+ *
+ * Both axes are always computed, even when the operator is only shopping for
+ * one of them. They are cheap, they are pure functions of rows already loaded,
+ * and a lead that is wrong for a website is very often the right lead for a
+ * system — which is only visible if both numbers exist.
+ */
 export async function scoreCompany(
   ctx: PipelineContext,
   companyId: string,
-): Promise<{ score: number; classification: string }> {
+): Promise<{ score: number; classification: string; systemScore: number; systemClassification: string }> {
   const company = await ctx.db.company.findUniqueOrThrow({
     where: { id: companyId },
     include: {
@@ -425,17 +476,61 @@ export async function scoreCompany(
     thresholds: ctx.thresholds,
   });
 
-  await ctx.db.score.create({
-    data: {
-      companyId,
-      version: SCORE_VERSION,
-      score: result.score,
-      classification: result.classification,
-      confidence: result.confidence,
-      breakdown: result.components as unknown as Prisma.InputJsonValue,
-      reasons: result.reasons,
-      gaps: result.gaps,
-    },
+  // The size estimate was written by the enrichment stage. Rebuilt here from the
+  // stored columns rather than re-derived, so the score always reflects the
+  // estimate a human can see on the company page.
+  const sizeEstimate: SizeEstimate | undefined =
+    company.sizeBand && company.sizeEmployeesFrom !== null
+      ? {
+          band: company.sizeBand,
+          employeesFrom: company.sizeEmployeesFrom,
+          ...(company.sizeEmployeesTo !== null ? { employeesTo: company.sizeEmployeesTo } : {}),
+          basis: company.sizeBasis,
+        }
+      : undefined;
+
+  const systemResult = calculateSystemScore({
+    now: ctx.now(),
+    companyStatus: company.status,
+    incorporationDate: company.incorporationDate,
+    industryKey: primaryIndustryRow?.industryKey,
+    industryConfidence: primaryIndustryRow?.confidence,
+    sizeEstimate,
+    websiteAnalysed: !!analysis,
+    // The analyser's own observed fact, not its scored check. The check is
+    // marked inapplicable for sectors where booking is not expected, and for
+    // this axis an absent booking system means the same thing either way.
+    websitePassedChecks: analysis?.hasOnlineBooking ? ['booking'] : [],
+    noWebsiteFound: company.websiteStatus === 'NO_WEBSITE_FOUND',
+    signals,
+    thresholds: ctx.thresholds,
+  });
+
+  await ctx.db.score.createMany({
+    data: [
+      {
+        companyId,
+        axis: 'WEBSITE' as const,
+        version: SCORE_VERSION,
+        score: result.score,
+        classification: result.classification,
+        confidence: result.confidence,
+        breakdown: result.components as unknown as Prisma.InputJsonValue,
+        reasons: result.reasons,
+        gaps: result.gaps,
+      },
+      {
+        companyId,
+        axis: 'SYSTEM' as const,
+        version: SCORE_VERSION,
+        score: systemResult.score,
+        classification: systemResult.classification,
+        confidence: systemResult.confidence,
+        breakdown: systemResult.components as unknown as Prisma.InputJsonValue,
+        reasons: systemResult.reasons,
+        gaps: systemResult.gaps,
+      },
+    ],
   });
 
   await ctx.db.company.update({
@@ -444,10 +539,43 @@ export async function scoreCompany(
       currentScore: result.score,
       currentClassification: result.classification,
       scoredAt: ctx.now(),
+      systemScore: systemResult.score,
+      systemClassification: systemResult.classification,
+      systemScoredAt: ctx.now(),
+      sizeFit: systemResult.sizeFit,
     },
   });
 
-  return { score: result.score, classification: result.classification };
+  return {
+    score: result.score,
+    classification: result.classification,
+    systemScore: systemResult.score,
+    systemClassification: systemResult.classification,
+  };
+}
+
+
+/**
+ * The accounts category a UK company last filed under, from the stored source
+ * payload.
+ *
+ * Reads defensively at every step: this is provider JSON, and a shape change at
+ * Companies House must degrade to "size unknown" rather than throw in the
+ * middle of an enrichment run.
+ */
+async function latestAccountsType(db: Db, companyId: string): Promise<string | undefined> {
+  const source = await db.companySource.findFirst({
+    where: { companyId },
+    orderBy: { fetchedAt: 'desc' },
+  });
+  const payload = source?.payload;
+  if (typeof payload !== 'object' || payload === null) return undefined;
+  const accounts = (payload as { accounts?: unknown }).accounts;
+  if (typeof accounts !== 'object' || accounts === null) return undefined;
+  const last = (accounts as { last_accounts?: unknown }).last_accounts;
+  if (typeof last !== 'object' || last === null) return undefined;
+  const type = (last as { type?: unknown }).type;
+  return typeof type === 'string' ? type : undefined;
 }
 
 async function setStage(

@@ -96,6 +96,32 @@ enum Classification {
   IGNORE
 }
 
+/// Which question a score answers. The two are never averaged: a company can be
+/// HOT for a website and IGNORE for a system, and that disagreement is the
+/// useful output.
+enum ScoreAxis {
+  WEBSITE
+  SYSTEM
+}
+
+/// Estimated size band. Always an estimate — see enrichment/size.ts. No registry
+/// this system reads publishes a headcount.
+enum SizeBand {
+  MICRO
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+/// How an estimated size lines up with the headcount the operator is targeting.
+/// UNKNOWN is a distinct answer from UNLIKELY and ranks above it.
+enum SizeFit {
+  LIKELY
+  POSSIBLE
+  UNLIKELY
+  UNKNOWN
+}
+
 /// Per-stage outcome. UNAVAILABLE means "the source would not answer", which is
 /// distinct from FAILED ("we broke") and from DONE with an empty result.
 enum StageStatus {
@@ -180,10 +206,10 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  searches   Search[]
-  notes      Note[]
-  auditLogs  AuditLog[]
-  settings   Setting[]
+  searches  Search[]
+  notes     Note[]
+  auditLogs AuditLog[]
+  settings  Setting[]
 
   @@map("users")
 }
@@ -207,8 +233,8 @@ model Setting {
 // ---------------------------------------------------------------------------
 
 model Company {
-  id             String   @id @default(uuid()) @db.Uuid
-  countryCode    String   @default("GB") @db.VarChar(2)
+  id          String @id @default(uuid()) @db.Uuid
+  countryCode String @default("GB") @db.VarChar(2)
 
   /// Registry identifier (Companies House number for GB). Null when the company
   /// came from a source that has no registry id.
@@ -217,11 +243,11 @@ model Company {
   /// Lowercased, legal-suffix-stripped, punctuation-free. Used for matching only.
   normalizedName String
   /// Stable identity used to prevent duplicates. See core/dedup.
-  dedupeKey      String   @unique
+  dedupeKey      String  @unique
 
-  status             CompanyStatus @default(UNKNOWN)
-  incorporationDate  DateTime?
-  sicCodes           String[]      @default([])
+  status            CompanyStatus @default(UNKNOWN)
+  incorporationDate DateTime?
+  sicCodes          String[]      @default([])
 
   addressLine1 String?
   addressLine2 String?
@@ -256,15 +282,36 @@ model Company {
   lastPipelineError      String?
 
   // --- CRM ------------------------------------------------------------------
-  leadStatus     LeadStatus @default(NEW)
-  leadStatusAt   DateTime   @default(now())
-  contactedAt    DateTime?
-  discardedAt    DateTime?
+  leadStatus   LeadStatus @default(NEW)
+  leadStatusAt DateTime   @default(now())
+  contactedAt  DateTime?
+  discardedAt  DateTime?
 
-  // --- denormalised current score (kept in sync with the latest Score row) ---
+  // --- estimated size -------------------------------------------------------
+  /// Every field here is an estimate and must be rendered as one. The Receita
+  /// Federal publishes `porte` (a revenue class) and Companies House publishes
+  /// an accounts category; neither publishes a number of employees.
+  sizeBand          SizeBand?
+  sizeEmployeesFrom Int?
+  sizeEmployeesTo   Int?
+  sizeConfidence    Confidence?
+  sizeFit           SizeFit?
+  /// The sentences behind the estimate, shown next to it so a human can judge it.
+  sizeBasis         String[]    @default([])
+  /// Raw source fields, kept so the estimate can be re-derived when the rules change.
+  porte             String?     @db.VarChar(2)
+  capitalSocial     Decimal?    @db.Decimal(18, 2)
+
+  // --- denormalised current scores (kept in sync with the latest Score rows) --
+  /// The website axis.
   currentScore          Int?
   currentClassification Classification?
   scoredAt              DateTime?
+
+  /// The system axis. Null means never scored on it, which is not zero.
+  systemScore          Int?
+  systemClassification Classification?
+  systemScoredAt       DateTime?
 
   // --- GDPR bookkeeping -----------------------------------------------------
   dataSource      String
@@ -276,16 +323,16 @@ model Company {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sources      CompanySource[]
-  industries   CompanyIndustry[]
-  websites     Website[]
-  socials      SocialProfile[]
-  signals      BusinessSignal[]
-  contacts     Contact[]
-  scores       Score[]
-  notes        Note[]
-  outreach     OutreachCandidate[]
-  runResults   SearchRunResult[]
+  sources    CompanySource[]
+  industries CompanyIndustry[]
+  websites   Website[]
+  socials    SocialProfile[]
+  signals    BusinessSignal[]
+  contacts   Contact[]
+  scores     Score[]
+  notes      Note[]
+  outreach   OutreachCandidate[]
+  runResults SearchRunResult[]
 
   @@index([countryCode, city])
   @@index([countryCode, region])
@@ -294,6 +341,9 @@ model Company {
   @@index([websiteStatus])
   @@index([currentScore])
   @@index([currentClassification])
+  @@index([systemScore])
+  @@index([systemClassification])
+  @@index([sizeBand])
   @@index([leadStatus])
   @@index([normalizedName])
   @@index([companyNumber])
@@ -320,15 +370,15 @@ model CompanySource {
 }
 
 model CompanyIndustry {
-  id            String         @id @default(uuid()) @db.Uuid
-  companyId     String         @db.Uuid
-  industryKey   String
+  id             String         @id @default(uuid()) @db.Uuid
+  companyId      String         @db.Uuid
+  industryKey    String
   subIndustryKey String?
-  method        IndustryMethod
-  confidence    Confidence
-  isPrimary     Boolean        @default(false)
-  evidence      String?
-  createdAt     DateTime       @default(now())
+  method         IndustryMethod
+  confidence     Confidence
+  isPrimary      Boolean        @default(false)
+  evidence       String?
+  createdAt      DateTime       @default(now())
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
@@ -369,47 +419,47 @@ model WebsiteAnalysis {
   fetchedAt DateTime @default(now())
 
   /// Null when the site could not be reached at all.
-  httpStatus Int?
+  httpStatus   Int?
   /// e.g. WEBSITE_UNAVAILABLE, ROBOTS_DISALLOWED, TIMEOUT, TOO_LARGE
-  errorCode  String?
+  errorCode    String?
   errorMessage String?
 
-  finalUrl        String?
-  responseTimeMs  Int?
-  htmlBytes       Int?
+  finalUrl       String?
+  responseTimeMs Int?
+  htmlBytes      Int?
 
-  https              Boolean?
-  validCertificate   Boolean?
-  hasViewportMeta    Boolean?
-  mobileResponsive   Boolean?
-  title              String?
-  titleLength        Int?
-  metaDescription    String?
-  h1Count            Int?
-  hasCta             Boolean?
-  hasPhone           Boolean?
-  hasEmail           Boolean?
-  hasContactForm     Boolean?
-  hasOnlineBooking   Boolean?
-  hasWhatsApp        Boolean?
-  hasMap             Boolean?
-  hasSocialLinks     Boolean?
-  servicePageCount   Int?
-  locationPageCount  Int?
-  hasTestimonials    Boolean?
-  hasTrustSignals    Boolean?
-  hasPrivacyPage     Boolean?
-  hasCookieNotice    Boolean?
-  imagesMissingAlt   Int?
-  totalImages        Int?
-  hasLangAttribute   Boolean?
-  brokenLinkCount    Int?
-  checkedLinkCount   Int?
-  outdatedTechHints  String[] @default([])
-  detectedPlatform   String?
+  https             Boolean?
+  validCertificate  Boolean?
+  hasViewportMeta   Boolean?
+  mobileResponsive  Boolean?
+  title             String?
+  titleLength       Int?
+  metaDescription   String?
+  h1Count           Int?
+  hasCta            Boolean?
+  hasPhone          Boolean?
+  hasEmail          Boolean?
+  hasContactForm    Boolean?
+  hasOnlineBooking  Boolean?
+  hasWhatsApp       Boolean?
+  hasMap            Boolean?
+  hasSocialLinks    Boolean?
+  servicePageCount  Int?
+  locationPageCount Int?
+  hasTestimonials   Boolean?
+  hasTrustSignals   Boolean?
+  hasPrivacyPage    Boolean?
+  hasCookieNotice   Boolean?
+  imagesMissingAlt  Int?
+  totalImages       Int?
+  hasLangAttribute  Boolean?
+  brokenLinkCount   Int?
+  checkedLinkCount  Int?
+  outdatedTechHints String[] @default([])
+  detectedPlatform  String?
   /// Distinctive colours sampled from the page; a hint for the demo design,
   /// never presented as the business's official brand palette.
-  brandColourHints   String[] @default([])
+  brandColourHints  String[] @default([])
 
   qualityScore Int?
   weaknesses   String[] @default([])
@@ -506,6 +556,8 @@ model Contact {
 model Score {
   id             String         @id @default(uuid()) @db.Uuid
   companyId      String         @db.Uuid
+  /// Which question this score answers. Existing rows are the website axis.
+  axis           ScoreAxis      @default(WEBSITE)
   version        Int
   score          Int
   classification Classification
@@ -519,8 +571,8 @@ model Score {
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  @@index([companyId, computedAt])
-  @@index([score])
+  @@index([companyId, axis, computedAt])
+  @@index([axis, score])
   @@map("scores")
 }
 
@@ -614,8 +666,8 @@ model OutreachCandidate {
   inputTokens  Int?
   outputTokens Int?
 
-  generatedAt DateTime  @default(now())
-  approvedAt  DateTime?
+  generatedAt  DateTime  @default(now())
+  approvedAt   DateTime?
   /// Set by the user after they send the message themselves.
   markedSentAt DateTime?
 

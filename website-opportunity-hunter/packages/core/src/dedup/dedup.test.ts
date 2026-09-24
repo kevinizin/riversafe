@@ -101,3 +101,21 @@ describe('nameSimilarity', () => {
     expect(nameSimilarity('demo roofing', 'acme plumbing')).toBe(0);
   });
 });
+
+describe('postcode keys are built by the rules of the company own country', () => {
+  it('matches a CEP written with and without its hyphen', () => {
+    const withHyphen = dedupeKeys({ countryCode: 'BR', name: 'Demo Arquitetura Ltda', postcode: '69000-000' });
+    const without = dedupeKeys({ countryCode: 'BR', name: 'Demo Arquitetura Ltda', postcode: '69000000' });
+    expect(withHyphen.postcodeKey).toBe('69000000');
+    expect(without.postcodeKey).toBe('69000000');
+    expect(withHyphen.alternates).toEqual(without.alternates);
+  });
+
+  it('still strips the space from a UK postcode', () => {
+    expect(dedupeKeys({ countryCode: 'GB', name: 'Demo Ltd', postcode: 'm1 1aa' }).postcodeKey).toBe('M11AA');
+  });
+
+  it('falls back to a whitespace strip for a country with no profile', () => {
+    expect(dedupeKeys({ countryCode: 'ZZ', name: 'Demo', postcode: ' ab 12 ' }).postcodeKey).toBe('AB12');
+  });
+});

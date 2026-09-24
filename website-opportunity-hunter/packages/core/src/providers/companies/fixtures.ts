@@ -59,6 +59,24 @@ const weakHtml = (name: string) => `<html><head><title>${name}</title></head>
 <p>Phone: 01000 000000</p>
 </body></html>`;
 
+
+const yearsAgo = (n: number): Date => daysAgo(Math.round(n * 365));
+
+/** A plain institutional site in Portuguese: present, but nothing runs on it. */
+const brochureHtml = (name: string, city: string) => `<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${name} — Projetos e execução em ${city}</title>
+<meta name="description" content="${name} atua com projetos e execução em ${city}. Conheça nosso trabalho.">
+</head><body>
+<h1>${name}</h1>
+<nav><a href="/projetos">Projetos</a><a href="/sobre">Sobre</a><a href="/contato">Contato</a></nav>
+<p>Fale conosco: contato@example.com.br</p>
+<form action="/contato"><input name="email"><button>Enviar</button></form>
+<a href="https://www.instagram.com/example">Instagram</a>
+<img src="/obra.jpg" alt="Obra entregue">
+</body></html>`;
+
 export const FIXTURE_COMPANIES: FixtureCompany[] = [
   {
     countryCode: 'GB',
@@ -213,6 +231,90 @@ export const FIXTURE_COMPANIES: FixtureCompany[] = [
     sicCodes: ['96020'],
     address: { line1: '10 Example Street', city: 'Glasgow', postcode: 'G1 1AA', country: 'Scotland' },
     fixture: { reviewCount: 58, rating: 4.6 },
+  },
+
+  // --- Brasil ---------------------------------------------------------------
+  // Empresas fictícias do Amazonas, feitas para exercitar o eixo de sistema.
+  // Os CNPJs começam com 00.000.000, que nunca pertence a uma empresa real, e
+  // os domínios usam example.com.br (RFC 2606). Nada aqui é uma empresa real.
+  {
+    countryCode: 'BR',
+    companyNumber: '00000000000101',
+    externalId: 'DEMOBR001',
+    // O arquétipo descrito pelo operador: escritório de arquitetura com equipe,
+    // alguns anos de casa, site institucional e nenhum sistema de gestão à vista.
+    name: 'DEMO ARQUITETURA E PROJETOS LTDA',
+    status: 'ACTIVE',
+    incorporationDate: yearsAgo(4),
+    sicCodes: ['7111100'],
+    address: { line1: 'Rua Exemplo, 100', city: 'Manaus', region: 'Amazonas', postcode: '69000-000', country: 'Brasil' },
+    sizeSignals: { porte: '03', capitalSocial: 180_000 },
+    fixture: {
+      website: 'https://demo-arquitetura.example.com.br',
+      html: brochureHtml('Demo Arquitetura', 'Manaus'),
+      socials: [{ platform: 'INSTAGRAM', url: 'https://www.instagram.com/demo_arquitetura' }],
+      reviewCount: 24,
+      rating: 4.8,
+      latestReviewAt: daysAgo(20),
+    },
+  },
+  {
+    countryCode: 'BR',
+    companyNumber: '00000000000202',
+    externalId: 'DEMOBR002',
+    name: 'DEMO CURSOS E TREINAMENTOS LTDA',
+    status: 'ACTIVE',
+    incorporationDate: yearsAgo(6),
+    sicCodes: ['8599604'],
+    address: { line1: 'Avenida Exemplo, 200', city: 'Manaus', region: 'Amazonas', postcode: '69010-000', country: 'Brasil' },
+    sizeSignals: { porte: '03', capitalSocial: 95_000 },
+    fixture: {
+      website: 'https://demo-cursos.example.com.br',
+      html: brochureHtml('Demo Cursos', 'Manaus'),
+      reviewCount: 61,
+      rating: 4.5,
+      latestReviewAt: daysAgo(9),
+    },
+  },
+  {
+    countryCode: 'BR',
+    companyNumber: '00000000000303',
+    externalId: 'DEMOBR003',
+    name: 'DEMO ENGENHARIA E OBRAS LTDA',
+    status: 'ACTIVE',
+    incorporationDate: yearsAgo(9),
+    sicCodes: ['7112000'],
+    address: { line1: 'Rua Exemplo, 300', city: 'Manaus', region: 'Amazonas', postcode: '69020-000', country: 'Brasil' },
+    sizeSignals: { porte: '05', capitalSocial: 750_000 },
+    fixture: { reviewCount: 12, rating: 4.2 },
+  },
+  {
+    countryCode: 'BR',
+    companyNumber: '00000000000404',
+    externalId: 'DEMOBR004',
+    // O outro lado da moeda: aberta há duas semanas, sem site. Forte no eixo de
+    // site, fraca no de sistema — não há operação para organizar ainda.
+    name: 'DEMO ESTUDIO DE ARQUITETURA ME',
+    status: 'ACTIVE',
+    incorporationDate: daysAgo(14),
+    sicCodes: ['7111100'],
+    address: { line1: 'Rua Exemplo, 400', city: 'Manaus', region: 'Amazonas', postcode: '69030-000', country: 'Brasil' },
+    sizeSignals: { porte: '01', capitalSocial: 10_000 },
+    fixture: {},
+  },
+  {
+    countryCode: 'BR',
+    companyNumber: '00000000000505',
+    externalId: 'DEMOBR005',
+    // Setor de baixo peso para sistema, para que o painel mostre os dois eixos
+    // discordando em direções opostas.
+    name: 'DEMO CAFETERIA LTDA',
+    status: 'ACTIVE',
+    incorporationDate: yearsAgo(3),
+    sicCodes: ['5611203'],
+    address: { line1: 'Rua Exemplo, 500', city: 'Manaus', region: 'Amazonas', postcode: '69040-000', country: 'Brasil' },
+    sizeSignals: { porte: '01', capitalSocial: 30_000 },
+    fixture: { reviewCount: 143, rating: 4.7, latestReviewAt: daysAgo(3) },
   },
 ];
 

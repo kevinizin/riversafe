@@ -172,6 +172,40 @@ maybe('search pipeline (integration)', () => {
     expect(results).toBe(companies.length);
   }, 90_000);
 
+  it('stores both axes for every company, and keeps them apart', async () => {
+    const ctx = createPipelineContext(env, {
+      db,
+      persistLogs: false,
+      providers: buildTestProviders(new EmptySearch()),
+    });
+    const run = await createRun(ctx);
+    await runSearch(ctx, run.id);
+
+    const companies = await db.company.findMany({ include: { scores: true } });
+    expect(companies.length).toBeGreaterThan(0);
+
+    for (const company of companies) {
+      expect(company.currentScore).not.toBeNull();
+      expect(company.systemScore).not.toBeNull();
+      expect(company.systemClassification).not.toBeNull();
+      expect(company.sizeFit).not.toBeNull();
+
+      const byAxis = new Map(company.scores.map((s) => [s.axis, s]));
+      expect(byAxis.get('WEBSITE')?.score).toBe(company.currentScore);
+      expect(byAxis.get('SYSTEM')?.score).toBe(company.systemScore);
+      // Each axis keeps its own reasoning; a shared breakdown would mean one
+      // of the two numbers is not actually being explained.
+      expect(byAxis.get('SYSTEM')?.reasons).not.toEqual(byAxis.get('WEBSITE')?.reasons);
+    }
+
+    // The fixtures are all young UK companies with no website — strong for a
+    // website, weak for a system. If this ever inverts, the axes have been
+    // wired to the same inputs.
+    const anyYoung = companies.find((c) => (c.currentScore ?? 0) >= 60);
+    expect(anyYoung).toBeDefined();
+    expect(anyYoung!.systemScore!).toBeLessThan(anyYoung!.currentScore!);
+  }, 90_000);
+
   it('reports "not found" only after methods actually ran', async () => {
     const ctx = createPipelineContext(env, {
       db,

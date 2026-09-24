@@ -116,6 +116,20 @@ export interface SourceCompany {
   /** Only when the source itself publishes it. Never guessed. */
   website?: string;
   phone?: string;
+  /**
+   * Whatever the registry publishes that bears on company size. Deliberately a
+   * small bag of optional fields rather than columns on this interface: each
+   * registry names its own thing, none of them publishes a headcount, and
+   * everything here feeds an estimate rather than a stated fact.
+   */
+  sizeSignals?: {
+    /** Receita Federal `porte_empresa`: 00, 01, 03 or 05. */
+    porte?: string;
+    /** Declared share capital, in the country's currency. */
+    capitalSocial?: number;
+    /** Companies House `accounts.last_accounts.type`. */
+    accountsType?: string;
+  };
   /** Provider identity, so CompanySource rows stay unique and auditable. */
   provider: string;
   externalId: string;

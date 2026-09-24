@@ -24,6 +24,12 @@ export interface CountryProfile {
   legalSuffixes: string[];
   /** Normalises a postcode to a canonical form, or null if it is not valid. */
   normalisePostcode(value: string | null | undefined): string | null;
+  /**
+   * The comparison form of a postcode: punctuation and spacing removed, so two
+   * sources that spell the same postcode differently still match. Distinct from
+   * `normalisePostcode`, which produces the form a human expects to read.
+   */
+  postcodeKey(value: string | null | undefined): string | null;
   /** Notes surfaced in the UI about lawful processing in this jurisdiction. */
   privacyNotes: string[];
   enabled: boolean;
