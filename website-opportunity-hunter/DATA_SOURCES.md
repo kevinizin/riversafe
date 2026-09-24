@@ -192,9 +192,72 @@ recorded in `ai_usage`.
 
 ---
 
-## SIC code reference
+## Receita Federal CNPJ open data — Brazil, not yet finished
 
-The industry catalogue uses SIC 2007 codes from the Companies House condensed
+**Status: not implemented. Read this section before starting it.**
+
+The Receita Federal publishes the whole CNPJ register as open data. Two facts
+shape everything about how it has to be used:
+
+1. **There is no free search API.** The data ships as monthly bulk CSV files
+   inside zip archives. "Incorporated in the last 30 days" is therefore as fresh
+   as the last import, not as fresh as this morning, and the UI has to say which
+   import it is answering from.
+2. **The files are large.** The whole country is tens of millions of rows, which
+   is why the plan is to load only `UF = AM` and keep the local database small.
+
+### What is verified
+
+- The dataset exists as monthly bulk files, licensed as open data, with
+  `Empresas`, `Estabelecimentos`, `Socios` and the small lookup tables (CNAE,
+  municípios, naturezas jurídicas, qualificações, motivos, países).
+- The CNAE subclasses used in the industry catalogue were taken from the IBGE
+  API (`servicodados.ibge.gov.br/api/v2/cnae/subclasses`), which returns all
+  1,332 subclasses. Those are verified, code by code.
+- `porte_empresa` uses `00` not stated, `01` microempresa, `03` empresa de
+  pequeno porte, `05` demais. This is what the size estimate reads.
+
+### What is NOT verified, and must be before any loader is trusted
+
+**The exact column order of `Empresas` and `Estabelecimentos` has not been
+confirmed against the official layout.** The metadata document is published as
+a PDF at `https://www.gov.br/receitafederal/dados/cnpj-metadados.pdf`, and that
+PDF carries no ToUnicode mapping, so its text cannot be extracted — it needs a
+human to open it, or OCR. The file host itself
+(`arquivos.receitafederal.gov.br`) was unreachable at the time of writing, so
+the layout could not be checked against a real file either.
+
+Writing a CSV parser from memory against an unverified column order is exactly
+the failure this project forbids: it would not error, it would silently file a
+`capital social` as a `porte` and produce confident nonsense.
+
+So when the loader is built:
+
+- put the column order in **one** declared table, not scattered through the
+  parser;
+- **validate the first rows against their own domains** — CNPJ check digits,
+  `porte` in `{00,01,03,05}`, dates as `YYYYMMDD`, UF in the 27 valid codes —
+  and refuse the whole import if they do not match. That turns a wrong column
+  order from silent corruption into a loud failure on row one;
+- confirm the order against the metadata PDF first anyway.
+
+### Partners (QSA) are excluded by default
+
+The dump carries the full partner list with names for every company. That is a
+far larger personal-data surface than the UK officer register, and a partner is
+a natural person. The prospecting purpose does not require their identity, so
+the `Socios` table is not loaded. See `PRIVACY.md`.
+
+## SIC and CNAE code reference
+
+The industry catalogue carries codes per country: SIC 2007 for the United
+Kingdom, CNAE 2.3 subclasses for Brazil. Three sectors (`roofing`,
+`landscaping`, `driving_school`) have no clean CNAE and are deliberately left
+unmapped for Brazil rather than given an approximate code; three more
+(`architecture`, `engineering`, `training_courses`) exist only with CNAE codes,
+because they were never mapped to SIC here.
+
+The UK codes come from the Companies House condensed
 list (https://resources.companieshouse.gov.uk/sic/). Examples in use: `86230`
 dental practice activities, `43910` roofing activities, `43220` plumbing, heat
 and air-conditioning installation, `69102` solicitors, `56103` take-away food

@@ -1,21 +1,61 @@
 # Website Opportunity Hunter
 
-Finds UK businesses that are in the right moment to buy a website — and explains,
-lead by lead, why it thinks so.
+Finds businesses that are in the right moment to buy something from you — and
+explains, lead by lead, why it thinks so.
+
+Two things, scored separately:
+
+- a **website**, which suits companies that have just started, and
+- a **management system**, which suits companies that have been running a while
+  and have outgrown their spreadsheet.
 
 This is not a company-list generator. The pipeline is:
 
 ```
-FIND → ENRICH → ANALYSE → SCORE → PRIORITISE → EXPLAIN → PREPARE OUTREACH
+FIND → ENRICH → ANALYSE → SCORE (×2) → PRIORITISE → EXPLAIN → PREPARE OUTREACH
 ```
 
 The decision to contact anyone stays with you. The system never sends a message,
 never publishes a website, and never fills a gap in its knowledge with a guess.
 
-> **Scope.** The MVP is United Kingdom only (GBP, en-GB, Europe/London). The
-> architecture is built for more countries — see `ARCHITECTURE.md` — but none
-> are enabled, because each needs its own registry provider and its own privacy
-> review first.
+## The two axes
+
+They are never averaged, because they disagree on purpose:
+
+| | Website axis | System axis |
+| --- | --- | --- |
+| Wants companies that are | new | established |
+| Best age | days to weeks | 2 to 5 years |
+| Rewards | no website, no digital presence | sector, size and operational load |
+
+A company can be `HOT` on one and `IGNORE` on the other. That is the useful
+answer: it tells you which conversation to open, not just how warm the lead is.
+
+From the demo data, same sector and same city:
+
+```
+DEMO ARQUITETURA E PROJETOS   website 34 IGNORE   system 86 HIGH
+DEMO ESTUDIO DE ARQUITETURA   website 68 WARM     system 48 LOW
+```
+
+One is four years old with a team; the other opened a fortnight ago.
+
+> **Countries.** United Kingdom (Companies House) and Brazil (Amazonas). The
+> Brazilian side is live for scoring, the dashboard and the demo data; the
+> Receita Federal bulk loader is not finished — see **Status** below. Each
+> country needs its own registry provider and its own privacy review, which is
+> why others are not enabled.
+
+## Size, and what this tool will not claim
+
+The most-wanted filter is "companies with ten to fifteen people". **No public
+registry publishes a headcount** — Brazil publishes a revenue class (`porte`),
+the UK publishes an accounts category. So the tool produces an *estimate*: a
+band, a plausible range, and the sentences behind it, capped below full
+confidence and always rendered as `est. 10–49 people`.
+
+It will not tell you a company has twelve employees, because it cannot know
+that. See `SCORING.md`.
 
 ---
 
@@ -275,7 +315,31 @@ Stated plainly, because a prospecting tool that overstates itself wastes your ti
   who prepared it and stating it was not commissioned, it is `noindex`, and
   anything unconfirmed is visibly marked as a placeholder. The system never
   publishes it anywhere.
-- **UK only**, for now.
+- **Company size is an estimate, never a headcount.** No registry publishes one.
+  A `SMALL` band means "the revenue class overlaps 10–49 people by the SEBRAE
+  convention", which is a long way from "this company has twelve staff".
+- **Whether a company already runs a management system is unknowable** from any
+  public source. The system axis reasons only about the public website and says
+  so on every lead. Confirm it on the call.
+
+## Status
+
+| Piece | State |
+| --- | --- |
+| Website opportunity score | done |
+| System opportunity score | done |
+| Estimated size from `porte` / accounts category | done |
+| Brazil: CNAE catalogue, Amazonas municipalities, CNPJ and CEP handling | done |
+| Dashboard: both axes, size filters, two preset searches | done |
+| Companies House provider (UK, live data) | done |
+| Demo dataset, UK and Amazonas | done |
+| **Receita Federal bulk loader (Brazil, live data)** | **not started** |
+
+Until the loader exists, Brazilian searches run against the fictional demo
+companies. The reason it is not started, and what has to be verified first, is
+written up in `DATA_SOURCES.md` — the short version is that the official layout
+document could not be read and the file host was unreachable, and guessing a
+CSV column order would produce confident nonsense rather than an error.
 
 ## What this system deliberately does not do
 

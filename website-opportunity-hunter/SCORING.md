@@ -1,13 +1,39 @@
 # Scoring
 
-Two independent scores.
+Three independent scores.
 
 - **Website Quality Score (0–100)** — how good an existing website is.
 - **Website Opportunity Score (0–100)** — how good a moment this is for the
-  business to buy a website. This is the one the dashboard ranks by.
+  business to buy a **website**.
+- **System Opportunity Score (0–100)** — how good a moment this is for the
+  business to buy a **management system**.
 
-Both are explainable by construction: every point traces to a named check or
-component with a sentence you could read out on a call.
+All three are explainable by construction: every point traces to a named check
+or component with a sentence you could read out on a call.
+
+## Why two opportunity axes, and why they are never averaged
+
+The two questions have close to opposite answers.
+
+A company incorporated two weeks ago is an excellent website lead: it has no
+site, it knows it has no site, and it has not chosen a supplier. It is a poor
+system lead for exactly the same reason — it has no orders to track, no staff
+to schedule and no process pain, because it has barely started trading.
+
+A four-year-old practice with twelve people and a brochure website is the
+mirror image: a mediocre website lead, and the best system lead there is.
+
+Averaging the two would land both of those companies in the middle and hide the
+thing worth knowing. Instead each is scored on its own axis with its own
+components, and the dashboard shows both on every card. The disagreement is the
+output: it tells you which conversation to open.
+
+| | Website axis | System axis |
+| --- | --- | --- |
+| Wants companies that are | new | established |
+| Best age | days to weeks | 2 to 5 years |
+| Key signal | no website found | sector, size and age together |
+| Rewards | absence of digital presence | operational complexity |
 
 ---
 
@@ -166,6 +192,142 @@ And the opposite case — an established practice with a strong site:
 ────
  22  ⚪ IGNORE
 ```
+
+---
+
+## System Opportunity Score
+
+`calculateSystemScore(input)` returns the same shape as the website axis, plus
+`sizeFit` and the sector's `useCases`.
+
+### Components
+
+| Component | Max | What it measures |
+| --- | --- | --- |
+| `SECTOR_FIT` | 30 | How much of the sector's work is jobs, deadlines and records |
+| `SIZE_FIT` | 25 | Whether the estimated size could be the headcount you want |
+| `MATURITY` | 20 | Long enough trading to have process pain, not so long it has already bought |
+| `SYSTEM_GAP` | 15 | Whether anything is observably running on the public website |
+| `OPERATIONAL_COMPLEXITY` | 10 | High ticket, multiple sites, hiring |
+| **Total** | **100** | |
+
+### A. Sector fit — up to 30
+
+`round(systemWeight × 30)`, where `systemWeight` is a per-sector 0–1 figure in
+the industry catalogue. It ranks very differently from the website axis's
+`commercialWeight`: architecture and engineering are 1.00, construction 0.95,
+a café 0.35.
+
+An unidentified sector scores **0** and is recorded as a gap, rather than being
+given an average weight — that number would be one we made up.
+
+### B. Size fit — up to 25
+
+| Fit | Points | Meaning |
+| --- | --- | --- |
+| `LIKELY` | 25 | The whole plausible range sits inside your target |
+| `POSSIBLE` | 20 | The range overlaps your target |
+| `UNKNOWN` | 8 | Never sized — worth a call |
+| `UNLIKELY` | 0 | The whole range sits clear of your target |
+
+Two deliberate choices here.
+
+`UNKNOWN` outranks `UNLIKELY`. A company we have not sized is worth a look; one
+we have sized outside the window is not. Ranking ignorance below a known
+mismatch would be backwards.
+
+`POSSIBLE` gets 20 of 25, not 12. Brazilian registry data can never confirm a
+headcount, so an overlapping band is the best evidence available — and a top
+band the best available evidence can never reach is a band that does not exist.
+The doubt is carried by the score's `confidence`, which this axis caps at
+`MEDIUM` for that reason. (Same reasoning as `NO_WEBSITE_FOUND` on the website
+axis.)
+
+### C. Maturity — up to 20
+
+| Age | Points |
+| --- | --- |
+| under 1 year | 0 |
+| 1–2 years | 14 |
+| 2–5 years | 20 |
+| 5–10 years | 18 |
+| over 10 years | 14 |
+
+Under a year scores zero on purpose: those companies are the website axis's
+business, not this one's. Over ten years drops back because they are more
+likely to have bought something already, and replacing an entrenched tool is a
+longer sale.
+
+### D. System gap — up to 15
+
+**This is the component that could most easily have lied, so read this part.**
+
+Whether a company already runs a system internally is published nowhere. No
+registry, directory or search result will tell you. So this component reasons
+only about the **public website**, says so in its own reason text, and pushes a
+gap on *every* path — including the one that awards full marks:
+
+> No public source says whether the company already runs a system internally —
+> confirm on the call
+
+| Observation | Points |
+| --- | --- |
+| No website found at all | 15 |
+| Brochure site, no client area or booking | 12 |
+| Website not analysed | 0 |
+| Online booking present | 3 |
+
+### E. Operational complexity — up to 10
+
+High-ticket sector (3), more than one trading address (3), hiring (4), a new
+site (3), recent customer or social activity (1 each). Capped at 10.
+
+### Confidence
+
+Capped at `MEDIUM`, always. The size component is the second-heaviest and it is
+built on a revenue band; claiming `HIGH` would be claiming to know a headcount.
+Drops to `LOW` when the sector, the size or the incorporation date is missing.
+
+---
+
+## Estimated company size
+
+Wanting "companies with ten to fifteen people" is reasonable. Answering it is
+not possible from public data, and this section explains what is done instead.
+
+**Neither registry publishes a headcount.**
+
+- The **Receita Federal** publishes `porte`, which is a *revenue*
+  classification from LC 123/2006 — ME up to R$ 360k a year, EPP up to R$ 4.8M.
+  It says nothing directly about how many people work there.
+- **Companies House** publishes the *accounts category* a company filed under.
+  The UK thresholds do include an employee test, but a company qualifies on any
+  two of three criteria, so a three-person consultancy with high turnover can
+  file small-company accounts.
+
+So what is produced is a band, a plausible range, the evidence behind it, and a
+confidence that never reaches `HIGH`.
+
+| `porte` | Band | Range shown | Confidence |
+| --- | --- | --- | --- |
+| 01 — ME | `MICRO` | 1–9 people | MEDIUM |
+| 03 — EPP | `SMALL` | 10–49 people | MEDIUM |
+| 05 — Demais | `MEDIUM` | 20+ people | LOW |
+| 00 — not stated | *(nothing written)* | — | — |
+
+The employee ranges come from the SEBRAE convention used in Brazilian
+statistics. That convention is a population-level description, not a fact about
+any one company, and the wide ranges say so rather than pretending to precision
+the source cannot support.
+
+`capital social` can narrow the range inside a band and move the confidence, but
+never sets the band. A missing or zero capital is treated as *no evidence*, not
+as evidence of smallness — a great many Brazilian companies declare a round
+R$ 1.000 and never update it.
+
+Every estimate is marked `inferred`, carries the line *"No public register
+states a headcount — this is an estimate"* in its own basis list, and is
+rendered in the UI as `est. 10–49 people`, never as a bare number.
 
 ---
 
