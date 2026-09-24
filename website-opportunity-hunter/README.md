@@ -113,8 +113,11 @@ the browser instead of failing on a busy port.
 Closing the window stops the server — deliberately, because a background server
 nobody can see is a server nobody remembers to stop.
 
-On Windows, right-click `start.cmd` and choose *Show more options → Send to →
-Desktop (create shortcut)* to get an icon you can double-click from anywhere.
+On Windows, run `create-desktop-shortcut.cmd` once to put a
+*Website Opportunity Hunter* icon on the desktop. (By hand: right-click
+`start.cmd` → *Show more options → Send to → Desktop (create shortcut)*.) The
+shortcut points at this folder, so run it again if you move or rename the
+project.
 
 **Using a PostgreSQL you installed yourself.** Nothing named `woh` exists on a
 fresh install, so point `DATABASE_URL` at the superuser and the database that
