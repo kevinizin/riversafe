@@ -56,22 +56,13 @@ if not exist ".env" (
     exit /b 1
 )
 
-REM --- Dependencies ----------------------------------------------------------
-if not exist "node_modules\.package-lock.json" (
-    echo   Installing dependencies. First run only, takes a couple of minutes.
-    echo.
-    call npm install --no-audit --no-fund
-    if errorlevel 1 goto :Failed
-)
-
-REM --- Build -----------------------------------------------------------------
-REM BUILD_ID only exists after a successful production build.
-if not exist "apps\web\.next\BUILD_ID" (
-    echo   Building. First run only, takes a minute or two.
-    echo.
-    call npm run build
-    if errorlevel 1 goto :Failed
-)
+REM --- Dependencies, migrations and build ------------------------------------
+REM One script, shared with start.sh, so the two launchers cannot drift. It
+REM installs if needed, applies pending migrations, and rebuilds when the code
+REM has changed since the last build -- which is what makes a git pull actually
+REM show up instead of serving the previous build.
+call node scripts\prepare.mjs
+if errorlevel 1 goto :Failed
 
 REM --- Open the browser once the port answers --------------------------------
 REM Detached, so it can wait while the server takes over this window.

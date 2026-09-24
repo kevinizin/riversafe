@@ -59,20 +59,12 @@ if [ ! -f .env ]; then
   fail "No .env file yet, so the app does not know which database to use. Run: npm run setup"
 fi
 
-# --- Dependencies ------------------------------------------------------------
-if [ ! -f node_modules/.package-lock.json ]; then
-  echo "  Installing dependencies. First run only, takes a couple of minutes."
-  echo
-  npm install --no-audit --no-fund || fail "Dependencies could not be installed."
-fi
-
-# --- Build -------------------------------------------------------------------
-# BUILD_ID only exists after a successful production build.
-if [ ! -f apps/web/.next/BUILD_ID ]; then
-  echo "  Building. First run only, takes a minute or two."
-  echo
-  npm run build || fail "The build failed."
-fi
+# --- Dependencies, migrations and build --------------------------------------
+# One script, shared with start.cmd, so the two launchers cannot drift. It
+# installs if needed, applies pending migrations, and rebuilds when the code has
+# changed since the last build — which is what makes a git pull actually show up
+# instead of serving the previous build.
+node scripts/prepare.mjs || exit 1
 
 # --- Open the browser once the port answers ----------------------------------
 (

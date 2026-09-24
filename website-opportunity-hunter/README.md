@@ -223,6 +223,30 @@ and shows spend on **Analytics**. Rules cover industry classification and
 outreach drafting without any model call at all — AI is an enhancement, never a
 dependency.
 
+## Updating an existing copy
+
+```bash
+git pull
+# then start it the way you normally do — double-click the desktop shortcut,
+# or run start.cmd / ./start.sh
+```
+
+The launcher runs `scripts/prepare.mjs` first, which installs anything new,
+applies pending database migrations, and **rebuilds if the code has changed
+since the last build**. That last part matters: the launcher used to rebuild
+only when no build existed at all, so after a `git pull` it cheerfully served
+the previous build and none of the changes appeared.
+
+`migrate deploy` is used rather than `migrate dev`: it applies what is pending,
+never prompts, and never offers to reset anything, which is what makes it safe
+to run on every start.
+
+To refresh the demo companies after a pull that adds new ones:
+
+```bash
+npm run db:seed        # upserts; it will not duplicate what is already there
+```
+
 ## Development
 
 ```bash
