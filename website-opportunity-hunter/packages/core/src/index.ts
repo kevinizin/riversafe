@@ -46,6 +46,10 @@ export * from './scoring/config.js';
 export * from './scoring/opportunity.js';
 export * from './scoring/system.js';
 
+export * from './providers/companies/receita/layout.js';
+export * from './providers/companies/receita/read.js';
+export * from './providers/companies/receita/ingest.js';
+export * from './providers/companies/receita/provider.js';
 export * from './search/filters.js';
 
 export * from './pipeline/context.js';

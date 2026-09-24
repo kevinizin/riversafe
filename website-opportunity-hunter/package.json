@@ -26,7 +26,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run packages/core/src/pipeline",
-    "verify": "npm run typecheck && npm run test"
+    "verify": "npm run typecheck && npm run test",
+    "ingest:br": "npm run -w @woh/worker ingest:br --"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

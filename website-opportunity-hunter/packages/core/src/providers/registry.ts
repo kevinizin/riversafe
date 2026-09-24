@@ -1,8 +1,10 @@
 import type { Env } from '@woh/config';
+import type { Db } from '@woh/db';
 import { HttpClient, type HttpClientOptions } from '../net/httpClient.js';
 import { RobotsChecker } from '../net/robots.js';
 import { CompaniesHouseProvider } from './companies/companiesHouse.js';
 import { FixtureCompanyProvider } from './companies/fixtureProvider.js';
+import { ReceitaFederalProvider } from './companies/receita/provider.js';
 import type { CompanySourceProvider } from './companies/types.js';
 import { DisabledPlaceProvider } from './places/disabled.js';
 import { GooglePlacesProvider } from './places/googlePlaces.js';
@@ -33,7 +35,7 @@ export interface ProviderSet {
  * labelled fixture dataset rather than failing to boot — a first-run user can
  * click through the whole product before obtaining an API key.
  */
-export function buildProviders(env: Env, onCall?: ApiCallRecorder): ProviderSet {
+export function buildProviders(env: Env, onCall?: ApiCallRecorder, db?: Db): ProviderSet {
   const shared = onCall ? { onCall } : {};
 
   const companySources: CompanySourceProvider[] = [];
@@ -45,8 +47,18 @@ export function buildProviders(env: Env, onCall?: ApiCallRecorder): ProviderSet 
     ...shared,
   });
   if (companiesHouse.isConfigured()) companySources.push(companiesHouse);
-  const usingFixtures = companySources.length === 0;
-  if (usingFixtures) companySources.push(new FixtureCompanyProvider());
+
+  // Brazil's source is a local snapshot rather than an API, so it needs the
+  // database. It reports itself unconfigured until something has been imported,
+  // which is what makes the fixture fallback below still work for Brazil.
+  if (db) companySources.push(new ReceitaFederalProvider(db));
+
+  // The fixture dataset is always registered last. `pickProvider` takes the
+  // first *configured* provider for a country, so a real source wins whenever
+  // it has data and the demo data catches every country that has none.
+  const fixtures = new FixtureCompanyProvider();
+  companySources.push(fixtures);
+  const usingFixtures = companySources.every((p) => p === fixtures || !p.isConfigured());
 
   let webSearch: WebSearchProvider;
   if (env.SEARCH_PROVIDER === 'brave') {

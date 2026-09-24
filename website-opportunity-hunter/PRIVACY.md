@@ -61,7 +61,7 @@ individuals.
 
 ## Lawful basis
 
-**Legitimate interests**, UK GDPR Article 6(1)(f): identifying businesses that
+**Legitimate interests**, UK GDPR Article 6(1)(f) — and see the Brazil section below for the LGPD equivalent: identifying businesses that
 may want a website, and contacting them about it.
 
 The three-part test, documented here so it can be challenged:
@@ -189,10 +189,46 @@ If personal data is exposed, assess the risk to individuals and — where the ri
 is more than unlikely — report to the ICO within 72 hours of becoming aware.
 `audit_logs`, `system_logs` and `api_usage` together provide the access trail.
 
+## Brazil — LGPD
+
+Brazilian companies come from the Receita Federal CNPJ open data, published
+under an open licence as monthly bulk files.
+
+**Lawful basis.** Legitimate interest, LGPD Art. 7, IX, for the same purpose and
+by the same three-part test as the UK section above. Data about a company as a
+legal entity is not personal data under the LGPD; the sections below cover the
+places where that distinction does not hold.
+
+**The partner list (QSA) is not imported.** The bulk data includes a `Socios`
+table naming every partner of every company — a far larger personal-data surface
+than the UK officer register, and a partner is a natural person. Prospecting
+does not require their identity, so the table is never loaded. This is enforced
+by the importer, which has no code path that reads it, rather than by policy.
+
+**A MEI is a natural person.** A microempreendedor individual trades as a
+business and carries a CNPJ, but the registration is a person. Those records are
+treated as personal data even though they arrive through a company register, and
+the contact details on them are covered by the retention and erasure controls in
+the same way as any other personal datum here.
+
+**Contact details.** The establishments table publishes a phone number and an
+email address per trading address. They are imported as business contact points,
+the same treatment the UK phone number gets. For a MEI they may belong to an
+individual; the rights and retention sections above apply unchanged.
+
+**Company size is never a claim about people.** The register publishes `porte`,
+a revenue classification. The system turns it into an estimated band and says so
+everywhere it appears. It is not a headcount and is not presented as one.
+
+**Snapshot freshness.** Answers come from the last import, not from a live
+query, and the import tag is carried through so the interface can say so. A
+company that closed since the snapshot may still appear until the next import.
+
 ## Adding another country
 
 Each new jurisdiction needs its own review before it is enabled: the registry's
-licence terms, whether officer data may be processed, the local ePrivacy rules
+licence terms, whether officer or partner data may be processed, the local rules
 on unsolicited B2B contact, and any registry-specific restriction on reuse. That
-review is why Germany, the Netherlands, France, Spain, Ireland, Portugal and
-Italy are architecturally supported but not switched on.
+review is what the Brazil section above records, and it is why Germany, the
+Netherlands, France, Spain, Ireland, Portugal and Italy are architecturally
+supported but not switched on.

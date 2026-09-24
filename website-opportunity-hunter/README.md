@@ -333,13 +333,49 @@ Stated plainly, because a prospecting tool that overstates itself wastes your ti
 | Dashboard: both axes, size filters, two preset searches | done |
 | Companies House provider (UK, live data) | done |
 | Demo dataset, UK and Amazonas | done |
-| **Receita Federal bulk loader (Brazil, live data)** | **not started** |
+| Receita Federal bulk loader (Brazil) | built, **column layout needs one check** |
 
-Until the loader exists, Brazilian searches run against the fictional demo
-companies. The reason it is not started, and what has to be verified first, is
-written up in `DATA_SOURCES.md` — the short version is that the official layout
-document could not be read and the file host was unreachable, and guessing a
-CSV column order would produce confident nonsense rather than an error.
+### Importing Brazilian companies
+
+There is no free search API for the CNPJ register — it is published as monthly
+bulk files — so Brazilian searches answer from a local snapshot:
+
+```bash
+# Download the monthly files yourself from
+#   https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/
+# (the host refuses connections from outside Brazil, and the files are several
+#  gigabytes, so a browser or a resumable downloader is the right tool)
+
+# 1. ALWAYS do this first — see below
+npm run ingest:br -- --inspect --estabelecimentos ./Estabelecimentos0.zip
+
+# 2. Then import, keeping one state
+npm run ingest:br -- --estabelecimentos ./Estabelecimentos*.zip \
+                     --empresas ./Empresas*.zip \
+                     --municipios ./Municipios.zip \
+                     --uf AM --tag 2026-08
+```
+
+Once a snapshot is imported, Brazilian searches use it automatically; until
+then they fall back to the fictional demo companies.
+
+**Why `--inspect` first.** These CSVs have no header row, so the column order
+has to be declared in code — and that declaration could not be verified here:
+the official layout is a PDF with no extractable text, and the file host
+refuses connections from outside Brazil. A parser with the order wrong does not
+crash; it files a *capital social* as a *porte* and produces confident nonsense.
+
+Two things guard against that. The importer checks sampled rows against each
+column's own domain — CNPJ shapes, `porte` in `{00,01,03,05}`, dates as
+`YYYYMMDD`, valid UFs — and **refuses the whole import**, writing nothing, if
+they do not hold. And `--inspect` prints the first rows column by column with
+the name the code believes each has, so two minutes against
+[the metadata PDF](https://www.gov.br/receitafederal/dados/cnpj-metadados.pdf)
+confirms it. Any correction is a one-line edit in
+`packages/core/src/providers/companies/receita/layout.ts`.
+
+The partner list (QSA) is **not** imported. It carries names of natural
+persons, and prospecting does not need their identity. See `PRIVACY.md`.
 
 ## What this system deliberately does not do
 

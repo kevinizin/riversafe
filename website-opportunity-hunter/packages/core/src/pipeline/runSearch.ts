@@ -67,6 +67,7 @@ export async function runSearch(ctx: PipelineContext, searchRunId: string): Prom
 
   try {
     const country = requireCountry(filters.countryCode);
+    await refreshProviders(ctx);
     const provider = pickProvider(ctx, filters.countryCode);
     log.info('run.started', `search run started using ${provider.name}`, {
       country: country.code,
@@ -124,6 +125,22 @@ export async function runSearch(ctx: PipelineContext, searchRunId: string): Prom
     await finish(ctx, searchRunId, summary, {});
     return summary;
   }
+}
+
+/**
+ * Lets a provider backed by a local snapshot find out what it currently holds.
+ *
+ * `isConfigured()` has to be synchronous — `pickProvider` calls it in a
+ * `find` — but "is there an imported snapshot" is a database question. So the
+ * answer is refreshed here, once per run, before anything asks.
+ */
+async function refreshProviders(ctx: PipelineContext): Promise<void> {
+  await Promise.all(
+    ctx.providers.companySources.map(async (p) => {
+      const refreshable = p as { refresh?: () => Promise<void> };
+      if (typeof refreshable.refresh === 'function') await refreshable.refresh();
+    }),
+  );
 }
 
 function pickProvider(ctx: PipelineContext, countryCode: string): CompanySourceProvider {

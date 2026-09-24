@@ -777,3 +777,65 @@ model AuditLog {
   @@index([entity, entityId])
   @@map("audit_logs")
 }
+
+// ---------------------------------------------------------------------------
+// Receita Federal CNPJ open data (Brazil)
+// ---------------------------------------------------------------------------
+
+/// One trading address from the Receita Federal monthly bulk files.
+///
+/// A staging table rather than a direct write into `companies`: the import is a
+/// whole-file replacement of a monthly snapshot, while `companies` accumulates
+/// enrichment, CRM state and notes that must survive it. Keeping them apart
+/// means a re-import can never wipe work the operator has done.
+///
+/// Only the loaded UFs are present — the loader filters as it streams, because
+/// the whole country does not fit comfortably on a laptop. `importTag` records
+/// which monthly snapshot a row came from, so the UI can say how fresh the
+/// answer is rather than implying it is live.
+model ReceitaEstablishment {
+  /// Full 14-digit CNPJ, digits only.
+  cnpj           String    @id @db.VarChar(14)
+  /// First 8 digits: the company root, shared by all its addresses.
+  cnpjBasico     String    @db.VarChar(8)
+  razaoSocial    String
+  nomeFantasia   String?
+  /// Registry status: 01 nula, 02 ativa, 03 suspensa, 04 inapta, 08 baixada.
+  situacao       String    @db.VarChar(2)
+  /// 1 = matriz (head office), 2 = filial (branch).
+  matrizFilial   String    @db.VarChar(1)
+  dataInicio     DateTime?
+  cnaePrincipal  String    @db.VarChar(7)
+  cnaeSecundaria String[]  @default([])
+
+  logradouro    String?
+  numero        String?
+  complemento   String?
+  bairro        String?
+  cep           String? @db.VarChar(8)
+  uf            String  @db.VarChar(2)
+  municipioCode String? @db.VarChar(4)
+  municipioNome String?
+
+  /// Business contact points as published by the register. For a MEI these
+  /// belong to a natural person trading as a business; the same retention and
+  /// erasure controls apply. See PRIVACY.md.
+  telefone String?
+  email    String?
+
+  /// From the Empresas table, joined on cnpjBasico.
+  porte            String?  @db.VarChar(2)
+  capitalSocial    Decimal? @db.Decimal(18, 2)
+  naturezaJuridica String?  @db.VarChar(4)
+
+  /// Which monthly snapshot this row came from, e.g. "2026-08".
+  importTag  String
+  importedAt DateTime @default(now())
+
+  @@index([uf, municipioNome])
+  @@index([uf, cnaePrincipal])
+  @@index([dataInicio])
+  @@index([situacao])
+  @@index([importTag])
+  @@map("receita_establishments")
+}

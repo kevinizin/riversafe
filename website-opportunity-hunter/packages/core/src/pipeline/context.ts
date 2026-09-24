@@ -47,7 +47,7 @@ export function createPipelineContext(
       .catch(() => {
         /* usage accounting must never break a search */
       });
-  });
+  }, db);
 
   if (options.persistLogs !== false) {
     setLogSink((record) => {

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "start": "tsx src/main.ts",
-    "seed": "tsx src/seed.ts"
+    "seed": "tsx src/seed.ts",
+    "ingest:br": "tsx src/ingestBr.ts"
   },
   "dependencies": {
     "@woh/config": "*",

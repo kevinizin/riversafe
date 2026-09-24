@@ -192,9 +192,10 @@ recorded in `ai_usage`.
 
 ---
 
-## Receita Federal CNPJ open data — Brazil, not yet finished
+## Receita Federal CNPJ open data — Brazil
 
-**Status: not implemented. Read this section before starting it.**
+**Status: built. The declared column layout still needs one human check — see
+"What is NOT verified" below, and run `--inspect` before the first import.**
 
 The Receita Federal publishes the whole CNPJ register as open data. Two facts
 shape everything about how it has to be used:
@@ -217,6 +218,21 @@ shape everything about how it has to be used:
 - `porte_empresa` uses `00` not stated, `01` microempresa, `03` empresa de
   pequeno porte, `05` demais. This is what the size estimate reads.
 
+### How it works
+
+`npm run ingest:br` reads the monthly files — zipped or extracted — streaming
+and discarding as it goes, keeping only the requested UFs. It writes to its own
+staging table (`receita_establishments`) rather than into `companies`, so
+re-importing a newer snapshot replaces the registry data without touching the
+enrichment, CRM state and notes accumulated against a lead. `ReceitaFederalProvider`
+then serves searches from that table behind the same `CompanySourceProvider`
+interface as every other source, and reports itself unconfigured — so the demo
+data takes over — until a snapshot exists.
+
+Files are not downloaded by the tool. They are several gigabytes and the host
+rate-limits, and a half-finished download that looks finished is the worst
+outcome available.
+
 ### What is NOT verified, and must be before any loader is trusted
 
 **The exact column order of `Empresas` and `Estabelecimentos` has not been
@@ -231,15 +247,20 @@ Writing a CSV parser from memory against an unverified column order is exactly
 the failure this project forbids: it would not error, it would silently file a
 `capital social` as a `porte` and produce confident nonsense.
 
-So when the loader is built:
+Both guards the loader was built with exist for this reason:
 
-- put the column order in **one** declared table, not scattered through the
-  parser;
-- **validate the first rows against their own domains** — CNPJ check digits,
-  `porte` in `{00,01,03,05}`, dates as `YYYYMMDD`, UF in the 27 valid codes —
-  and refuse the whole import if they do not match. That turns a wrong column
-  order from silent corruption into a loud failure on row one;
-- confirm the order against the metadata PDF first anyway.
+- the column order lives in **one** declared table, `layout.ts`, not scattered
+  through the parser, so a correction is a one-line edit;
+- the importer **validates sampled rows against their own domains** — CNPJ
+  shapes, `porte` in `{00,01,03,05}`, dates as `YYYYMMDD`, valid UFs, the
+  documented `situacao_cadastral` values — and refuses the whole import, writing
+  nothing, if they do not hold. A wrong column order fails loudly on the first
+  rows instead of silently poisoning the database. This is covered by tests for
+  both the obvious case (an extra column shifting everything) and the subtle one
+  (two numeric columns swapped, same column count).
+
+Confirm the order against the metadata PDF with `--inspect` anyway. The guard
+turns a wrong layout into a refusal; only the comparison turns it into a fix.
 
 ### Partners (QSA) are excluded by default
 
