@@ -46,14 +46,30 @@ describe('classify', () => {
 });
 
 describe('taxonomy', () => {
-  it('has unique keys and non-empty UK codes or keywords', () => {
+  it('has unique keys, and every sector is reachable from at least one registry', () => {
     const keys = INDUSTRIES.map((i) => i.key);
     expect(new Set(keys).size).toBe(keys.length);
     for (const industry of INDUSTRIES) {
       expect(industry.keywords.length).toBeGreaterThan(0);
-      expect((industry.registryCodes.GB ?? []).length).toBeGreaterThan(0);
+      // Codes for at least one country, not for every country. Some sectors
+      // exist only in one registry's world — architecture has a clean CNAE and
+      // no SIC entry here — and demanding both would be an invitation to
+      // invent a code so the table looks complete.
+      const codeCount = Object.values(industry.registryCodes).flat().length;
+      expect(codeCount).toBeGreaterThan(0);
       expect(industry.commercialWeight).toBeGreaterThan(0);
       expect(industry.commercialWeight).toBeLessThanOrEqual(1);
+      expect(industry.systemWeight).toBeGreaterThan(0);
+      expect(industry.systemWeight).toBeLessThanOrEqual(1);
+      expect(industry.systemUseCases.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('keeps the CNAE subclasses to the seven digits the Receita Federal uses', () => {
+    for (const industry of INDUSTRIES) {
+      for (const code of industry.registryCodes.BR ?? []) {
+        expect(code).toMatch(/^\d{7}$/);
+      }
     }
   });
 

@@ -7,8 +7,10 @@ export * from './logging/logger.js';
 export * from './countries/types.js';
 export * from './countries/registry.js';
 export { UNITED_KINGDOM } from './countries/uk.js';
+export { BRAZIL } from './countries/br.js';
 
 export * from './geo/uk.js';
+export * from './geo/br.js';
 
 export * from './industry/types.js';
 export * from './industry/taxonomy.js';
@@ -38,9 +40,11 @@ export * from './social/discover.js';
 export * from './signals/detect.js';
 
 export * from './enrichment/officers.js';
+export * from './enrichment/size.js';
 
 export * from './scoring/config.js';
 export * from './scoring/opportunity.js';
+export * from './scoring/system.js';
 
 export * from './search/filters.js';
 

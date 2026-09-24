@@ -40,6 +40,19 @@ export interface IndustryProfile {
   /** Section prompts for the demo-homepage briefing. These are suggestions for
    *  the operator to confirm — never recorded as services the company offers. */
   typicalServices: string[];
+
+  /**
+   * 0..1. How much a management system is worth to this sector — how much of
+   * the work is orders, schedules, records and deadlines rather than walk-in
+   * trade. This is the system axis's equivalent of `commercialWeight`, and it
+   * ranks very differently: a café barely needs one, an architecture practice
+   * cannot run without one past a certain size.
+   */
+  systemWeight: number;
+
+  /** What a system would actually run for them. Used to ground the pitch in
+   *  the sector's real operations instead of generic software language. */
+  systemUseCases: string[];
 }
 
 export interface IndustryMatch {
