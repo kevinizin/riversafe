@@ -233,16 +233,17 @@ export const FIXTURE_COMPANIES: FixtureCompany[] = [
     fixture: { reviewCount: 58, rating: 4.6 },
   },
 
-  // --- Brasil ---------------------------------------------------------------
-  // Empresas fictícias do Amazonas, feitas para exercitar o eixo de sistema.
-  // Os CNPJs começam com 00.000.000, que nunca pertence a uma empresa real, e
-  // os domínios usam example.com.br (RFC 2606). Nada aqui é uma empresa real.
+  // --- Brazil ----------------------------------------------------------------
+  // Fictional Amazonas companies, here to exercise the system axis. The CNPJs
+  // all begin 00.000.000, which never belongs to a real company, and the
+  // domains use example.com.br (RFC 2606). None of these is a real business.
   {
     countryCode: 'BR',
     companyNumber: '00000000000101',
     externalId: 'DEMOBR001',
-    // O arquétipo descrito pelo operador: escritório de arquitetura com equipe,
-    // alguns anos de casa, site institucional e nenhum sistema de gestão à vista.
+    // The archetype the operator described: an architecture practice with a
+    // team, a few years old, a brochure website and no management system in
+    // sight.
     name: 'DEMO ARQUITETURA E PROJETOS LTDA',
     status: 'ACTIVE',
     incorporationDate: yearsAgo(4),
@@ -292,8 +293,9 @@ export const FIXTURE_COMPANIES: FixtureCompany[] = [
     countryCode: 'BR',
     companyNumber: '00000000000404',
     externalId: 'DEMOBR004',
-    // O outro lado da moeda: aberta há duas semanas, sem site. Forte no eixo de
-    // site, fraca no de sistema — não há operação para organizar ainda.
+    // The other side of the coin: a fortnight old, no website. Strong on the
+    // website axis, weak on the system one — there is no operation to organise
+    // yet.
     name: 'DEMO ESTUDIO DE ARQUITETURA ME',
     status: 'ACTIVE',
     incorporationDate: daysAgo(14),
@@ -306,8 +308,8 @@ export const FIXTURE_COMPANIES: FixtureCompany[] = [
     countryCode: 'BR',
     companyNumber: '00000000000505',
     externalId: 'DEMOBR005',
-    // Setor de baixo peso para sistema, para que o painel mostre os dois eixos
-    // discordando em direções opostas.
+    // A low-weight sector for a system, so the dashboard shows the two axes
+    // disagreeing in both directions.
     name: 'DEMO CAFETERIA LTDA',
     status: 'ACTIVE',
     incorporationDate: yearsAgo(3),

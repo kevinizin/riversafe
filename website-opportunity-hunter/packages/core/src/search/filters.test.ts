@@ -55,3 +55,21 @@ describe('describeFilters', () => {
     expect(summary).toContain('score 75+');
   });
 });
+
+describe('incorporationWindow, looking the other way', () => {
+  it('turns "over 1 year" into an open-ended window ending a year ago', () => {
+    const window = incorporationWindow({ companyAge: 'OVER_1_YEAR' }, NOW);
+    // No lower bound: a company from 1990 qualifies as much as one from 2023.
+    expect(window.from).toBeUndefined();
+    expect(window.to).toEqual(new Date(Date.UTC(2025, 8, 1)));
+  });
+
+  it('keeps the two directions mutually exclusive', () => {
+    for (const preset of ['TODAY', 'LAST_30_DAYS', 'LAST_90_DAYS'] as const) {
+      expect(incorporationWindow({ companyAge: preset }, NOW).from).toBeDefined();
+    }
+    for (const preset of ['OVER_1_YEAR', 'OVER_2_YEARS', 'OVER_5_YEARS'] as const) {
+      expect(incorporationWindow({ companyAge: preset }, NOW).from).toBeUndefined();
+    }
+  });
+});

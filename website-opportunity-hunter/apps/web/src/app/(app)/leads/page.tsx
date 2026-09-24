@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { INDUSTRIES, UK_NATIONS } from '@woh/core';
+import { INDUSTRIES, enabledCountries } from '@woh/core';
 import { LeadCard } from '@/components/lead-card';
 import { Card, Empty } from '@/components/ui';
 import { requireUser } from '@/lib/auth';
@@ -18,6 +18,10 @@ export default async function LeadsPage({ searchParams }: PageProps) {
   const query = parseLeadQuery(params);
   const { rows, total } = await findLeads(query);
 
+  const system = query.axis === 'SYSTEM';
+  // Regions from every enabled country, not just the United Kingdom's nations.
+  const regions = enabledCountries().flatMap((c) => c.regions);
+
   const pages = Math.max(1, Math.ceil(total / LEAD_PAGE_SIZE));
   const page = query.page ?? 1;
   const exportHref = `/api/export?${new URLSearchParams(
@@ -30,7 +34,8 @@ export default async function LeadsPage({ searchParams }: PageProps) {
         <div>
           <h1 className="text-xl font-semibold">Leads</h1>
           <p className="text-sm text-slate-500">
-            {total} compan{total === 1 ? 'y' : 'ies'} match these filters
+            {total} compan{total === 1 ? 'y' : 'ies'} match these filters, ranked by the{' '}
+            {system ? 'system' : 'website'} score
           </p>
         </div>
         <div className="flex gap-2">
@@ -39,8 +44,36 @@ export default async function LeadsPage({ searchParams }: PageProps) {
         </div>
       </div>
 
+      {/* The axis switch. Two links rather than a form control, so the choice
+          lives in the URL and a particular view can be bookmarked or shared. */}
+      <nav className="flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 text-sm">
+        <Link
+          href={axisHref(params, 'WEBSITE')}
+          className={`flex-1 rounded-md px-3 py-2 text-center ${
+            system ? 'text-slate-600 hover:bg-white' : 'bg-white font-semibold shadow-sm'
+          }`}
+        >
+          Website opportunity
+          <span className="block text-[11px] font-normal text-slate-500">
+            Who needs a site — favours new companies
+          </span>
+        </Link>
+        <Link
+          href={axisHref(params, 'SYSTEM')}
+          className={`flex-1 rounded-md px-3 py-2 text-center ${
+            system ? 'bg-white font-semibold shadow-sm' : 'text-slate-600 hover:bg-white'
+          }`}
+        >
+          System opportunity
+          <span className="block text-[11px] font-normal text-slate-500">
+            Who needs a management system — favours established ones
+          </span>
+        </Link>
+      </nav>
+
       <Card>
         <form method="get" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <input type="hidden" name="axis" value={query.axis} />
           <div className="lg:col-span-2">
             <label className="label" htmlFor="q">Search</label>
             <input id="q" name="q" defaultValue={query.q ?? ''} className="input" placeholder="Name, company number, town or postcode" />
@@ -80,7 +113,7 @@ export default async function LeadsPage({ searchParams }: PageProps) {
             <label className="label" htmlFor="region">Region</label>
             <select id="region" name="region" defaultValue={query.region ?? ''} className="input">
               <option value="">Any</option>
-              {UK_NATIONS.map((r) => (
+              {regions.map((r) => (
                 <option key={r} value={r}>{r}</option>
               ))}
             </select>
@@ -109,17 +142,51 @@ export default async function LeadsPage({ searchParams }: PageProps) {
               <option value="no">None found</option>
             </select>
           </div>
-          <div>
-            <label className="label" htmlFor="ageDays">Incorporated within</label>
-            <select id="ageDays" name="ageDays" defaultValue={query.ageDays ?? ''} className="input">
-              <option value="">Any age</option>
-              <option value="7">7 days</option>
-              <option value="14">14 days</option>
-              <option value="30">30 days</option>
-              <option value="90">90 days</option>
-              <option value="365">1 year</option>
-            </select>
-          </div>
+          {system ? (
+            <>
+              <div>
+                <label className="label" htmlFor="minAgeDays">Trading for at least</label>
+                <select id="minAgeDays" name="minAgeDays" defaultValue={query.minAgeDays ?? ''} className="input">
+                  <option value="">Any age</option>
+                  <option value="365">1 year</option>
+                  <option value="730">2 years</option>
+                  <option value="1825">5 years</option>
+                </select>
+              </div>
+              <div>
+                <label className="label" htmlFor="sizeFit">Size fit (estimated)</label>
+                <select id="sizeFit" name="sizeFit" defaultValue={query.sizeFit ?? ''} className="input">
+                  <option value="">Any</option>
+                  <option value="LIKELY">Likely in range</option>
+                  <option value="POSSIBLE">Possibly in range</option>
+                  <option value="UNKNOWN">Unknown — worth checking</option>
+                  <option value="UNLIKELY">Ruled out on size</option>
+                </select>
+              </div>
+              <div>
+                <label className="label" htmlFor="sizeBand">Size band (estimated)</label>
+                <select id="sizeBand" name="sizeBand" defaultValue={query.sizeBand ?? ''} className="input">
+                  <option value="">Any</option>
+                  <option value="MICRO">Micro</option>
+                  <option value="SMALL">Small</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="LARGE">Large</option>
+                </select>
+              </div>
+            </>
+          ) : (
+            <div>
+              <label className="label" htmlFor="ageDays">Incorporated within</label>
+              <select id="ageDays" name="ageDays" defaultValue={query.ageDays ?? ''} className="input">
+                <option value="">Any age</option>
+                <option value="7">7 days</option>
+                <option value="14">14 days</option>
+                <option value="30">30 days</option>
+                <option value="90">90 days</option>
+                <option value="365">1 year</option>
+              </select>
+            </div>
+          )}
           <div>
             <label className="label" htmlFor="status">Pipeline status</label>
             <select id="status" name="status" defaultValue={query.status ?? ''} className="input">
@@ -132,8 +199,9 @@ export default async function LeadsPage({ searchParams }: PageProps) {
           <div>
             <label className="label" htmlFor="sort">Sort by</label>
             <select id="sort" name="sort" defaultValue={query.sort ?? 'score'} className="input">
-              <option value="score">Opportunity score</option>
+              <option value="score">{system ? 'System score' : 'Website score'}</option>
               <option value="newest">Newest company</option>
+              <option value="oldest">Longest trading</option>
               <option value="reviews">Most reviews</option>
               <option value="added">Recently added</option>
               <option value="name">Name</option>
@@ -155,7 +223,7 @@ export default async function LeadsPage({ searchParams }: PageProps) {
       ) : (
         <div className="space-y-3">
           {rows.map((lead) => (
-            <LeadCard key={lead.id} lead={lead} />
+            <LeadCard key={lead.id} lead={lead} axis={query.axis} />
           ))}
         </div>
       )}
@@ -173,6 +241,19 @@ export default async function LeadsPage({ searchParams }: PageProps) {
       ) : null}
     </div>
   );
+}
+
+/** The same filters, viewed through the other axis. */
+function axisHref(params: Record<string, string | string[] | undefined>, axis: string): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    // The score-shaped filters mean different things on each axis, so they are
+    // dropped rather than silently reinterpreted against the other one.
+    if (key === 'axis' || key === 'page' || key === 'classification' || key === 'minScore') continue;
+    if (typeof value === 'string' && value.length) search.set(key, value);
+  }
+  search.set('axis', axis);
+  return `/leads?${search.toString()}`;
 }
 
 function pageHref(params: Record<string, string | string[] | undefined>, page: number): string {

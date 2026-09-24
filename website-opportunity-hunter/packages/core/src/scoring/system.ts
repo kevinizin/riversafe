@@ -98,14 +98,14 @@ const YEAR_DAYS = 365;
 const MATURITY_BANDS: { maxDays: number; points: number; label: string }[] = [
   // Below a year there is nothing to organise yet. Scored zero on purpose:
   // these companies are the website axis's business, not this one's.
-  { maxDays: YEAR_DAYS, points: 0, label: 'menos de 1 ano — cedo demais para um sistema' },
-  { maxDays: 2 * YEAR_DAYS, points: 14, label: '1 a 2 anos — começando a sentir o volume' },
-  { maxDays: 5 * YEAR_DAYS, points: 20, label: '2 a 5 anos — operação consolidada, processo ainda improvisado' },
-  { maxDays: 10 * YEAR_DAYS, points: 18, label: '5 a 10 anos — volume alto e processo manual custa caro' },
+  { maxDays: YEAR_DAYS, points: 0, label: 'under a year old — too early for a system' },
+  { maxDays: 2 * YEAR_DAYS, points: 14, label: '1 to 2 years — starting to feel the volume' },
+  { maxDays: 5 * YEAR_DAYS, points: 20, label: '2 to 5 years — an established operation still run on improvised process' },
+  { maxDays: 10 * YEAR_DAYS, points: 18, label: '5 to 10 years — high volume, and manual process is now expensive' },
 ];
 // Beyond ten years: 14. Still a real prospect, but more likely to have bought
 // something already, and replacing an entrenched tool is a longer sale.
-const MATURITY_ESTABLISHED = { points: 14, label: 'mais de 10 anos — pode já ter uma ferramenta em uso' };
+const MATURITY_ESTABLISHED = { points: 14, label: 'over 10 years old — may already have a tool in use' };
 
 /** Signals that suggest an operation under load rather than a quiet one. */
 const COMPLEXITY_SIGNAL_POINTS: Record<string, number> = {
@@ -152,7 +152,7 @@ export function calculateSystemScore(input: SystemScoreInput): SystemOpportunity
       component: 'OPERATIONAL_COMPLEXITY',
       points: 0,
       max: 0,
-      reason: `Situação cadastral: ${input.companyStatus.toLowerCase()} — lead descartado`,
+      reason: `Company status is ${input.companyStatus.toLowerCase()}, so the lead is capped and ignored`,
     });
   } else {
     classification = classifyScore(total, thresholds);
@@ -191,21 +191,21 @@ function scoreSectorFit(
     // Same rule as the website axis: an unidentified sector scores nothing and
     // is recorded as a gap, rather than being given an average weight that
     // would be a number we made up.
-    gaps.push('Setor não identificado — o encaixe com um sistema não pôde ser avaliado');
-    return { component: mk(0, 'Setor não identificado'), useCases: [] };
+    gaps.push('Industry not identified, so the fit for a system could not be assessed');
+    return { component: mk(0, 'Industry not identified'), useCases: [] };
   }
 
   const profile = getIndustry(input.industryKey);
   if (!profile) {
-    gaps.push(`Setor "${input.industryKey}" não está no catálogo`);
-    return { component: mk(0, `Setor "${input.industryKey}" desconhecido`), useCases: [] };
+    gaps.push(`Industry "${input.industryKey}" is not in the catalogue`);
+    return { component: mk(0, `Industry "${input.industryKey}" unknown`), useCases: [] };
   }
 
   const points = Math.round(profile.systemWeight * max);
   const strength =
-    profile.systemWeight >= 0.85 ? 'depende fortemente' : profile.systemWeight >= 0.6 ? 'se beneficia' : 'depende pouco';
+    profile.systemWeight >= 0.85 ? 'depends heavily on' : profile.systemWeight >= 0.6 ? 'benefits from' : 'barely needs';
   return {
-    component: mk(points, `${profile.label}: setor que ${strength} de um sistema de gestão`),
+    component: mk(points, `${profile.label}: a sector that ${strength} a management system`),
     useCases: profile.systemUseCases,
   };
 }
@@ -218,7 +218,7 @@ function scoreSizeFit(
   const max = SYSTEM_COMPONENT_MAX.SIZE_FIT;
   const estimate = input.sizeEstimate ?? undefined;
   const fit = fitsEmployeeTarget(estimate, target);
-  const window = `${target.min}–${target.max} pessoas`;
+  const window = `${target.min}–${target.max} people`;
   const mk = (points: number, reason: string): SystemScoreComponent => ({
     component: 'SIZE_FIT',
     points,
@@ -229,7 +229,7 @@ function scoreSizeFit(
   switch (fit) {
     case 'LIKELY':
       return {
-        component: mk(max, `Porte estimado dentro da faixa alvo (${window})`),
+        component: mk(max, `Estimated size sits inside the target range (${window})`),
         fit,
       };
     case 'POSSIBLE':
@@ -243,20 +243,20 @@ function scoreSizeFit(
       return {
         component: mk(
           20,
-          `Porte estimado pode estar na faixa alvo (${window}), mas a faixa do registro é mais larga que isso`,
+          `Estimated size could be in the target range (${window}), but the register's own band is wider than that`,
         ),
         fit,
       };
     case 'UNLIKELY':
       return {
-        component: mk(0, `Porte estimado fora da faixa alvo (${window})`),
+        component: mk(0, `Estimated size falls outside the target range (${window})`),
         fit,
       };
     default:
       // Unknown outranks known-wrong deliberately: a company we have not sized
       // is worth a look, one we have sized outside the window is not.
-      gaps.push('Porte desconhecido — nenhum registro público informa número de funcionários');
-      return { component: mk(8, 'Porte desconhecido — vale confirmar antes de abordar'), fit };
+      gaps.push('Size unknown — no public register states a headcount');
+      return { component: mk(8, 'Size unknown — worth confirming before approaching'), fit };
   }
 }
 
@@ -270,20 +270,20 @@ function scoreMaturity(input: SystemScoreInput, now: Date, gaps: string[]): Syst
   });
 
   if (!input.incorporationDate) {
-    gaps.push('Data de abertura desconhecida');
-    return mk(0, 'Data de abertura desconhecida');
+    gaps.push('Incorporation date unknown');
+    return mk(0, 'Incorporation date unknown');
   }
 
   const ageDays = Math.floor((now.getTime() - input.incorporationDate.getTime()) / DAY_MS);
-  if (ageDays < 0) return mk(0, 'Data de abertura no futuro — ignorada');
+  if (ageDays < 0) return mk(0, 'Incorporation date is in the future; ignored');
 
   const band = MATURITY_BANDS.find((b) => ageDays <= b.maxDays);
   const years = Math.floor(ageDays / YEAR_DAYS);
   if (!band) {
-    return mk(MATURITY_ESTABLISHED.points, `Aberta há ${years} anos — ${MATURITY_ESTABLISHED.label}`);
+    return mk(MATURITY_ESTABLISHED.points, `Incorporated ${years} years ago — ${MATURITY_ESTABLISHED.label}`);
   }
-  const age = years >= 1 ? `há ${years} ano(s)` : `há ${ageDays} dia(s)`;
-  return mk(band.points, `Aberta ${age} — ${band.label}`);
+  const age = years >= 1 ? `${years} year(s) ago` : `${ageDays} day(s) ago`;
+  return mk(band.points, `Incorporated ${age} — ${band.label}`);
 }
 
 function scoreSystemGap(input: SystemScoreInput, gaps: string[]): SystemScoreComponent {
@@ -299,17 +299,17 @@ function scoreSystemGap(input: SystemScoreInput, gaps: string[]): SystemScoreCom
   // the public website. Whether the company runs something internally is not
   // published anywhere, so it is recorded as a gap on every path — including
   // the path that awards full points.
-  gaps.push('Nenhuma fonte pública informa se a empresa já usa um sistema interno — confirmar na conversa');
+  gaps.push('No public source says whether the company already runs a system internally — confirm on the call');
 
   if (input.noWebsiteFound) {
     return mk(
       max,
-      'Sem site: nenhum canal digital próprio, o que costuma acompanhar controle em papel ou planilha (a confirmar)',
+      'No website at all: no digital channel of their own, which often goes with paper or a spreadsheet (to be confirmed)',
     );
   }
 
   if (!input.websiteAnalysed) {
-    return mk(0, 'Site não analisado — nada observado sobre ferramentas digitais');
+    return mk(0, 'Website not analysed — nothing observed about their digital tooling');
   }
 
   const passed = new Set(input.websitePassedChecks ?? []);
@@ -320,13 +320,13 @@ function scoreSystemGap(input: SystemScoreInput, gaps: string[]): SystemScoreCom
   if (hasCustomerSystem) {
     return mk(
       3,
-      'O site já oferece agendamento on-line — parte da operação está digitalizada (a confirmar o que roda por trás)',
+      'The site already offers online booking, so part of the operation is digitised (what runs behind it is unconfirmed)',
     );
   }
 
   return mk(
     12,
-    'O site é apenas institucional, sem área de cliente ou agendamento — indício fraco de processo manual (a confirmar)',
+    'The site is brochure-only, with no client area or booking — weak evidence of manual process (to be confirmed)',
   );
 }
 
@@ -338,13 +338,13 @@ function scoreComplexity(input: SystemScoreInput): SystemScoreComponent {
   const profile = input.industryKey ? getIndustry(input.industryKey) : undefined;
   if (profile?.highTicket) {
     points += 3;
-    parts.push('trabalho por projeto e ticket alto');
+    parts.push('project work at a high ticket');
   }
 
   const locations = input.locationCount ?? 0;
   if (locations > 1) {
     points += 3;
-    parts.push(`${locations} endereços de operação`);
+    parts.push(`${locations} trading addresses`);
   }
 
   const seen = new Set<string>();
@@ -362,20 +362,20 @@ function scoreComplexity(input: SystemScoreInput): SystemScoreComponent {
     component: 'OPERATIONAL_COMPLEXITY',
     points,
     max,
-    reason: parts.length ? `Complexidade operacional: ${parts.join(', ')}` : 'Sem indícios de operação complexa',
+    reason: parts.length ? `Operational complexity: ${parts.join(', ')}` : 'No signs of a complex operation',
   };
 }
 
 function signalLabel(type: string): string {
   switch (type) {
     case 'HIRING':
-      return 'contratando (equipe crescendo)';
+      return 'hiring (the team is growing)';
     case 'NEW_LOCATION':
-      return 'abriu nova unidade';
+      return 'opened a new site';
     case 'RECENT_REVIEWS':
-      return 'movimento recente de clientes';
+      return 'recent customer activity';
     case 'RECENT_SOCIAL_ACTIVITY':
-      return 'atividade recente nas redes';
+      return 'recent social activity';
     default:
       return type.toLowerCase();
   }

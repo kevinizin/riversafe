@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { greetingName, industryLabel, qualityBand, type PreviewBriefing } from '@woh/core';
+import { getIndustry, greetingName, industryLabel, qualityBand, type PreviewBriefing } from '@woh/core';
 import { prisma } from '@woh/db';
-import { Card, ClassificationBadge, ConfidenceBadge, KeyValue, Notice, ScoreDial, SectionTitle, Unknown } from '@/components/ui';
+import { Card, ClassificationBadge, ConfidenceBadge, KeyValue, Notice, ScoreDial, SectionTitle, SizeBadge, Unknown } from '@/components/ui';
 import { requireUser } from '@/lib/auth';
 import {
   CRM_PIPELINE,
@@ -42,7 +42,9 @@ export default async function LeadDetailPage({ params }: PageProps) {
       signals: { orderBy: { detectedAt: 'desc' } },
       contacts: true,
       notes: { orderBy: { createdAt: 'desc' }, include: { user: true } },
-      scores: { orderBy: { computedAt: 'desc' }, take: 1 },
+      // Both axes. `take: 1` would return whichever was written last, and label
+      // a system score as the website one.
+      scores: { orderBy: { computedAt: 'desc' }, take: 8 },
       outreach: { orderBy: { generatedAt: 'desc' }, take: 6 },
       websites: {
         orderBy: { isPrimary: 'desc' },
@@ -52,11 +54,14 @@ export default async function LeadDetailPage({ params }: PageProps) {
   });
   if (!company) notFound();
 
-  const score = company.scores[0];
+  const score = company.scores.find((s) => s.axis === 'WEBSITE');
+  const systemScore = company.scores.find((s) => s.axis === 'SYSTEM');
   const website = company.websites[0];
   const analysis = website?.analyses[0];
   const primaryIndustry = company.industries[0];
-  const breakdown = (score?.breakdown ?? []) as { component: string; points: number; max: number; reason: string }[];
+  type Breakdown = { component: string; points: number; max: number; reason: string }[];
+  const breakdown = (score?.breakdown ?? []) as Breakdown;
+  const systemBreakdown = (systemScore?.breakdown ?? []) as Breakdown;
   const emailDraft = company.outreach.find((o) => o.channel === 'email' && o.body);
   const briefingRow = company.outreach.find((o) => o.channel === 'website_preview' && o.previewBriefing);
   const briefing = briefingRow?.previewBriefing as PreviewBriefing | undefined;
@@ -64,6 +69,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
   const officers = company.contacts.filter((c) => c.kind === 'OFFICER_ROLE');
   const decisionMaker = officers[0];
   const suggestedGreeting = greetingName(decisionMaker?.name);
+  const systemUseCases = primaryIndustry ? (getIndustry(primaryIndustry.industryKey)?.systemUseCases ?? []) : [];
 
   return (
     <div className="space-y-4">
@@ -75,10 +81,32 @@ export default async function LeadDetailPage({ params }: PageProps) {
             {[company.city, company.region, company.postcode].filter(Boolean).join(' · ') || 'Location unknown'}
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <div className="text-center">
+            <p className="text-[10px] uppercase tracking-wide text-slate-400">Website</p>
             <ScoreDial score={company.currentScore} />
             <div className="mt-1"><ClassificationBadge value={company.currentClassification} /></div>
+          </div>
+          <div className="text-center">
+            <p className="text-[10px] uppercase tracking-wide text-slate-400">System</p>
+            <ScoreDial score={company.systemScore} />
+            <div className="mt-1"><ClassificationBadge value={company.systemClassification} /></div>
+          </div>
+          <div className="text-center">
+            <p className="text-[10px] uppercase tracking-wide text-slate-400">Size</p>
+            <div className="mt-2">
+              <SizeBadge
+                band={company.sizeBand}
+                from={company.sizeEmployeesFrom}
+                to={company.sizeEmployeesTo}
+                fit={company.sizeFit}
+              />
+            </div>
+            {company.sizeBasis.length ? (
+              <p className="mt-1 max-w-[16rem] text-left text-[11px] leading-snug text-slate-500">
+                {company.sizeBasis[company.sizeBasis.length - 1]}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>
@@ -310,6 +338,70 @@ export default async function LeadDetailPage({ params }: PageProps) {
             </>
           ) : (
             <p className="text-sm text-slate-500">This company has not been scored yet.</p>
+          )}
+        </Card>
+
+        <Card>
+          <SectionTitle hint="Why it scored what it did for a management system">
+            System opportunity
+          </SectionTitle>
+          {systemScore ? (
+            <>
+              <div className="flex items-center gap-3">
+                <ScoreDial score={systemScore.score} />
+                <div className="space-y-1">
+                  <ClassificationBadge value={systemScore.classification} />
+                  <ConfidenceBadge value={systemScore.confidence} prefix="Score confidence" />
+                  <p className="text-xs text-slate-500">Computed {formatDateTime(systemScore.computedAt)}</p>
+                </div>
+              </div>
+
+              <table className="mt-4 w-full text-sm">
+                <tbody>
+                  {systemBreakdown.map((component) => (
+                    <tr key={component.component + component.reason} className="border-b border-slate-100 last:border-0">
+                      <td className="table-cell w-16 text-right font-semibold tabular-nums">
+                        {component.points > 0 ? `+${component.points}` : component.points}
+                      </td>
+                      <td className="table-cell text-slate-400">/ {component.max}</td>
+                      <td className="table-cell">{component.reason}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {systemScore.gaps.length ? (
+                <div className="mt-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    What we could not establish
+                  </p>
+                  <ul className="mt-1 list-inside list-disc text-sm text-slate-600">
+                    {systemScore.gaps.map((gap) => (
+                      <li key={gap}>{gap}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {systemUseCases.length ? (
+                <div className="mt-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    What a system would run for them
+                  </p>
+                  <ul className="mt-1 list-inside list-disc text-sm text-slate-600">
+                    {systemUseCases.map((useCase) => (
+                      <li key={useCase}>{useCase}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Typical for the sector, not observed at this company — use them as questions, not
+                    as statements.
+                  </p>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-sm text-slate-500">This company has not been scored on the system axis yet.</p>
           )}
         </Card>
 

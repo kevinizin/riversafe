@@ -4,12 +4,18 @@ import { useActionState, useState } from 'react';
 import { createSearchAction, type SearchFormState } from './actions';
 
 interface Props {
-  countries: { code: string; name: string }[];
+  /** Each country brings its own regions and towns; the form follows the choice. */
+  countries: { code: string; name: string; regions: string[]; cities: string[] }[];
   industriesByGroup: { group: string; industries: { key: string; label: string }[] }[];
-  regions: string[];
-  cities: string[];
   ageOptions: { value: string; label: string }[];
   websiteOptions: { value: string; label: string }[];
+  presets: { key: string; label: string; description: string; axis: string; filters: PresetFilters }[];
+}
+
+interface PresetFilters {
+  companyAge?: string;
+  websiteFilter?: string;
+  industryKeys?: string[];
 }
 
 export function SearchForm(props: Props) {
@@ -18,18 +24,54 @@ export function SearchForm(props: Props) {
     {},
   );
   const [selected, setSelected] = useState<string[]>([]);
+  const firstCountry = props.countries[0]?.code ?? 'GB';
+  const [countryCode, setCountryCode] = useState(firstCountry);
+  const [companyAge, setCompanyAge] = useState('LAST_30_DAYS');
+  const [websiteFilter, setWebsiteFilter] = useState('ANY');
+
+  const country = props.countries.find((c) => c.code === countryCode) ?? props.countries[0];
 
   const toggle = (key: string) =>
     setSelected((current) =>
       current.includes(key) ? current.filter((k) => k !== key) : [...current, key],
     );
 
+  /** Fills the form from a preset. Everything stays editable afterwards. */
+  const applyPreset = (filters: PresetFilters) => {
+    if (filters.companyAge) setCompanyAge(filters.companyAge);
+    if (filters.websiteFilter) setWebsiteFilter(filters.websiteFilter);
+    setSelected(filters.industryKeys ?? []);
+  };
+
   return (
     <form action={formAction} className="space-y-5">
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <p className="label mb-2">Start from</p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {props.presets.map((preset) => (
+            <button
+              key={preset.key}
+              type="button"
+              onClick={() => applyPreset(preset.filters)}
+              className="rounded-md border border-slate-200 bg-white p-3 text-left text-sm hover:border-slate-400"
+            >
+              <span className="font-semibold">{preset.label}</span>
+              <span className="mt-1 block text-xs text-slate-500">{preset.description}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label className="label" htmlFor="countryCode">Country</label>
-          <select id="countryCode" name="countryCode" className="input" defaultValue="GB">
+          <select
+            id="countryCode"
+            name="countryCode"
+            className="input"
+            value={countryCode}
+            onChange={(e) => setCountryCode(e.target.value)}
+          >
             {props.countries.map((c) => (
               <option key={c.code} value={c.code}>{c.name}</option>
             ))}
@@ -39,8 +81,8 @@ export function SearchForm(props: Props) {
         <div>
           <label className="label" htmlFor="region">Nation or region</label>
           <select id="region" name="region" className="input" defaultValue="">
-            <option value="">Entire UK</option>
-            {props.regions.map((r) => (
+            <option value="">All of {country?.name ?? 'the country'}</option>
+            {(country?.regions ?? []).map((r) => (
               <option key={r} value={r}>{r}</option>
             ))}
           </select>
@@ -51,12 +93,12 @@ export function SearchForm(props: Props) {
           <input
             id="city"
             name="city"
-            list="uk-cities"
+            list="country-cities"
             className="input"
             placeholder="Any — or type any town"
           />
-          <datalist id="uk-cities">
-            {props.cities.map((c) => (
+          <datalist id="country-cities">
+            {(country?.cities ?? []).map((c) => (
               <option key={c} value={c} />
             ))}
           </datalist>
@@ -64,7 +106,13 @@ export function SearchForm(props: Props) {
 
         <div>
           <label className="label" htmlFor="companyAge">Company age</label>
-          <select id="companyAge" name="companyAge" className="input" defaultValue="LAST_30_DAYS">
+          <select
+            id="companyAge"
+            name="companyAge"
+            className="input"
+            value={companyAge}
+            onChange={(e) => setCompanyAge(e.target.value)}
+          >
             {props.ageOptions.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
@@ -107,7 +155,13 @@ export function SearchForm(props: Props) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label className="label" htmlFor="websiteFilter">Website</label>
-          <select id="websiteFilter" name="websiteFilter" className="input" defaultValue="ANY">
+          <select
+            id="websiteFilter"
+            name="websiteFilter"
+            className="input"
+            value={websiteFilter}
+            onChange={(e) => setWebsiteFilter(e.target.value)}
+          >
             {props.websiteOptions.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}

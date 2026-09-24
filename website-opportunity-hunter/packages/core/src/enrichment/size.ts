@@ -63,10 +63,10 @@ export interface EmployeeTarget {
 export type ReceitaPorte = '00' | '01' | '03' | '05';
 
 export const PORTE_LABEL: Record<ReceitaPorte, string> = {
-  '00': 'Não informado',
-  '01': 'Microempresa (ME)',
-  '03': 'Empresa de pequeno porte (EPP)',
-  '05': 'Demais (acima do Simples)',
+  '00': 'Not stated',
+  '01': 'Micro-enterprise (ME)',
+  '03': 'Small enterprise (EPP)',
+  '05': 'Other (above the Simples ceiling)',
 };
 
 /**
@@ -96,7 +96,7 @@ export function estimateSizeFromPorte(
   if (!code || code === '00') return undefined;
 
   const capital = typeof capitalSocial === 'number' && capitalSocial > 0 ? capitalSocial : undefined;
-  const basis: string[] = [`Porte declarado na Receita Federal: ${PORTE_LABEL[code]}`];
+  const basis: string[] = [`Size class on the Receita Federal register: ${PORTE_LABEL[code]}`];
 
   let band: SizeBand;
   let employeesFrom: number;
@@ -110,7 +110,7 @@ export function estimateSizeFromPorte(
     employeesFrom = 1;
     employeesTo = 9;
     confidence = 'MEDIUM';
-    basis.push('Faturamento até R$ 360 mil/ano (LC 123/2006) — porte micro');
+    basis.push('Revenue up to R$ 360k a year (LC 123/2006) — the micro band');
   } else if (code === '03') {
     // EPP is the band the ten-to-fifteen target lives in, and it is wide:
     // R$ 360k to R$ 4.8M of annual revenue covers a two-person agency and a
@@ -119,7 +119,7 @@ export function estimateSizeFromPorte(
     employeesFrom = 10;
     employeesTo = 49;
     confidence = 'MEDIUM';
-    basis.push('Faturamento entre R$ 360 mil e R$ 4,8 milhões/ano (LC 123/2006)');
+    basis.push('Revenue between R$ 360k and R$ 4.8M a year (LC 123/2006)');
   } else {
     // "Demais" means only "above the Simples Nacional ceiling". It covers a
     // fifty-person firm and a multinational subsidiary, so the range stays open
@@ -128,25 +128,25 @@ export function estimateSizeFromPorte(
     employeesFrom = 20;
     employeesTo = undefined;
     confidence = 'LOW';
-    basis.push('Acima do teto do Simples Nacional — faixa ampla, sem teto conhecido');
+    basis.push('Above the Simples Nacional ceiling — a wide band with no known upper limit');
   }
 
   if (capital !== undefined) {
-    basis.push(`Capital social declarado: ${formatBrl(capital)}`);
+    basis.push(`Declared share capital: ${formatBrl(capital)}`);
     if (capital >= CAPITAL_SUGGESTS_STAFFED && band !== 'MICRO') {
       // Agrees with the band and adds something: raise the floor, not the band.
       employeesFrom = Math.max(employeesFrom, 10);
       confidence = 'MEDIUM';
-      basis.push('Capital compatível com uma operação com equipe própria');
+      basis.push('Capital consistent with an operation that employs its own staff');
     } else if (capital <= CAPITAL_SUGGESTS_MINIMAL) {
       confidence = 'LOW';
-      basis.push('Capital simbólico — comum em empresas sem estrutura, mas também nunca atualizado em muitas');
+      basis.push('Token capital — common in companies with no structure, but also never updated in a great many');
     }
   } else {
-    basis.push('Capital social não informado');
+    basis.push('Share capital not stated');
   }
 
-  basis.push('Nenhum registro público informa número de funcionários — esta é uma estimativa');
+  basis.push('No public register states a headcount — this is an estimate');
 
   return sourced({ band, employeesFrom, employeesTo, basis }, confidence, evidence, true);
 }
@@ -273,19 +273,19 @@ export function fitsEmployeeTarget(
 
 /** One line for a lead card, honest about being an estimate. */
 export function describeSize(estimate: SizeEstimate | undefined): string {
-  if (!estimate) return 'Porte desconhecido';
+  if (!estimate) return 'Size unknown';
   const range =
     estimate.employeesTo === undefined
-      ? `${estimate.employeesFrom}+ pessoas`
-      : `${estimate.employeesFrom}–${estimate.employeesTo} pessoas`;
-  return `${BAND_LABEL[estimate.band]} · estimativa ${range}`;
+      ? `${estimate.employeesFrom}+ people`
+      : `${estimate.employeesFrom}–${estimate.employeesTo} people`;
+  return `${BAND_LABEL[estimate.band]} · estimated ${range}`;
 }
 
 export const BAND_LABEL: Record<SizeBand, string> = {
   MICRO: 'Micro',
-  SMALL: 'Pequena',
-  MEDIUM: 'Média',
-  LARGE: 'Grande',
+  SMALL: 'Small',
+  MEDIUM: 'Medium',
+  LARGE: 'Large',
 };
 
 /**

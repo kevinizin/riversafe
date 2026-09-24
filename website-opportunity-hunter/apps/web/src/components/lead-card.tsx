@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { industryLabel } from '@woh/core';
-import type { LeadRow } from '@/lib/leads';
-import { ClassificationBadge, ConfidenceBadge, ScoreDial } from '@/components/ui';
+import type { LeadAxis, LeadRow } from '@/lib/leads';
+import { AxisScores, ConfidenceBadge, SizeBadge } from '@/components/ui';
 import { LEAD_STATUS_LABEL, WEBSITE_STATUS_LABEL, relativeDays } from '@/lib/format';
 
 /**
@@ -10,30 +10,51 @@ import { LEAD_STATUS_LABEL, WEBSITE_STATUS_LABEL, relativeDays } from '@/lib/for
  * The "why" list is the point of the card: it is generated from the score's own
  * reasons, so what the operator reads is exactly what the engine used.
  */
-export function LeadCard({ lead }: { lead: LeadRow }) {
+export function LeadCard({ lead, axis = 'WEBSITE' }: { lead: LeadRow; axis?: LeadAxis }) {
   const analysis = lead.websites[0]?.analyses[0];
   const industry = lead.industries[0];
   const socialPlatforms = [...new Set(lead.socials.map((s) => s.platform))];
 
+  // The "why" list follows the selected axis, because the reasons genuinely
+  // differ: youth is the argument for a website and the argument against a
+  // system, and showing the website reasons under a system score would explain
+  // the wrong number.
   const why: string[] = [];
   const age = lead.incorporationDate
     ? Math.floor((Date.now() - lead.incorporationDate.getTime()) / 86_400_000)
     : null;
-  if (age !== null && age <= 90) why.push(`Incorporated ${relativeDays(lead.incorporationDate)}`);
-  if (lead.websiteStatus === 'NO_WEBSITE_FOUND') why.push('No website found');
-  if (analysis?.qualityScore !== null && analysis?.qualityScore !== undefined && analysis.qualityScore < 55) {
-    why.push(`Website scores ${analysis.qualityScore}/100`);
+
+  if (axis === 'SYSTEM') {
+    if (age !== null && age >= 365) {
+      why.push(`Trading for ${Math.floor(age / 365)} year(s)`);
+    }
+    if (lead.sizeBand && lead.sizeEmployeesFrom !== null) {
+      const to = lead.sizeEmployeesTo === null ? '+' : `–${lead.sizeEmployeesTo}`;
+      why.push(`Estimated ${lead.sizeEmployeesFrom}${to} people`);
+    }
+    if (industry) why.push(`${industryLabel(industry.industryKey)} — process-heavy sector`);
+    if (lead.websiteStatus === 'NO_WEBSITE_FOUND') why.push('No website found');
+    else if (analysis && !analysis.hasOnlineBooking) why.push('Brochure site, nothing running on it');
+  } else {
+    if (age !== null && age <= 90) why.push(`Incorporated ${relativeDays(lead.incorporationDate)}`);
+    if (lead.websiteStatus === 'NO_WEBSITE_FOUND') why.push('No website found');
+    if (analysis?.qualityScore !== null && analysis?.qualityScore !== undefined && analysis.qualityScore < 55) {
+      why.push(`Website scores ${analysis.qualityScore}/100`);
+    }
+    if (socialPlatforms.length) why.push(`Active on ${socialPlatforms.length} social platform(s)`);
+    if (lead.reviewCount) why.push(`${lead.reviewCount} reviews`);
+    if (industry) why.push(`${industryLabel(industry.industryKey)} — high-value sector for a website`);
   }
-  if (socialPlatforms.length) why.push(`Active on ${socialPlatforms.length} social platform(s)`);
-  if (lead.reviewCount) why.push(`${lead.reviewCount} reviews`);
-  if (industry) why.push(`${industryLabel(industry.industryKey)} — high-value sector for a website`);
 
   return (
     <article className="card flex gap-4 p-4">
-      <div className="flex flex-col items-center gap-2">
-        <ScoreDial score={lead.currentScore} />
-        <ClassificationBadge value={lead.currentClassification} />
-      </div>
+      <AxisScores
+        websiteScore={lead.currentScore}
+        websiteClassification={lead.currentClassification}
+        systemScore={lead.systemScore}
+        systemClassification={lead.systemClassification}
+        axis={axis}
+      />
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-2">
@@ -60,10 +81,24 @@ export function LeadCard({ lead }: { lead: LeadRow }) {
             label="Social"
             value={socialPlatforms.length ? socialPlatforms.join(', ') : 'None found'}
           />
-          <Field
-            label="Reviews"
-            value={lead.reviewCount === null ? 'Unknown' : String(lead.reviewCount)}
-          />
+          {axis === 'SYSTEM' ? (
+            <div>
+              <dt className="text-[11px] uppercase tracking-wide text-slate-400">Size</dt>
+              <dd>
+                <SizeBadge
+                  band={lead.sizeBand}
+                  from={lead.sizeEmployeesFrom}
+                  to={lead.sizeEmployeesTo}
+                  fit={lead.sizeFit}
+                />
+              </dd>
+            </div>
+          ) : (
+            <Field
+              label="Reviews"
+              value={lead.reviewCount === null ? 'Unknown' : String(lead.reviewCount)}
+            />
+          )}
         </dl>
 
         {why.length ? (

@@ -115,3 +115,87 @@ export function Unknown({ note }: { note?: string }) {
     </span>
   );
 }
+
+/**
+ * The two scores side by side, with the selected axis given the weight.
+ *
+ * Both are always shown. The whole reason for two axes is that they disagree,
+ * and a card that showed only the one being sorted on would hide the disagreement
+ * exactly when it matters — the company that is a poor website lead and an
+ * excellent system lead looks like a poor lead.
+ */
+export function AxisScores({
+  websiteScore,
+  websiteClassification,
+  systemScore,
+  systemClassification,
+  axis,
+}: {
+  websiteScore: number | null | undefined;
+  websiteClassification: Classification | null | undefined;
+  systemScore: number | null | undefined;
+  systemClassification: Classification | null | undefined;
+  axis: 'WEBSITE' | 'SYSTEM';
+}) {
+  const primary =
+    axis === 'SYSTEM'
+      ? { label: 'System', score: systemScore, classification: systemClassification }
+      : { label: 'Website', score: websiteScore, classification: websiteClassification };
+  const secondary =
+    axis === 'SYSTEM'
+      ? { label: 'Website', score: websiteScore, classification: websiteClassification }
+      : { label: 'System', score: systemScore, classification: systemClassification };
+
+  return (
+    <div className="flex w-24 flex-col items-center gap-2">
+      <div className="flex flex-col items-center">
+        <span className="text-[10px] uppercase tracking-wide text-slate-400">{primary.label}</span>
+        <span className={`text-3xl font-bold tabular-nums ${scoreColour(primary.score)}`}>
+          {primary.score ?? '—'}
+        </span>
+      </div>
+      <ClassificationBadge value={primary.classification} />
+      <div className="flex items-baseline gap-1 border-t border-slate-100 pt-2 text-xs text-slate-500">
+        <span className="uppercase tracking-wide text-slate-400">{secondary.label}</span>
+        <span className={`font-semibold tabular-nums ${scoreColour(secondary.score)}`}>
+          {secondary.score ?? '—'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * An estimated size band.
+ *
+ * Always prefixed "est." and never rendered as a bare number of employees: no
+ * registry this system reads publishes a headcount, and a badge that looked
+ * like a fact would undo that care everywhere else.
+ */
+export function SizeBadge({
+  band,
+  from,
+  to,
+  fit,
+}: {
+  band: string | null | undefined;
+  from: number | null | undefined;
+  to: number | null | undefined;
+  fit?: string | null | undefined;
+}) {
+  if (!band || from === null || from === undefined) {
+    return <span className="chip border border-slate-200 bg-slate-100 text-slate-500">Size unknown</span>;
+  }
+  const range = to === null || to === undefined ? `${from}+` : `${from}–${to}`;
+  const tone =
+    fit === 'LIKELY'
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+      : fit === 'POSSIBLE'
+        ? 'border-amber-200 bg-amber-50 text-amber-700'
+        : 'border-slate-200 bg-slate-100 text-slate-600';
+  return (
+    <span className={`chip border ${tone}`} title="Estimated from the registry size class. No register publishes a headcount.">
+      est. {range} people
+    </span>
+  );
+}

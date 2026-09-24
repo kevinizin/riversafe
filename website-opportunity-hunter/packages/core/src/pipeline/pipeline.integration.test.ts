@@ -23,6 +23,34 @@ import { runSearch } from './runSearch.js';
  * Without it the suite skips rather than silently passing.
  */
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
+
+/**
+ * This suite truncates every table between tests, so pointing it at the
+ * development database silently destroys whatever is in it — which is easy to
+ * do by copying DATABASE_URL across, and gives no sign until the dashboard is
+ * empty. Refusing outright is better than a comment asking people to be
+ * careful.
+ */
+if (TEST_DATABASE_URL && sameDatabase(TEST_DATABASE_URL, process.env.DATABASE_URL)) {
+  throw new Error(
+    'TEST_DATABASE_URL points at the same database as DATABASE_URL. This suite wipes every table, ' +
+      'so it needs a database of its own: createdb woh_test, then run the migrations against it.',
+  );
+}
+
+/** Same host, port and database name, ignoring credentials and query string. */
+function sameDatabase(a: string, b: string | undefined): boolean {
+  if (!b) return false;
+  try {
+    const one = new URL(a);
+    const two = new URL(b);
+    return one.host === two.host && one.pathname === two.pathname;
+  } catch {
+    // Unparseable URLs are compared verbatim rather than assumed to differ.
+    return a === b;
+  }
+}
+
 const maybe = TEST_DATABASE_URL ? describe : describe.skip;
 
 class EmptySearch implements WebSearchProvider {

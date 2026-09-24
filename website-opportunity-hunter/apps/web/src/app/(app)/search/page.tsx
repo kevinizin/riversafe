@@ -2,8 +2,7 @@ import {
   COMPANY_AGE_LABELS,
   INDUSTRIES,
   INDUSTRY_GROUPS,
-  UK_CITIES,
-  UK_NATIONS,
+  SEARCH_PRESETS,
   WEBSITE_FILTERS,
   WEBSITE_FILTER_LABELS,
   enabledCountries,
@@ -43,10 +42,24 @@ export default async function SearchPage() {
 
       <Card>
         <SearchForm
-          countries={enabledCountries().map((c) => ({ code: c.code, name: c.name }))}
+          countries={enabledCountries().map((c) => ({
+            code: c.code,
+            name: c.name,
+            regions: [...c.regions],
+            cities: [...c.cities],
+          }))}
           industriesByGroup={industriesByGroup}
-          regions={[...UK_NATIONS]}
-          cities={UK_CITIES.map((c) => c.name)}
+          presets={SEARCH_PRESETS.map((p) => ({
+            key: p.key,
+            label: p.label,
+            description: p.description,
+            axis: p.axis,
+            filters: {
+              ...(p.filters.companyAge ? { companyAge: p.filters.companyAge } : {}),
+              ...(p.filters.websiteFilter ? { websiteFilter: p.filters.websiteFilter } : {}),
+              ...(p.filters.industryKeys ? { industryKeys: [...p.filters.industryKeys] } : {}),
+            },
+          }))}
           ageOptions={Object.entries(COMPANY_AGE_LABELS).map(([value, label]) => ({ value, label }))}
           websiteOptions={WEBSITE_FILTERS.map((value) => ({ value, label: WEBSITE_FILTER_LABELS[value] }))}
         />

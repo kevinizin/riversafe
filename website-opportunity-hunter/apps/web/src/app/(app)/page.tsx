@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { prisma } from '@woh/db';
+import { enabledCountries } from '@woh/core';
 import { Card, Empty, SectionTitle, Stat } from '@/components/ui';
 import { requireUser } from '@/lib/auth';
 import { formatDateTime, relativeDays } from '@/lib/format';
@@ -24,6 +25,9 @@ export default async function DashboardPage() {
     pipeline,
     latestRuns,
     topLeads,
+    topSystemLeads,
+    systemHot,
+    sizeFitCandidates,
   ] = await Promise.all([
     prisma.company.count({ where: { retentionStatus: 'ACTIVE' } }),
     prisma.company.count({ where: { incorporationDate: { gte: since } } }),
@@ -53,7 +57,17 @@ export default async function DashboardPage() {
       take: 5,
       include: { industries: { where: { isPrimary: true }, take: 1 } },
     }),
+    prisma.company.findMany({
+      where: { systemScore: { not: null }, leadStatus: { notIn: ['DISCARDED', 'LOST'] } },
+      orderBy: { systemScore: 'desc' },
+      take: 5,
+      include: { industries: { where: { isPrimary: true }, take: 1 } },
+    }),
+    prisma.company.count({ where: { systemClassification: { in: ['HOT', 'HIGH_OPPORTUNITY'] } } }),
+    prisma.company.count({ where: { sizeFit: { in: ['LIKELY', 'POSSIBLE'] } } }),
   ]);
+
+  const countries = enabledCountries();
 
   const byStatus = new Map(pipeline.map((row) => [row.leadStatus, row._count._all]));
   const contacted = byStatus.get('CONTACTED') ?? 0;
@@ -65,7 +79,9 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">Dashboard</h1>
-          <p className="text-sm text-slate-500">United Kingdom · GBP · Europe/London</p>
+          <p className="text-sm text-slate-500">
+            {countries.map((c) => `${c.name} · ${c.currency}`).join('  |  ')}
+          </p>
         </div>
         <Link href="/search" className="btn-primary">
           New search
@@ -81,11 +97,25 @@ export default async function DashboardPage() {
         <Stat label="High opportunity" value={high} href="/leads?classification=HIGH_OPPORTUNITY" />
         <Stat label="Warm" value={warm} href="/leads?classification=WARM" />
         <Stat label="Recently opened" value={recentlyOpened} hint="opening or just-opened signals" />
+        <Stat
+          label="System opportunities"
+          value={systemHot}
+          href="/leads?axis=SYSTEM&classification=HOT"
+          hint="hot or high on the system axis"
+        />
+        <Stat
+          label="Size could fit"
+          value={sizeFitCandidates}
+          href="/leads?axis=SYSTEM&sizeFit=POSSIBLE"
+          hint="estimated, never a stated headcount"
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <SectionTitle hint="Highest scoring leads not yet discarded">Priority leads</SectionTitle>
+          <SectionTitle hint="Highest scoring on the website axis — new companies with no site">
+            Priority for a website
+          </SectionTitle>
           {topLeads.length === 0 ? (
             <Empty
               title="No leads yet"
@@ -118,6 +148,48 @@ export default async function DashboardPage() {
           )}
         </Card>
 
+        <Card>
+          <SectionTitle hint="Highest scoring on the system axis — established, process-heavy, the right size">
+            Priority for a system
+          </SectionTitle>
+          {topSystemLeads.length === 0 ? (
+            <Empty
+              title="Nothing scored on this axis yet"
+              body="Run a search to find companies. The system axis looks for the opposite of the website axis: established businesses with a team, not brand-new ones."
+              action={
+                <Link href="/search" className="btn-primary mt-2">
+                  Run a search
+                </Link>
+              }
+            />
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {topSystemLeads.map((company) => (
+                <li key={company.id} className="flex items-center gap-3 py-2">
+                  <span className="w-10 text-right text-lg font-semibold tabular-nums">
+                    {company.systemScore}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <Link href={`/leads/${company.id}`} className="truncate font-medium hover:underline">
+                      {company.name}
+                    </Link>
+                    <p className="truncate text-xs text-slate-500">
+                      {[company.city, company.industries[0]?.industryKey].filter(Boolean).join(' · ')} ·{' '}
+                      {company.sizeEmployeesFrom === null
+                        ? 'size unknown'
+                        : `est. ${company.sizeEmployeesFrom}${
+                            company.sizeEmployeesTo === null ? '+' : `–${company.sizeEmployeesTo}`
+                          } people`}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <SectionTitle hint="Outcomes you have recorded yourself">Outreach funnel</SectionTitle>
           <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">

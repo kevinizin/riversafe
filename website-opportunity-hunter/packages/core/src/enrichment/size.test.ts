@@ -22,7 +22,7 @@ describe('estimateSizeFromPorte', () => {
     // The whole point: derived, not read.
     expect(result?.inferred).toBe(true);
     expect(result?.confidence).not.toBe('HIGH');
-    expect(result?.value.basis.join(' ')).toContain('estimativa');
+    expect(result?.value.basis.join(' ')).toContain('estimate');
   });
 
   it('reads ME as micro', () => {
@@ -59,7 +59,7 @@ describe('estimateSizeFromPorte', () => {
     const without = estimateSizeFromPorte('03', undefined, evidence);
     expect(without?.value.band).toBe(withCapital?.value.band);
     expect(without?.confidence).toBe('MEDIUM');
-    expect(without?.value.basis.join(' ')).toContain('não informado');
+    expect(without?.value.basis.join(' ')).toContain('not stated');
   });
 });
 
@@ -115,14 +115,14 @@ describe('fitsEmployeeTarget', () => {
 describe('describeSize', () => {
   it('always says the number is an estimate', () => {
     const epp = estimateSizeFromPorte('03', undefined, evidence);
-    expect(describeSize(epp?.value)).toBe('Pequena · estimativa 10–49 pessoas');
+    expect(describeSize(epp?.value)).toBe('Small · estimated 10–49 people');
   });
 
   it('marks an open-ended band with a plus rather than inventing a ceiling', () => {
-    expect(describeSize({ band: 'LARGE', employeesFrom: 50, basis: [] })).toBe('Grande · estimativa 50+ pessoas');
+    expect(describeSize({ band: 'LARGE', employeesFrom: 50, basis: [] })).toBe('Large · estimated 50+ people');
   });
 
   it('says unknown when nothing is known', () => {
-    expect(describeSize(undefined)).toBe('Porte desconhecido');
+    expect(describeSize(undefined)).toBe('Size unknown');
   });
 });
