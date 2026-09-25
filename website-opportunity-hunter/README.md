@@ -153,9 +153,11 @@ the browser instead of failing on a busy port.
 Closing the window stops the server — deliberately, because a background server
 nobody can see is a server nobody remembers to stop.
 
-On Windows, run `create-desktop-shortcut.cmd` once to put a
-*Website Opportunity Hunter* icon on the desktop. (By hand: right-click
-`start.cmd` → *Show more options → Send to → Desktop (create shortcut)*.) The
+On Windows, `npm run setup` puts a *Website Opportunity Hunter* icon on the
+desktop for you. If it is not there — the setup predates that, or the shortcut
+was deleted — run `create-desktop-shortcut.cmd` in this folder once. (By hand:
+right-click `start.cmd` → *Show more options → Send to → Desktop (create
+shortcut)*.) The
 shortcut points at this folder, so run it again if you move or rename the
 project.
 

@@ -173,14 +173,37 @@ if (!tryRun('npm run db:seed --silent')) {
   );
 }
 
-// --- 6. Done ----------------------------------------------------------------
+// --- 6. Desktop shortcut ----------------------------------------------------
+// Created here rather than left for the reader to find. The launcher and the
+// script that pins it to the desktop were both documented in the README, and
+// someone who had run this setup end to end still had nothing to click —
+// because nothing at the end of a successful setup ever mentioned them.
+let shortcut = false;
+if (process.platform === 'win32') {
+  say('Putting a shortcut on the desktop');
+  shortcut = tryRun('create-desktop-shortcut.cmd', { quiet: true });
+  if (shortcut) ok('"Website Opportunity Hunter" added to the desktop');
+  else warn('The shortcut could not be created. Run create-desktop-shortcut.cmd yourself, or start it with start.cmd.');
+}
+
+// --- 7. Done ----------------------------------------------------------------
+const howToStart =
+  process.platform === 'win32'
+    ? shortcut
+      ? `  Double-click ${bold('Website Opportunity Hunter')} on your desktop.`
+      : `  Double-click ${bold('start.cmd')} in this folder.`
+    : `  Run ${bold('./start.sh')} in this folder.`;
+
 console.log(`
 ${green(bold('Ready.'))}
 
-  ${bold('npm run dev')}      then open ${bold('http://localhost:3000')}
+${howToStart}
+  It opens ${bold('http://localhost:3000')} by itself once the server answers.
 
   Sign in with the credentials printed just above (demo@example.com).
   Every company you will see is fictional, and the dashboard says so at the top.
+
+  Prefer a terminal? ${bold('npm run dev')} does the same without the browser.
 
   To search real UK companies, get a free key at
   https://developer.company-information.service.gov.uk/
