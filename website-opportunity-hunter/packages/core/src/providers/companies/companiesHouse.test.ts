@@ -195,3 +195,53 @@ describe('FixtureCompanyProvider', () => {
     expect(page.companies.every((c) => c.incorporationDate !== undefined)).toBe(true);
   });
 });
+
+describe('the accounts category, which only the profile resource carries', () => {
+  it('reads it from a company profile', async () => {
+    const fetchImpl = vi.fn().mockImplementation(async () =>
+      json({
+        company_name: 'DEMO LTD',
+        company_number: '12345678',
+        company_status: 'active',
+        accounts: { last_accounts: { type: 'small', period_end_on: '2025-12-31' } },
+      }),
+    );
+    const ch = provider(fetchImpl);
+
+    const lookup = await ch.getCompanyDetails('12345678');
+    expect(lookup.kind).toBe('FOUND');
+    if (lookup.kind === 'FOUND') {
+      expect(lookup.data.value.sizeSignals).toEqual({ accountsType: 'small' });
+    }
+  });
+
+  it('leaves sizeSignals absent for a search result, which has no such field', async () => {
+    const fetchImpl = vi.fn().mockImplementation(async () =>
+      json({
+        items: [{ company_name: 'DEMO LTD', company_number: '12345678', company_status: 'active' }],
+        hits: 1,
+      }),
+    );
+    const ch = provider(fetchImpl);
+
+    const page = await ch.searchCompanies({ countryCode: 'GB' });
+    // Absent, not empty: "we have not looked" must stay distinguishable from
+    // "we looked and the register says nothing".
+    expect(page.companies[0]?.sizeSignals).toBeUndefined();
+  });
+
+  it('treats the register own "no type available" as no signal', async () => {
+    const fetchImpl = vi.fn().mockImplementation(async () =>
+      json({
+        company_name: 'DEMO LTD',
+        company_number: '12345678',
+        company_status: 'active',
+        accounts: { last_accounts: { type: 'no-accounts-type-available' } },
+      }),
+    );
+    const ch = provider(fetchImpl);
+
+    const lookup = await ch.getCompanyDetails('12345678');
+    if (lookup.kind === 'FOUND') expect(lookup.data.value.sizeSignals).toBeUndefined();
+  });
+});

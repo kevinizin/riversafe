@@ -170,6 +170,52 @@ export async function enrichCompany(
     }
   });
 
+  // --- 2a. Full registry profile --------------------------------------------
+  // The UK advanced-search result does not carry the accounts category, which
+  // is the only size signal the register publishes. Without this call every
+  // British company is sized "unknown" for ever, and the system axis has
+  // nothing to work with — which is exactly what happened: 202 companies, none
+  // of them sized.
+  //
+  // One extra request per company, and only for companies that still have no
+  // size signal, so a re-run costs nothing and a Brazilian company (which gets
+  // its porte from the bulk load) never triggers it.
+  await stage('enrichmentStatus', 'registry_profile', async () => {
+    if (company.porte) {
+      await setStage(ctx.db, companyId, 'enrichmentStatus', 'SKIPPED');
+      return;
+    }
+    if ((await latestAccountsType(ctx.db, companyId)) !== undefined) {
+      await setStage(ctx.db, companyId, 'enrichmentStatus', 'SKIPPED');
+      return;
+    }
+
+    const source = await ctx.db.companySource.findFirst({
+      where: { companyId, externalId: { not: null } },
+      orderBy: { fetchedAt: 'desc' },
+    });
+    const provider = source
+      ? ctx.providers.companySources.find((p) => p.name === source.provider)
+      : undefined;
+    if (!source?.externalId || !provider) {
+      await setStage(ctx.db, companyId, 'enrichmentStatus', 'SKIPPED');
+      return;
+    }
+
+    const lookup = await provider.getCompanyDetails(source.externalId);
+    if (lookup.kind !== 'FOUND') return;
+
+    // Replace the stored payload with the fuller one. The search result is a
+    // strict subset of the profile, so nothing is lost by doing so.
+    await ctx.db.companySource.update({
+      where: { id: source.id },
+      data: {
+        payload: lookup.data.value.raw as Prisma.InputJsonValue,
+        fetchedAt: ctx.now(),
+      },
+    });
+  });
+
   // --- 2b. Estimated size ----------------------------------------------------
   // The single most requested filter — "companies with ten to fifteen people" —
   // and the one no registry can answer. What is written here is always an

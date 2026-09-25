@@ -87,6 +87,22 @@ interface ChProfileResponse extends ChSearchItem {
   registered_office_is_in_dispute?: boolean;
   has_been_liquidated?: boolean;
   jurisdiction?: string;
+  /**
+   * Only the company profile resource carries this; the advanced-search result
+   * does not. It is the one size signal the UK register publishes, so a company
+   * known only from a search has no size at all until the profile is fetched.
+   *
+   * Documented enumeration: null, full, small, medium, group, dormant, interim,
+   * initial, total-exemption-full, total-exemption-small, partial-exemption,
+   * audit-exemption-subsidiary, filing-exemption-subsidiary, micro-entity,
+   * no-accounts-type-available, audited-abridged, unaudited-abridged.
+   */
+  accounts?: {
+    last_accounts?: {
+      type?: string;
+      period_end_on?: string;
+    };
+  };
 }
 
 /** Documented company_status enumeration -> our normalised status. */
@@ -305,7 +321,7 @@ export class CompaniesHouseProvider implements CompanySourceProvider {
     );
   }
 
-  private toSourceCompany(item: ChSearchItem, fallbackNumber?: string): SourceCompany {
+  private toSourceCompany(item: ChSearchItem | ChProfileResponse, fallbackNumber?: string): SourceCompany {
     const number = item.company_number ?? fallbackNumber ?? '';
     const address = item.registered_office_address ?? {};
     const incorporationDate = parseChDate(item.date_of_creation);
@@ -324,6 +340,7 @@ export class CompaniesHouseProvider implements CompanySourceProvider {
         ...(address.postal_code ? { postcode: address.postal_code } : {}),
         ...(address.country ? { country: address.country } : {}),
       },
+      ...accountsSignals(item),
       provider: PROVIDER,
       externalId: number,
       sourceUrl: number
@@ -332,6 +349,19 @@ export class CompaniesHouseProvider implements CompanySourceProvider {
       raw: item,
     };
   }
+}
+
+/**
+ * The accounts category, when this response is a company profile.
+ *
+ * Returns nothing at all for a search result, which does not carry the field —
+ * rather than an empty `sizeSignals` object, so that "we have not looked" and
+ * "we looked and there is nothing" stay distinguishable downstream.
+ */
+function accountsSignals(item: ChSearchItem | ChProfileResponse): Pick<SourceCompany, 'sizeSignals'> | Record<string, never> {
+  const type = (item as ChProfileResponse).accounts?.last_accounts?.type?.trim();
+  if (!type || type === 'null' || type === 'no-accounts-type-available') return {};
+  return { sizeSignals: { accountsType: type } };
 }
 
 function parseJson<T>(text: string, endpoint: string): T {

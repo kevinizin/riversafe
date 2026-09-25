@@ -126,3 +126,41 @@ describe('describeSize', () => {
     expect(describeSize(undefined)).toBe('Porte desconhecido');
   });
 });
+
+describe('the UK accounts categories, against the documented enumeration', () => {
+  // The full documented list, from the Companies House company profile spec.
+  const SIZED: Record<string, string> = {
+    'micro-entity': 'MICRO',
+    small: 'SMALL',
+    'total-exemption-small': 'SMALL',
+    'partial-exemption': 'SMALL',
+    // Abridged accounts are a small-company option under CA2006 s444(2A).
+    // Whether they were audited says nothing about size.
+    'audited-abridged': 'SMALL',
+    'unaudited-abridged': 'SMALL',
+    medium: 'MEDIUM',
+    full: 'LARGE',
+  };
+
+  for (const [type, band] of Object.entries(SIZED)) {
+    it(`reads "${type}" as ${band}`, () => {
+      expect(estimateSizeFromAccounts(type, evidence)?.value.band).toBe(band);
+    });
+  }
+
+  it('says nothing for the categories that describe the filing, not the company', () => {
+    for (const type of [
+      'null',
+      'group',
+      'dormant',
+      'interim',
+      'initial',
+      'total-exemption-full',
+      'audit-exemption-subsidiary',
+      'filing-exemption-subsidiary',
+      'no-accounts-type-available',
+    ]) {
+      expect(estimateSizeFromAccounts(type, evidence)).toBeUndefined();
+    }
+  });
+});

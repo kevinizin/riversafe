@@ -198,6 +198,12 @@ export function estimateSizeFromAccounts(
     case 'small':
     case 'total-exemption-small':
     case 'partial-exemption':
+    // Abridged accounts are only available to small companies (Companies Act
+    // 2006 s444(2A)), so both abridged types belong here. `audited-abridged`
+    // was previously read as a large company, which had it exactly backwards:
+    // the audit says nothing about size, and the abridgement says small.
+    case 'audited-abridged':
+    case 'unaudited-abridged':
       return sourced(
         {
           band: 'SMALL',
@@ -226,7 +232,6 @@ export function estimateSizeFromAccounts(
         true,
       );
     case 'full':
-    case 'audited-abridged':
       return sourced(
         {
           band: 'LARGE',
