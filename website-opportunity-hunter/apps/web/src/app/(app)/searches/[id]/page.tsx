@@ -37,6 +37,22 @@ export default async function SearchRunPage({ params }: PageProps) {
 
   const running = run.status === 'QUEUED' || run.status === 'RUNNING';
 
+  // Which source actually answered. A run that fell back to the demo dataset
+  // looks exactly like a run that found almost nothing real — same layout, same
+  // small numbers — and the only difference that matters is invisible unless
+  // the page says it. The top-of-app banner does not cover this: it keys on the
+  // UK provider, so someone with a Companies House key searching Brazil gets no
+  // warning at all.
+  const stats = (run.stats ?? {}) as { provider?: unknown };
+  const usedFixtures = stats.provider === 'fixture';
+  const filters = (() => {
+    try {
+      return parseFilters(run.search.filters);
+    } catch {
+      return undefined;
+    }
+  })();
+
   return (
     <div className="space-y-4">
       <div>
@@ -49,6 +65,21 @@ export default async function SearchRunPage({ params }: PageProps) {
         <Notice>
 Esta execução está {run.status.toLowerCase()}. Atualize a página para acompanhar — os resultados
           aparecem conforme as empresas são processadas.
+        </Notice>
+      ) : null}
+      {usedFixtures ? (
+        <Notice tone="warn">
+          Esta busca usou as <strong>empresas fictícias de demonstração</strong>, não empresas reais
+          — são só 15 no total, então quase todo filtro devolve um punhado.
+          {filters?.countryCode === 'BR' ? (
+            <>
+              {' '}
+              Para o Brasil, isso quer dizer que nenhum arquivo mensal da Receita Federal foi
+              importado ainda. Rode <code>npm run ingest:br</code> — o README tem o passo a passo.
+            </>
+          ) : (
+            <> Configure uma fonte de dados reais para este país e rode a busca de novo.</>
+          )}
         </Notice>
       ) : null}
       {run.error ? <Notice tone="error">{run.error}</Notice> : null}

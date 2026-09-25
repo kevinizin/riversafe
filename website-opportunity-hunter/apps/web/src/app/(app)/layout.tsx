@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Brand } from '@/components/brand';
 import { getCurrentUser, logout } from '@/lib/auth';
-import { integrations } from '@/lib/context';
+import { countriesWithoutRealData } from '@/lib/context';
 
 const NAV = [
   { href: '/', label: 'Painel' },
@@ -24,7 +24,7 @@ async function logoutAction() {
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
-  const status = integrations();
+  const missingData = await countriesWithoutRealData();
 
   return (
     <div className="min-h-screen">
@@ -53,11 +53,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </form>
           </div>
         </div>
-        {status.companiesHouse === 'missing' ? (
+        {missingData.length ? (
           <div className="border-t border-amber-200 bg-amber-50 px-4 py-1.5 text-center text-xs text-amber-900">
-            Nenhuma fonte de dados reais configurada — as buscas usam as empresas fictícias de
-            demonstração. Para o Brasil, importe um arquivo mensal da Receita Federal; para o Reino
-            Unido, adicione COMPANIES_HOUSE_API_KEY ao arquivo .env.
+            Sem fonte de dados reais para {missingData.join(' e ')} — buscas nesses países usam as 15
+            empresas fictícias de demonstração. Para o Brasil, importe um arquivo mensal da Receita
+            Federal (<code>npm run ingest:br</code>); para o Reino Unido, adicione
+            COMPANIES_HOUSE_API_KEY ao arquivo .env.
           </div>
         ) : null}
       </header>

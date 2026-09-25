@@ -78,7 +78,7 @@ export async function runSearch(ctx: PipelineContext, searchRunId: string): Prom
     const companyIds = await collectCompanies(ctx, provider, filters, summary, log);
 
     if (companyIds.length === 0) {
-      await finish(ctx, searchRunId, summary, { collected: 0 });
+      await finish(ctx, searchRunId, summary, { collected: 0, provider: provider.name });
       return summary;
     }
 
@@ -114,7 +114,7 @@ export async function runSearch(ctx: PipelineContext, searchRunId: string): Prom
       },
     });
 
-    await finish(ctx, searchRunId, summary, { collected: companyIds.length });
+    await finish(ctx, searchRunId, summary, { collected: companyIds.length, provider: provider.name });
     log.info('run.finished', 'search run finished', { ...summary });
     return summary;
   } catch (err) {
