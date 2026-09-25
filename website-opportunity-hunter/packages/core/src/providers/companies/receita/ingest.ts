@@ -33,6 +33,48 @@ import {
 } from './layout.js';
 import { rowsOfFile } from './read.js';
 
+/**
+ * Which numbered parts of a set were supplied, and which are missing.
+ *
+ * The Receita splits each table into numbered files — Estabelecimentos0
+ * through Estabelecimentos9 — and the split is arbitrary, not by state. A
+ * company in Manaus can be in any of them. So importing three of the ten
+ * produces a database that looks complete, reports a cheerful row count, and
+ * is silently missing most of the state. Nothing downstream can detect that,
+ * which is why it is checked here.
+ *
+ * Only the published zip naming is recognised. An extracted file is named like
+ * `K3241.K03200Y0.D60314.ESTABELE`, which carries an extraction date and no
+ * part number — a first attempt at this read the `60314` as a part index and
+ * would have reported confident nonsense. When the names do not follow the
+ * convention this returns nothing rather than guessing, and the operator still
+ * sees the file count.
+ *
+ * The expected number of parts comes from the highest index present rather
+ * than being hardcoded, because how many parts the Receita publishes is theirs
+ * to change. That makes this a floor on the damage, not a proof of
+ * completeness: parts 0 and 1 alone look contiguous.
+ */
+export function missingParts(paths: string[]): { present: number[]; missing: number[] } {
+  const present = paths
+    .map((path) => {
+      const base = path.split(/[\\/]/).pop() ?? path;
+      return /^(?:estabelecimentos|empresas)(\d{1,2})\.zip$/i.exec(base)?.[1];
+    })
+    .filter((n): n is string => n !== undefined)
+    .map(Number)
+    .sort((a, b) => a - b);
+
+  if (present.length === 0) return { present: [], missing: [] };
+
+  const highest = present[present.length - 1]!;
+  const seen = new Set(present);
+  const missing: number[] = [];
+  for (let i = 0; i <= highest; i += 1) if (!seen.has(i)) missing.push(i);
+
+  return { present, missing };
+}
+
 /** How many rows are checked against the layout before the import is trusted. */
 const LAYOUT_SAMPLE = 50;
 
@@ -60,6 +102,15 @@ export interface IngestResult {
   establishmentsKept: number;
   companiesMatched: number;
   municipalitiesLoaded: number;
+  /** How many numbered parts of each table were read. */
+  estabelecimentosFiles: number;
+  empresasFiles: number;
+  /**
+   * Part numbers that look absent from a numbered set, e.g. [3, 7]. Non-empty
+   * means the import is incomplete in a way nothing downstream can see.
+   */
+  missingEstabelecimentos: number[];
+  missingEmpresas: number[];
 }
 
 /**
@@ -311,5 +362,9 @@ export async function ingestReceita(db: Db, options: IngestOptions): Promise<Ing
     establishmentsKept: rows.length,
     companiesMatched: matched,
     municipalitiesLoaded: municipios.size,
+    estabelecimentosFiles: options.estabelecimentos.length,
+    empresasFiles: options.empresas.length,
+    missingEstabelecimentos: missingParts(options.estabelecimentos).missing,
+    missingEmpresas: missingParts(options.empresas).missing,
   };
 }

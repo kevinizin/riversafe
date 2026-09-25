@@ -145,6 +145,24 @@ async function main(): Promise<void> {
   });
 
   const seconds = Math.round((Date.now() - started) / 1000);
+
+  // The loudest thing on the screen when it applies. The Receita splits each
+  // table into numbered parts and the split is arbitrary, not by state, so a
+  // company in Manaus can be in any of them. Importing some of the parts gives
+  // a database that looks complete and quietly is not.
+  const gaps: string[] = [];
+  if (result.missingEstabelecimentos.length) {
+    gaps.push(
+      `  Estabelecimentos: faltam as partes ${result.missingEstabelecimentos.join(', ')} ` +
+        `(li ${result.estabelecimentosFiles} arquivo(s))`,
+    );
+  }
+  if (result.missingEmpresas.length) {
+    gaps.push(
+      `  Empresas: faltam as partes ${result.missingEmpresas.join(', ')} ` +
+        `(li ${result.empresasFiles} arquivo(s))`,
+    );
+  }
   console.log(`\n
 Done in ${seconds}s.
 
@@ -156,6 +174,16 @@ Done in ${seconds}s.
 Searches for Brazil will now answer from snapshot ${tag}. Run one from the
 dashboard; the results carry that tag so it is clear how fresh they are.
 `);
+
+  if (gaps.length) {
+    console.warn(
+      `ATENÇÃO — a importação está incompleta:\n\n${gaps.join('\n')}\n\n` +
+        `  A Receita divide cada tabela em partes numeradas, e a divisão é arbitrária —\n` +
+        `  não é por estado. Uma empresa de Manaus pode estar em qualquer uma delas, então\n` +
+        `  o que foi importado parece completo e não é. Baixe as partes que faltam e rode\n` +
+        `  o comando de novo com todas de uma vez.\n`,
+    );
+  }
 }
 
 main()

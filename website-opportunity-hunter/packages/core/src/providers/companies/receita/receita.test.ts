@@ -10,6 +10,7 @@ import {
   checkLayout,
   describeRow,
 } from './layout.js';
+import { missingParts } from './ingest.js';
 import { parseCsvLine, rowsOfFile } from './read.js';
 
 const dir = mkdtempSync(join(tmpdir(), 'receita-'));
@@ -186,5 +187,55 @@ describe('describeRow', () => {
     expect(lines).toHaveLength(ESTABELECIMENTOS_LAYOUT.length);
     expect(lines.join('\n')).toContain('uf');
     expect(lines.find((l) => l.includes('"ZZ"'))).toContain('<--');
+  });
+});
+
+describe('missingParts', () => {
+  it('finds the gap in a numbered set', () => {
+    const { present, missing } = missingParts([
+      'C:/dados/Estabelecimentos0.zip',
+      'C:/dados/Estabelecimentos1.zip',
+      'C:/dados/Estabelecimentos4.zip',
+    ]);
+    expect(present).toEqual([0, 1, 4]);
+    expect(missing).toEqual([2, 3]);
+  });
+
+  it('reports nothing missing for a complete run', () => {
+    const paths = Array.from({ length: 10 }, (_, i) => `Estabelecimentos${i}.zip`);
+    expect(missingParts(paths).missing).toEqual([]);
+  });
+
+  it('cannot tell how many parts exist beyond the highest one supplied', () => {
+    // Three of ten looks complete to this check if they are 0, 1, 2 — the
+    // Receita does not publish a manifest, so the count cannot be verified.
+    // The operator is told the file count either way; this is a floor on the
+    // damage, not a proof of completeness.
+    expect(missingParts(['Estabelecimentos0.zip', 'Estabelecimentos1.zip']).missing).toEqual([]);
+  });
+
+  it('says nothing about extracted files, which carry a date and no part number', () => {
+    // "K3241.K03200Y0.D60314.ESTABELE" has an extraction date in it. Reading
+    // the 60314 as a part index — which a first attempt at this did — would
+    // report confident nonsense, so unrecognised names produce no claim.
+    const { present, missing } = missingParts([
+      'K3241.K03200Y0.D60314.ESTABELE',
+      'K3241.K03200Y1.D60314.ESTABELE',
+    ]);
+    expect(present).toEqual([]);
+    expect(missing).toEqual([]);
+  });
+
+  it('reads the part number off a full Windows path', () => {
+    expect(
+      missingParts([
+        'C:\\Users\\User\\Downloads\\Estabelecimentos0.zip',
+        'C:\\Users\\User\\Downloads\\Estabelecimentos3.zip',
+      ]).missing,
+    ).toEqual([1, 2]);
+  });
+
+  it('says nothing about a set that is not numbered', () => {
+    expect(missingParts(['Municipios.zip']).missing).toEqual([]);
   });
 });

@@ -233,6 +233,16 @@ Files are not downloaded by the tool. They are several gigabytes and the host
 rate-limits, and a half-finished download that looks finished is the worst
 outcome available.
 
+Each table is split into ten numbered parts and the split is arbitrary, not by
+state, so a company in Amazonas can be in any of them. Importing a subset gives
+a database that reports a healthy row count and is silently missing most of the
+state — nothing downstream can detect it, so `missingParts` checks the supplied
+file names and the importer warns. That only works on the published zip naming;
+an extracted file (`K3241.K03200Y0.D60314.ESTABELE`) carries an extraction date
+and no part number, and an early version of the check read that date as a part
+index. It now recognises the documented convention only, and says nothing
+rather than guessing.
+
 ### What is NOT verified, and must be before any loader is trusted
 
 **The exact column order of `Empresas` and `Estabelecimentos` has not been

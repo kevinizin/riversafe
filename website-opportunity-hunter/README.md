@@ -380,11 +380,34 @@ Stated plainly, because a prospecting tool that overstates itself wastes your ti
 There is no free search API for the CNPJ register — it is published as monthly
 bulk files — so Brazilian searches answer from a local snapshot:
 
+Start at the dataset's official page,
+<https://www.gov.br/receitafederal/pt-br/acesso-a-informacao/dados-abertos/cadastros/cnpj>,
+which redirects to the entry on the federal open data portal. The files
+themselves are served from
+`https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/`, in one
+folder per monthly extraction (`2026-09-14/` and so on).
+
+Each table is split into ten numbered parts, and the split is arbitrary rather
+than by state, so **all ten are needed** — a company in Amazonas can be in any
+of them. As of the September 2026 extraction that is roughly 6.4 GB:
+
+| File | Parts | Size |
+| --- | --- | --- |
+| `Estabelecimentos0.zip` … `Estabelecimentos9.zip` | 10 | ~5.1 GB |
+| `Empresas0.zip` … `Empresas9.zip` | 10 | ~1.3 GB |
+| `Municipios.zip` | 1 | 42 KB |
+
+The importer warns loudly when a numbered part looks absent, because importing
+some of the parts produces a database that reports a healthy row count and is
+silently missing most of the state. That check only works on the published zip
+names: an extracted file is called something like `K3241.K03200Y0.D60314.ESTABELE`,
+which carries an extraction date and no part number, so keep the zips or keep
+track yourself.
+
 ```bash
-# Download the monthly files yourself from
-#   https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/
-# (the host refuses connections from outside Brazil, and the files are several
-#  gigabytes, so a browser or a resumable downloader is the right tool)
+# Download the files yourself — the host rate-limits, it refuses connections
+# from outside Brazil, and a half-finished download that looks finished is the
+# worst outcome available. A browser or a resumable downloader is the right tool.
 
 # 1. ALWAYS do this first — see below
 npm run ingest:br -- --inspect --estabelecimentos ./Estabelecimentos0.zip
