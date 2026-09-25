@@ -46,12 +46,12 @@ export async function saveSettingsAction(
 
   const parsed = settingsSchema.safeParse(candidate);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? 'Those settings could not be saved.' };
+    return { error: parsed.error.issues[0]?.message ?? 'Não foi possível salvar essas configurações.' };
   }
 
   const { HOT, HIGH_OPPORTUNITY, WARM, LOW_PRIORITY } = parsed.data.thresholds;
   if (!(HOT > HIGH_OPPORTUNITY && HIGH_OPPORTUNITY > WARM && WARM > LOW_PRIORITY)) {
-    return { error: 'Thresholds must descend: hot > high opportunity > warm > low priority.' };
+    return { error: 'Os limites precisam ser decrescentes: quente > alta oportunidade > morno > baixa prioridade.' };
   }
 
   const existing = await prisma.setting.findFirst({ where: { userId: null, key: SETTINGS_KEY } });
@@ -68,5 +68,5 @@ export async function saveSettingsAction(
 
   await audit(user.userId, 'settings.saved', 'setting', SETTINGS_KEY);
   revalidatePath('/settings');
-  return { message: 'Settings saved. New scores use the updated thresholds.' };
+  return { message: 'Configurações salvas. Os novos scores já usam os limites atualizados.' };
 }

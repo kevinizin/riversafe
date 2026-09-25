@@ -43,7 +43,7 @@ describe('calculateOpportunityScore', () => {
 
     expect(result.score).toBeGreaterThanOrEqual(90);
     expect(result.classification).toBe('HOT');
-    expect(result.reasons.join(' ')).toContain('No website found');
+    expect(result.reasons.join(' ')).toContain('Nenhum site encontrado');
   });
 
   it('scores an established company with a strong website as IGNORE', () => {
@@ -86,7 +86,7 @@ describe('calculateOpportunityScore', () => {
     const website = result.components.find((c) => c.component === 'WEBSITE');
     expect(website?.points).toBe(0);
     expect(result.confidence).toBe('LOW');
-    expect(result.gaps).toContain('Website discovery has not run for this company');
+    expect(result.gaps).toContain('A busca por site ainda não rodou para esta empresa');
   });
 
   it('caps and ignores dissolved companies however attractive they look', () => {
@@ -150,7 +150,7 @@ describe('calculateOpportunityScore', () => {
 
   it('records a gap instead of scoring zero when the industry is unknown', () => {
     const result = calculateOpportunityScore({ ...base, websiteStatus: 'NO_WEBSITE_FOUND' });
-    expect(result.gaps).toContain('Industry not identified');
+    expect(result.gaps).toContain('Setor não identificado');
     expect(result.confidence).not.toBe('HIGH');
   });
 

@@ -34,13 +34,13 @@ export default async function LeadsPage({ searchParams }: PageProps) {
         <div>
           <h1 className="text-xl font-semibold">Leads</h1>
           <p className="text-sm text-slate-500">
-            {total} compan{total === 1 ? 'y' : 'ies'} match these filters, ranked by the{' '}
-            {system ? 'system' : 'website'} score
+            {total} {total === 1 ? 'empresa atende' : 'empresas atendem'} a estes filtros, ordenadas
+            pelo score de {system ? 'sistema' : 'site'}
           </p>
         </div>
         <div className="flex gap-2">
-          <a href={exportHref} className="btn-ghost">Export CSV</a>
-          <Link href="/search" className="btn-primary">New search</Link>
+          <a href={exportHref} className="btn-ghost">Exportar CSV</a>
+          <Link href="/search" className="btn-primary">Nova busca</Link>
         </div>
       </div>
 
@@ -53,9 +53,9 @@ export default async function LeadsPage({ searchParams }: PageProps) {
             system ? 'text-slate-600 hover:bg-white' : 'bg-white font-semibold shadow-sm'
           }`}
         >
-          Website opportunity
+          Oportunidade de site
           <span className="block text-[11px] font-normal text-slate-500">
-            Who needs a site — favours new companies
+            Quem precisa de site — favorece empresas novas
           </span>
         </Link>
         <Link
@@ -64,9 +64,9 @@ export default async function LeadsPage({ searchParams }: PageProps) {
             system ? 'bg-white font-semibold shadow-sm' : 'text-slate-600 hover:bg-white'
           }`}
         >
-          System opportunity
+          Oportunidade de sistema
           <span className="block text-[11px] font-normal text-slate-500">
-            Who needs a management system — favours established ones
+            Quem precisa de sistema de gestão — favorece as estabelecidas
           </span>
         </Link>
       </nav>
@@ -75,150 +75,150 @@ export default async function LeadsPage({ searchParams }: PageProps) {
         <form method="get" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <input type="hidden" name="axis" value={query.axis} />
           <div className="lg:col-span-2">
-            <label className="label" htmlFor="q">Search</label>
-            <input id="q" name="q" defaultValue={query.q ?? ''} className="input" placeholder="Name, company number, town or postcode" />
+            <label className="label" htmlFor="q">Buscar</label>
+            <input id="q" name="q" defaultValue={query.q ?? ''} className="input" placeholder="Nome, CNPJ, cidade ou CEP" />
           </div>
           <div>
-            <label className="label" htmlFor="classification">Classification</label>
+            <label className="label" htmlFor="classification">Classificação</label>
             <select id="classification" name="classification" defaultValue={query.classification ?? ''} className="input">
-              <option value="">Any</option>
-              <option value="HOT">🔥 Hot</option>
-              <option value="HIGH_OPPORTUNITY">🟠 High opportunity</option>
-              <option value="WARM">🟡 Warm</option>
-              <option value="LOW_PRIORITY">🔵 Low priority</option>
-              <option value="IGNORE">⚪ Ignore</option>
+              <option value="">Qualquer</option>
+              <option value="HOT">🔥 Quente</option>
+              <option value="HIGH_OPPORTUNITY">🟠 Alta oportunidade</option>
+              <option value="WARM">🟡 Morno</option>
+              <option value="LOW_PRIORITY">🔵 Baixa prioridade</option>
+              <option value="IGNORE">⚪ Descartar</option>
             </select>
           </div>
           <div>
-            <label className="label" htmlFor="website">Website</label>
+            <label className="label" htmlFor="website">Site</label>
             <select id="website" name="website" defaultValue={query.website ?? ''} className="input">
-              <option value="">Any</option>
-              <option value="NO_WEBSITE">Not found</option>
-              <option value="WEAK_WEBSITE">Weak (under 55/100)</option>
-              <option value="NO_OR_WEAK">Not found or weak</option>
-              <option value="UNCERTAIN">Unconfirmed</option>
-              <option value="HAS_WEBSITE">Has a website</option>
+              <option value="">Qualquer</option>
+              <option value="NO_WEBSITE">Não encontrado</option>
+              <option value="WEAK_WEBSITE">Fraco (abaixo de 55/100)</option>
+              <option value="NO_OR_WEAK">Não encontrado ou fraco</option>
+              <option value="UNCERTAIN">Não confirmado</option>
+              <option value="HAS_WEBSITE">Tem site</option>
             </select>
           </div>
           <div>
-            <label className="label" htmlFor="industry">Industry</label>
+            <label className="label" htmlFor="industry">Setor</label>
             <select id="industry" name="industry" defaultValue={query.industry ?? ''} className="input">
-              <option value="">Any</option>
+              <option value="">Qualquer</option>
               {INDUSTRIES.map((i) => (
                 <option key={i.key} value={i.key}>{i.label}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="label" htmlFor="region">Region</label>
+            <label className="label" htmlFor="region">Estado ou região</label>
             <select id="region" name="region" defaultValue={query.region ?? ''} className="input">
-              <option value="">Any</option>
+              <option value="">Qualquer</option>
               {regions.map((r) => (
                 <option key={r} value={r}>{r}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="label" htmlFor="city">City</label>
-            <input id="city" name="city" defaultValue={query.city ?? ''} className="input" placeholder="Any" />
+            <label className="label" htmlFor="city">Cidade</label>
+            <input id="city" name="city" defaultValue={query.city ?? ''} className="input" placeholder="Qualquer" />
           </div>
           <div>
-            <label className="label" htmlFor="minScore">Min score</label>
+            <label className="label" htmlFor="minScore">Score mínimo</label>
             <input id="minScore" name="minScore" type="number" min={0} max={100} defaultValue={query.minScore ?? ''} className="input" />
           </div>
           <div>
-            <label className="label" htmlFor="minReviews">Min reviews</label>
+            <label className="label" htmlFor="minReviews">Mín. de avaliações</label>
             <input id="minReviews" name="minReviews" type="number" min={0} defaultValue={query.minReviews ?? ''} className="input" />
           </div>
           <div>
-            <label className="label" htmlFor="minRating">Min rating</label>
+            <label className="label" htmlFor="minRating">Nota mínima</label>
             <input id="minRating" name="minRating" type="number" min={0} max={5} step={0.1} defaultValue={query.minRating ?? ''} className="input" />
           </div>
           <div>
-            <label className="label" htmlFor="social">Social presence</label>
+            <label className="label" htmlFor="social">Presença em redes</label>
             <select id="social" name="social" defaultValue={query.social ?? ''} className="input">
-              <option value="">Any</option>
-              <option value="yes">Has a profile</option>
-              <option value="no">None found</option>
+              <option value="">Qualquer</option>
+              <option value="yes">Tem perfil</option>
+              <option value="no">Nenhum encontrado</option>
             </select>
           </div>
           {system ? (
             <>
               <div>
-                <label className="label" htmlFor="minAgeDays">Trading for at least</label>
+                <label className="label" htmlFor="minAgeDays">Aberta há pelo menos</label>
                 <select id="minAgeDays" name="minAgeDays" defaultValue={query.minAgeDays ?? ''} className="input">
-                  <option value="">Any age</option>
-                  <option value="365">1 year</option>
-                  <option value="730">2 years</option>
-                  <option value="1825">5 years</option>
+                  <option value="">Qualquer idade</option>
+                  <option value="365">1 ano</option>
+                  <option value="730">2 anos</option>
+                  <option value="1825">5 anos</option>
                 </select>
               </div>
               <div>
-                <label className="label" htmlFor="sizeFit">Size fit (estimated)</label>
+                <label className="label" htmlFor="sizeFit">Encaixe de porte (estimado)</label>
                 <select id="sizeFit" name="sizeFit" defaultValue={query.sizeFit ?? ''} className="input">
-                  <option value="">Any</option>
-                  <option value="LIKELY">Likely in range</option>
-                  <option value="POSSIBLE">Possibly in range</option>
-                  <option value="UNKNOWN">Unknown — worth checking</option>
-                  <option value="UNLIKELY">Ruled out on size</option>
+                  <option value="">Qualquer</option>
+                  <option value="LIKELY">Provavelmente na faixa</option>
+                  <option value="POSSIBLE">Possivelmente na faixa</option>
+                  <option value="UNKNOWN">Desconhecido — vale conferir</option>
+                  <option value="UNLIKELY">Descartado pelo porte</option>
                 </select>
               </div>
               <div>
-                <label className="label" htmlFor="sizeBand">Size band (estimated)</label>
+                <label className="label" htmlFor="sizeBand">Faixa de porte (estimada)</label>
                 <select id="sizeBand" name="sizeBand" defaultValue={query.sizeBand ?? ''} className="input">
-                  <option value="">Any</option>
+                  <option value="">Qualquer</option>
                   <option value="MICRO">Micro</option>
-                  <option value="SMALL">Small</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="LARGE">Large</option>
+                  <option value="SMALL">Pequena</option>
+                  <option value="MEDIUM">Média</option>
+                  <option value="LARGE">Grande</option>
                 </select>
               </div>
             </>
           ) : (
             <div>
-              <label className="label" htmlFor="ageDays">Incorporated within</label>
+              <label className="label" htmlFor="ageDays">Aberta nos últimos</label>
               <select id="ageDays" name="ageDays" defaultValue={query.ageDays ?? ''} className="input">
-                <option value="">Any age</option>
-                <option value="7">7 days</option>
-                <option value="14">14 days</option>
-                <option value="30">30 days</option>
-                <option value="90">90 days</option>
-                <option value="365">1 year</option>
+                <option value="">Qualquer idade</option>
+                <option value="7">7 dias</option>
+                <option value="14">14 dias</option>
+                <option value="30">30 dias</option>
+                <option value="90">90 dias</option>
+                <option value="365">1 ano</option>
               </select>
             </div>
           )}
           <div>
-            <label className="label" htmlFor="status">Pipeline status</label>
+            <label className="label" htmlFor="status">Etapa no funil</label>
             <select id="status" name="status" defaultValue={query.status ?? ''} className="input">
-              <option value="">Any except discarded</option>
+              <option value="">Todas menos as descartadas</option>
               {Object.entries(LEAD_STATUS_LABEL).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="label" htmlFor="sort">Sort by</label>
+            <label className="label" htmlFor="sort">Ordenar por</label>
             <select id="sort" name="sort" defaultValue={query.sort ?? 'score'} className="input">
-              <option value="score">{system ? 'System score' : 'Website score'}</option>
-              <option value="newest">Newest company</option>
-              <option value="oldest">Longest trading</option>
-              <option value="reviews">Most reviews</option>
-              <option value="added">Recently added</option>
-              <option value="name">Name</option>
+              <option value="score">{system ? 'Score de sistema' : 'Score de site'}</option>
+              <option value="newest">Mais recentes</option>
+              <option value="oldest">Mais tempo de operação</option>
+              <option value="reviews">Mais avaliações</option>
+              <option value="added">Adicionadas há pouco</option>
+              <option value="name">Nome</option>
             </select>
           </div>
           <div className="flex items-end gap-2">
-            <button type="submit" className="btn-primary">Apply</button>
-            <Link href="/leads" className="btn-ghost">Reset</Link>
+            <button type="submit" className="btn-primary">Aplicar</button>
+            <Link href="/leads" className="btn-ghost">Limpar</Link>
           </div>
         </form>
       </Card>
 
       {rows.length === 0 ? (
         <Empty
-          title="No leads match"
-          body="Loosen the filters, or run a new search to bring in more companies."
-          action={<Link href="/search" className="btn-primary mt-2">New search</Link>}
+          title="Nenhum lead corresponde"
+          body="Afrouxe os filtros, ou rode uma nova busca para trazer mais empresas."
+          action={<Link href="/search" className="btn-primary mt-2">Nova busca</Link>}
         />
       ) : (
         <div className="space-y-3">
@@ -231,11 +231,11 @@ export default async function LeadsPage({ searchParams }: PageProps) {
       {pages > 1 ? (
         <nav className="flex items-center justify-center gap-2 text-sm">
           {page > 1 ? (
-            <Link href={pageHref(params, page - 1)} className="btn-ghost">Previous</Link>
+            <Link href={pageHref(params, page - 1)} className="btn-ghost">Anterior</Link>
           ) : null}
-          <span className="text-slate-500">Page {page} of {pages}</span>
+          <span className="text-slate-500">Página {page} de {pages}</span>
           {page < pages ? (
-            <Link href={pageHref(params, page + 1)} className="btn-ghost">Next</Link>
+            <Link href={pageHref(params, page + 1)} className="btn-ghost">Próxima</Link>
           ) : null}
         </nav>
       ) : null}

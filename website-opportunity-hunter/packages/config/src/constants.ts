@@ -1,10 +1,15 @@
 /** Values that are part of the product definition rather than deployment config. */
 
-export const APP_NAME = 'Website Opportunity Hunter';
+export const APP_NAME = 'Azven';
 
-/** Everything the MVP ships is UK-only. Adding a country means adding a
- *  CountryProfile in @woh/core/countries — never hardcoding it here. */
-export const DEFAULT_COUNTRY = 'GB';
+/** Shown under the name where there is room for it. */
+export const APP_TAGLINE = 'Prospecção de sites e sistemas';
+
+/** Brazil is the country this is used from and for. The United Kingdom stays
+ *  available because its registry provider is built and tested; adding a
+ *  country means adding a CountryProfile in @woh/core/countries — never
+ *  hardcoding it here. */
+export const DEFAULT_COUNTRY = 'BR';
 
 export const SCORE_VERSION = 1;
 

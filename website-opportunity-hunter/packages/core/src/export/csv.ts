@@ -13,7 +13,7 @@ export function csvEscape(value: CsvValue): string {
   if (value === null || value === undefined) return '';
   let text: string;
   if (value instanceof Date) text = value.toISOString().slice(0, 10);
-  else if (typeof value === 'boolean') text = value ? 'yes' : 'no';
+  else if (typeof value === 'boolean') text = value ? 'sim' : 'não';
   else text = String(value);
 
   if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
@@ -29,25 +29,33 @@ export function toCsv(headers: string[], rows: CsvValue[][]): string {
 }
 
 export const LEAD_EXPORT_HEADERS = [
-  'Company',
-  'Company Number',
-  'Industry',
-  'City',
-  'Region',
-  'Postcode',
-  'Website',
-  'Website Status',
-  'Website Score',
-  'Opportunity Score',
-  'Classification',
-  'Phone',
-  'Business Email',
+  'Empresa',
+  'CNPJ / registro',
+  'Setor',
+  'Cidade',
+  'Estado',
+  'CEP',
+  'Site',
+  'Situação do site',
+  'Nota do site',
+  'Score de site',
+  'Classificação (site)',
+  'Score de sistema',
+  'Classificação (sistema)',
+  // Named as an estimate in the header itself. A spreadsheet column outlives
+  // the screen it was exported from, and "Funcionários" would be read as a
+  // fact by whoever opens the file next.
+  'Porte estimado',
+  'Faixa estimada de pessoas',
+  'Encaixe de porte',
+  'Telefone',
+  'E-mail comercial',
   'Instagram',
   'Facebook',
   'LinkedIn',
-  'Reviews',
-  'Rating',
-  'Date Incorporated',
-  'Lead Status',
-  'Score Confidence',
+  'Avaliações',
+  'Nota',
+  'Data de abertura',
+  'Etapa no funil',
+  'Confiança do score',
 ];

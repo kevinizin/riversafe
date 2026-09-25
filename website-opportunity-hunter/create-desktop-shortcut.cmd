@@ -1,48 +1,48 @@
 @echo off
 REM ===========================================================================
-REM  Puts a "Website Opportunity Hunter" shortcut on the desktop.
+REM  Coloca um atalho "Azven" na area de trabalho.
 REM
-REM  Run once. The shortcut points at start.cmd in this folder, so moving or
-REM  renaming the project folder means running this again.
+REM  Rode uma vez. O atalho aponta para o start.cmd desta pasta, entao mover ou
+REM  renomear a pasta do projeto significa rodar isto de novo.
 REM
-REM  Windows only by nature: macOS and Linux have no single equivalent of a
-REM  .lnk file, so there is no twin of this script.
+REM  So existe no Windows por natureza: macOS e Linux nao tem um equivalente
+REM  unico ao arquivo .lnk, entao nao ha gemeo deste script.
 REM ===========================================================================
 
 setlocal
 chcp 65001 >nul 2>nul
-title Website Opportunity Hunter - desktop shortcut
+title Azven - atalho na area de trabalho
 
 cd /d "%~dp0"
 
 if not exist "start.cmd" (
     echo.
-    echo   start.cmd is not next to this file, so there is nothing to point at.
-    echo   Keep both files together in the project folder.
+    echo   O start.cmd nao esta ao lado deste arquivo, entao nao ha para onde apontar.
+    echo   Mantenha os dois arquivos juntos na pasta do projeto.
     echo.
     pause
     exit /b 1
 )
 
 echo.
-echo   Creating the desktop shortcut...
+echo   Criando o atalho na area de trabalho...
 echo.
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$target = Join-Path '%~dp0' 'start.cmd'; $desktop = [Environment]::GetFolderPath('Desktop'); $link = Join-Path $desktop 'Website Opportunity Hunter.lnk'; $shell = New-Object -ComObject WScript.Shell; $s = $shell.CreateShortcut($link); $s.TargetPath = $target; $s.WorkingDirectory = '%~dp0'.TrimEnd('\'); $s.Description = 'Start the Website Opportunity Hunter dashboard'; $s.Save(); Write-Host ('  Created: ' + $link)"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$target = Join-Path '%~dp0' 'start.cmd'; $desktop = [Environment]::GetFolderPath('Desktop'); $link = Join-Path $desktop 'Azven.lnk'; $shell = New-Object -ComObject WScript.Shell; $s = $shell.CreateShortcut($link); $s.TargetPath = $target; $s.WorkingDirectory = '%~dp0'.TrimEnd('\'); $s.Description = 'Abrir o painel da Azven'; $s.Save(); Write-Host ('  Criado: ' + $link)"
 
 if errorlevel 1 (
     echo.
-    echo   The shortcut could not be created.
+    echo   Nao foi possivel criar o atalho.
     echo.
-    echo   You can always do it by hand: right-click start.cmd, then
-    echo   Show more options -^> Send to -^> Desktop ^(create shortcut^).
+    echo   Voce sempre pode fazer a mao: clique com o botao direito no start.cmd,
+    echo   depois Mostrar mais opcoes -^> Enviar para -^> Area de trabalho.
     echo.
     pause
     exit /b 1
 )
 
 echo.
-echo   Done. Double-click it on the desktop to start the dashboard.
+echo   Pronto. De dois cliques nele na area de trabalho para abrir o painel.
 echo.
 pause
 exit /b 0

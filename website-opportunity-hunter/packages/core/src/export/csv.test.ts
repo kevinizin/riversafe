@@ -21,7 +21,7 @@ describe('csvEscape', () => {
     expect(csvEscape(null)).toBe('');
     expect(csvEscape(undefined)).toBe('');
     expect(csvEscape(new Date('2026-08-28T12:00:00Z'))).toBe('2026-08-28');
-    expect(csvEscape(true)).toBe('yes');
+    expect(csvEscape(true)).toBe('sim');
   });
 });
 

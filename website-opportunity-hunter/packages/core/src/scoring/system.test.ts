@@ -65,14 +65,14 @@ describe('calculateSystemScore', () => {
 
   it('always records that internal system use is unknowable from public sources', () => {
     const score = calculateSystemScore(targetLead({ noWebsiteFound: true, websiteAnalysed: false }));
-    expect(score.gaps.join(' ')).toContain('runs a system internally');
+    expect(score.gaps.join(' ')).toContain('já usa um sistema internamente');
   });
 
   it('scores a company under a year old at zero for maturity', () => {
     const score = calculateSystemScore(targetLead({ incorporationDate: daysAgo(45) }));
     const maturity = score.components.find((c) => c.component === 'MATURITY');
     expect(maturity?.points).toBe(0);
-    expect(maturity?.reason).toContain('too early for a system');
+    expect(maturity?.reason).toContain('cedo demais para um sistema');
   });
 
   it('rules out a micro company on size without zeroing an unknown one', () => {
@@ -98,13 +98,13 @@ describe('calculateSystemScore', () => {
   it('gives an unidentified sector nothing and says so, rather than assuming an average', () => {
     const score = calculateSystemScore(targetLead({ industryKey: null }));
     expect(score.components.find((c) => c.component === 'SECTOR_FIT')?.points).toBe(0);
-    expect(score.gaps.join(' ')).toContain('Industry not identified');
+    expect(score.gaps.join(' ')).toContain('Setor não identificado');
     expect(score.useCases).toEqual([]);
   });
 
   it('carries the sector use cases through for the pitch', () => {
     const score = calculateSystemScore(targetLead({ industryKey: 'training_courses' }));
-    expect(score.useCases.join(' ')).toContain('Students');
+    expect(score.useCases.join(' ')).toContain('Alunos');
   });
 
   it('caps and ignores a company that is not trading', () => {

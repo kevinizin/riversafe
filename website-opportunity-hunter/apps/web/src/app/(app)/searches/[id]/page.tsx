@@ -40,40 +40,40 @@ export default async function SearchRunPage({ params }: PageProps) {
   return (
     <div className="space-y-4">
       <div>
-        <Link href="/searches" className="text-xs text-slate-500 hover:underline">← All searches</Link>
+        <Link href="/searches" className="text-xs text-slate-500 hover:underline">← Todas as buscas</Link>
         <h1 className="text-xl font-semibold">{run.search.name}</h1>
         <p className="text-sm text-slate-500">{summary}</p>
       </div>
 
       {running ? (
         <Notice>
-          This run is {run.status.toLowerCase()}. Refresh the page to see progress — results appear as
-          companies are processed.
+Esta execução está {run.status.toLowerCase()}. Atualize a página para acompanhar — os resultados
+          aparecem conforme as empresas são processadas.
         </Notice>
       ) : null}
       {run.error ? <Notice tone="error">{run.error}</Notice> : null}
       {run.status === 'PARTIAL' ? (
         <Notice tone="warn">
-          Some stages failed for some companies. Nothing was lost — open a lead to see which stage
-          failed and re-run it.
+Algumas etapas falharam para algumas empresas. Nada foi perdido — abra um lead para ver qual
+          etapa falhou e rodá-la de novo.
         </Notice>
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Companies found" value={run.companiesFound} />
-        <Stat label="New" value={run.companiesNew} hint={`${run.companiesDuplicate} already known`} />
-        <Stat label="Hot" value={run.hotLeads} />
-        <Stat label="High opportunity" value={run.highOpportunity} />
-        <Stat label="Warm" value={run.warmLeads} />
-        <Stat label="Website not found" value={run.noWebsite} />
-        <Stat label="Weak website" value={run.weakWebsite} />
-        <Stat label="Stage failures" value={run.stageFailures} />
+        <Stat label="Empresas encontradas" value={run.companiesFound} />
+        <Stat label="Novas" value={run.companiesNew} hint={`${run.companiesDuplicate} já conhecidas`} />
+        <Stat label="Quentes" value={run.hotLeads} />
+        <Stat label="Alta oportunidade" value={run.highOpportunity} />
+        <Stat label="Mornas" value={run.warmLeads} />
+        <Stat label="Sem site encontrado" value={run.noWebsite} />
+        <Stat label="Site fraco" value={run.weakWebsite} />
+        <Stat label="Falhas de etapa" value={run.stageFailures} />
       </div>
 
       <Card>
         <p className="text-sm text-slate-500">
-          Status <strong>{run.status}</strong> · started {formatDateTime(run.startedAt)} · finished{' '}
-          {formatDateTime(run.finishedAt)}
+          Situação <strong>{run.status}</strong> · iniciada em {formatDateTime(run.startedAt)} ·
+          terminada em {formatDateTime(run.finishedAt)}
         </p>
       </Card>
 
@@ -83,7 +83,7 @@ export default async function SearchRunPage({ params }: PageProps) {
         ))}
         {results.length === 0 && !running ? (
           <Card>
-            <p className="text-sm text-slate-500">This run produced no companies.</p>
+            <p className="text-sm text-slate-500">Esta execução não produziu nenhuma empresa.</p>
           </Card>
         ) : null}
       </div>

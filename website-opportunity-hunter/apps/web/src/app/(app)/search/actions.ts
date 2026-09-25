@@ -58,7 +58,7 @@ export async function createSearchAction(
   try {
     filters = readFilters(formData);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : 'The search could not be validated.' };
+    return { error: err instanceof Error ? err.message : 'Não foi possível validar a busca.' };
   }
 
   const name = String(formData.get('name') ?? '').trim() || describeFilters(filters);

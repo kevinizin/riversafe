@@ -78,51 +78,51 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Dashboard</h1>
+          <h1 className="text-xl font-semibold">Painel</h1>
           <p className="text-sm text-slate-500">
             {countries.map((c) => `${c.name} · ${c.currency}`).join('  |  ')}
           </p>
         </div>
         <Link href="/search" className="btn-primary">
-          New search
+          Nova busca
         </Link>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Companies found" value={totalCompanies} href="/leads" />
-        <Stat label="New companies" value={newCompanies} hint="incorporated in the last 30 days" />
-        <Stat label="Website not found" value={noWebsite} href="/leads?website=NO_WEBSITE" />
-        <Stat label="Weak websites" value={weakWebsite} href="/leads?website=WEAK_WEBSITE" />
-        <Stat label="Hot leads" value={hot} href="/leads?classification=HOT" />
-        <Stat label="High opportunity" value={high} href="/leads?classification=HIGH_OPPORTUNITY" />
-        <Stat label="Warm" value={warm} href="/leads?classification=WARM" />
-        <Stat label="Recently opened" value={recentlyOpened} hint="opening or just-opened signals" />
+        <Stat label="Empresas encontradas" value={totalCompanies} href="/leads" />
+        <Stat label="Empresas novas" value={newCompanies} hint="abertas nos últimos 30 dias" />
+        <Stat label="Sem site encontrado" value={noWebsite} href="/leads?website=NO_WEBSITE" />
+        <Stat label="Sites fracos" value={weakWebsite} href="/leads?website=WEAK_WEBSITE" />
+        <Stat label="Leads quentes" value={hot} href="/leads?classification=HOT" />
+        <Stat label="Alta oportunidade" value={high} href="/leads?classification=HIGH_OPPORTUNITY" />
+        <Stat label="Mornos" value={warm} href="/leads?classification=WARM" />
+        <Stat label="Abriram há pouco" value={recentlyOpened} hint="sinais de abertura recente" />
         <Stat
-          label="System opportunities"
+          label="Oportunidades de sistema"
           value={systemHot}
           href="/leads?axis=SYSTEM&classification=HOT"
-          hint="hot or high on the system axis"
+          hint="quentes ou de alta oportunidade no eixo de sistema"
         />
         <Stat
-          label="Size could fit"
+          label="Porte pode encaixar"
           value={sizeFitCandidates}
           href="/leads?axis=SYSTEM&sizeFit=POSSIBLE"
-          hint="estimated, never a stated headcount"
+          hint="estimado, nunca um número declarado de funcionários"
         />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <SectionTitle hint="Highest scoring on the website axis — new companies with no site">
-            Priority for a website
+          <SectionTitle hint="Maiores scores no eixo de site — empresas novas e sem site">
+            Prioridade para site
           </SectionTitle>
           {topLeads.length === 0 ? (
             <Empty
-              title="No leads yet"
-              body="Run a search to find companies. With no Companies House key configured the search uses the fictional demo dataset."
+              title="Ainda não há leads"
+              body="Rode uma busca para encontrar empresas. Sem uma fonte de dados reais configurada, a busca usa as empresas fictícias de demonstração."
               action={
                 <Link href="/search" className="btn-primary mt-2">
-                  Run a search
+                  Rodar uma busca
                 </Link>
               }
             />
@@ -139,7 +139,7 @@ export default async function DashboardPage() {
                     </Link>
                     <p className="truncate text-xs text-slate-500">
                       {[company.city, company.industries[0]?.industryKey].filter(Boolean).join(' · ')} ·
-                      incorporated {relativeDays(company.incorporationDate)}
+                      aberta {relativeDays(company.incorporationDate)}
                     </p>
                   </div>
                 </li>
@@ -149,16 +149,16 @@ export default async function DashboardPage() {
         </Card>
 
         <Card>
-          <SectionTitle hint="Highest scoring on the system axis — established, process-heavy, the right size">
-            Priority for a system
+          <SectionTitle hint="Maiores scores no eixo de sistema — estabelecidas, movidas a processo e do porte certo">
+            Prioridade para sistema
           </SectionTitle>
           {topSystemLeads.length === 0 ? (
             <Empty
-              title="Nothing scored on this axis yet"
-              body="Run a search to find companies. The system axis looks for the opposite of the website axis: established businesses with a team, not brand-new ones."
+              title="Nada pontuado neste eixo ainda"
+              body="Rode uma busca para encontrar empresas. O eixo de sistema procura o oposto do eixo de site: empresas estabelecidas e com equipe, não recém-abertas."
               action={
                 <Link href="/search" className="btn-primary mt-2">
-                  Run a search
+                  Rodar uma busca
                 </Link>
               }
             />
@@ -176,10 +176,10 @@ export default async function DashboardPage() {
                     <p className="truncate text-xs text-slate-500">
                       {[company.city, company.industries[0]?.industryKey].filter(Boolean).join(' · ')} ·{' '}
                       {company.sizeEmployeesFrom === null
-                        ? 'size unknown'
+                        ? 'porte desconhecido'
                         : `est. ${company.sizeEmployeesFrom}${
                             company.sizeEmployeesTo === null ? '+' : `–${company.sizeEmployeesTo}`
-                          } people`}
+                          } pessoas`}
                     </p>
                   </div>
                 </li>
@@ -191,35 +191,35 @@ export default async function DashboardPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <SectionTitle hint="Outcomes you have recorded yourself">Outreach funnel</SectionTitle>
+          <SectionTitle hint="Resultados que você mesmo registrou">Funil de contato</SectionTitle>
           <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-            <Metric label="Contact ready" value={byStatus.get('CONTACT_READY') ?? 0} />
-            <Metric label="Contacted" value={contacted} />
-            <Metric label="Replied" value={replied} />
-            <Metric label="Won" value={won} />
+            <Metric label="Prontos p/ contato" value={byStatus.get('CONTACT_READY') ?? 0} />
+            <Metric label="Contatados" value={contacted} />
+            <Metric label="Responderam" value={replied} />
+            <Metric label="Ganhos" value={won} />
           </dl>
           <p className="mt-3 text-xs text-slate-500">
-            Reply rate{' '}
-            {contacted > 0 ? `${Math.round((replied / contacted) * 100)}%` : '—'} · this system
-            prepares outreach but never sends it, so these counts come from what you mark.
+            Taxa de resposta{' '}
+            {contacted > 0 ? `${Math.round((replied / contacted) * 100)}%` : '—'} · este sistema
+            prepara o contato mas nunca envia, então estes números vêm do que você marcou.
           </p>
         </Card>
       </div>
 
       <Card>
-        <SectionTitle>Recent searches</SectionTitle>
+        <SectionTitle>Buscas recentes</SectionTitle>
         {latestRuns.length === 0 ? (
-          <p className="text-sm text-slate-500">No searches have been run yet.</p>
+          <p className="text-sm text-slate-500">Nenhuma busca foi rodada ainda.</p>
         ) : (
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-                <th className="table-cell">Search</th>
-                <th className="table-cell">Status</th>
-                <th className="table-cell text-right">Found</th>
-                <th className="table-cell text-right">Hot</th>
-                <th className="table-cell text-right">No website</th>
-                <th className="table-cell">Finished</th>
+                <th className="table-cell">Busca</th>
+                <th className="table-cell">Situação</th>
+                <th className="table-cell text-right">Encontradas</th>
+                <th className="table-cell text-right">Quentes</th>
+                <th className="table-cell text-right">Sem site</th>
+                <th className="table-cell">Terminou</th>
               </tr>
             </thead>
             <tbody>

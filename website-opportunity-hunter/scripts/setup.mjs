@@ -66,20 +66,20 @@ function fail(message, hint) {
 }
 
 // --- 1. Node version --------------------------------------------------------
-say('Checking Node');
+say('Conferindo o Node');
 const [major, minor] = process.versions.node.split('.').map(Number);
 if (major < 20 || (major === 20 && minor < 11)) {
   fail(
-    `Node ${process.versions.node} is too old; this project needs 20.11 or newer.`,
-    'Install a current Node from https://nodejs.org and run this again.',
+    `O Node ${process.versions.node} é antigo demais; este projeto precisa da versão 20.11 ou mais nova.`,
+    'Instale um Node atual em https://nodejs.org e rode isto de novo.',
   );
 }
 ok(`Node ${process.versions.node}`);
 
 // --- 2. Environment file ----------------------------------------------------
-say('Preparing .env');
+say('Preparando o .env');
 if (existsSync(envPath)) {
-  ok('.env already exists, leaving it exactly as it is');
+  ok('.env já existe, deixando exatamente como está');
 } else {
   copyFileSync(examplePath, envPath);
   const secret = randomBytes(48).toString('base64');
@@ -87,24 +87,24 @@ if (existsSync(envPath)) {
     envPath,
     readFileSync(envPath, 'utf8').replace(/^AUTH_SECRET=.*$/m, `AUTH_SECRET=${secret}`),
   );
-  ok('.env created with a freshly generated AUTH_SECRET');
-  warn('No Companies House key yet, so searches will use the fictional demo dataset.');
+  ok('.env criado com um AUTH_SECRET gerado na hora');
+  warn('Nenhuma fonte de dados reais ainda, então as buscas vão usar as empresas fictícias de demonstração.');
 }
 
 const databaseUrl = readFileSync(envPath, 'utf8').match(/^DATABASE_URL=(.*)$/m)?.[1]?.trim() ?? '';
-if (!databaseUrl) fail('DATABASE_URL is missing from .env.');
+if (!databaseUrl) fail('Falta o DATABASE_URL no .env.');
 
 // --- 3. Dependencies --------------------------------------------------------
-say('Installing dependencies');
+say('Instalando dependências');
 if (existsSync(join(root, 'node_modules', '.package-lock.json'))) {
-  ok('node_modules is already present, skipping install');
+  ok('node_modules já existe, pulando a instalação');
 } else {
   run('npm install --no-audit --no-fund');
-  ok('dependencies installed');
+  ok('dependências instaladas');
 }
 
 // --- 4. Database ------------------------------------------------------------
-say('Connecting to PostgreSQL');
+say('Conectando ao PostgreSQL');
 run('npm run db:generate --silent');
 
 const migrate = () =>
@@ -116,23 +116,23 @@ const migrate = () =>
 let migrated = migrate();
 
 if (!migrated) {
-  warn('Could not reach the database.');
+  warn('Não consegui alcançar o banco de dados.');
   if (has('docker')) {
-    console.log('    Starting PostgreSQL and Redis with Docker Compose...');
+    console.log('    Subindo PostgreSQL e Redis com o Docker Compose...');
     if (!tryRun('docker compose up -d')) {
       fail(
-        'Docker is installed but did not answer, so the database could not be started.',
+        'O Docker está instalado mas não respondeu, então o banco não pôde ser iniciado.',
         [
-          'Most likely Docker Desktop is not running yet. Open it, wait until it',
-          'reports "Running", then re-run: npm run setup',
+          'O mais provável é que o Docker Desktop ainda não esteja rodando. Abra-o,',
+          'espere ele dizer "Running", e rode de novo: npm run setup',
           '',
-          'Or skip Docker entirely: point DATABASE_URL in .env at any PostgreSQL 16',
-          'you can reach — a local install or a free hosted one — and re-run the same',
-          'command.',
+          'Ou pule o Docker: aponte o DATABASE_URL do .env para qualquer PostgreSQL 16',
+          'que você alcance — uma instalação local ou uma hospedada gratuita — e rode',
+          'o mesmo comando de novo.',
         ].join('\n'),
       );
     }
-    process.stdout.write('    Waiting for PostgreSQL');
+    process.stdout.write('    Esperando o PostgreSQL');
     for (let attempt = 0; attempt < 40; attempt += 1) {
       if (tryRun('docker compose exec -T postgres pg_isready -U woh', { quiet: true })) break;
       process.stdout.write('.');
@@ -141,35 +141,35 @@ if (!migrated) {
     console.log('');
     migrated = migrate();
   } else {
-    warn('Docker is not installed, so the database cannot be started automatically.');
+    warn('O Docker não está instalado, então o banco não pode ser iniciado automaticamente.');
   }
 }
 
 if (!migrated) {
   fail(
-    `Cannot reach the database at ${databaseUrl.replace(/:\/\/[^@]*@/, '://***@')}`,
+    `Não consigo alcançar o banco em ${databaseUrl.replace(/:\/\/[^@]*@/, '://***@')}`,
     [
-      'Point DATABASE_URL in .env at a PostgreSQL 16 you can reach. Any of:',
+      'Aponte o DATABASE_URL do .env para um PostgreSQL 16 que você alcance. Pode ser:',
       '',
-      '  - a free hosted database (Neon, Supabase, Railway): create one, copy its',
-      '    connection string into .env, and re-run. Nothing to install.',
-      '  - Docker Desktop: install it, start it, and re-run — this script will',
-      '    bring the database up for you.',
-      '  - a local PostgreSQL install: create a database and point DATABASE_URL at it.',
+      '  - um banco hospedado gratuito (Neon, Supabase, Railway): crie um, copie a',
+      '    string de conexão para o .env e rode de novo. Nada a instalar.',
+      '  - Docker Desktop: instale, abra e rode de novo — este script sobe o banco',
+      '    para você.',
+      '  - um PostgreSQL local: crie um banco e aponte o DATABASE_URL para ele.',
       '',
-      'The .env file is in this folder. Edit the DATABASE_URL line, then re-run:',
+      'O arquivo .env está nesta pasta. Edite a linha do DATABASE_URL e rode de novo:',
       '  npm run setup',
     ].join('\n'),
   );
 }
-ok('schema applied');
+ok('esquema aplicado');
 
 // --- 5. Demo data -----------------------------------------------------------
-say('Seeding fictional demo data');
+say('Populando com os dados fictícios de demonstração');
 if (!tryRun('npm run db:seed --silent')) {
   fail(
-    'The seed did not complete.',
-    'The schema is in place, so the app will still start with an empty database.\nRun "npm run db:seed" on its own to see the full error.',
+    'A carga de demonstração não terminou.',
+    'O esquema está no lugar, então o sistema ainda sobe com o banco vazio.\nRode "npm run db:seed" sozinho para ver o erro completo.',
   );
 }
 
@@ -180,32 +180,32 @@ if (!tryRun('npm run db:seed --silent')) {
 // because nothing at the end of a successful setup ever mentioned them.
 let shortcut = false;
 if (process.platform === 'win32') {
-  say('Putting a shortcut on the desktop');
+  say('Colocando um atalho na área de trabalho');
   shortcut = tryRun('create-desktop-shortcut.cmd', { quiet: true });
-  if (shortcut) ok('"Website Opportunity Hunter" added to the desktop');
-  else warn('The shortcut could not be created. Run create-desktop-shortcut.cmd yourself, or start it with start.cmd.');
+  if (shortcut) ok('"Azven" adicionado à área de trabalho');
+  else warn('Não foi possível criar o atalho. Rode create-desktop-shortcut.cmd você mesmo, ou inicie com start.cmd.');
 }
 
 // --- 7. Done ----------------------------------------------------------------
 const howToStart =
   process.platform === 'win32'
     ? shortcut
-      ? `  Double-click ${bold('Website Opportunity Hunter')} on your desktop.`
-      : `  Double-click ${bold('start.cmd')} in this folder.`
-    : `  Run ${bold('./start.sh')} in this folder.`;
+      ? `  Dê dois cliques em ${bold('Azven')} na sua área de trabalho.`
+      : `  Dê dois cliques em ${bold('start.cmd')} nesta pasta.`
+    : `  Rode ${bold('./start.sh')} nesta pasta.`;
 
 console.log(`
-${green(bold('Ready.'))}
+${green(bold('Pronto.'))}
 
 ${howToStart}
-  It opens ${bold('http://localhost:3000')} by itself once the server answers.
+  Ele abre ${bold('http://localhost:3000')} sozinho assim que o servidor responder.
 
-  Sign in with the credentials printed just above (demo@example.com).
-  Every company you will see is fictional, and the dashboard says so at the top.
+  Entre com as credenciais impressas logo acima (demo@example.com).
+  Toda empresa que você vai ver é fictícia, e o painel avisa isso no topo.
 
-  Prefer a terminal? ${bold('npm run dev')} does the same without the browser.
+  Prefere terminal? ${bold('npm run dev')} faz o mesmo sem abrir o navegador.
 
-  To search real UK companies, get a free key at
-  https://developer.company-information.service.gov.uk/
-  put it in .env as COMPANIES_HOUSE_API_KEY, and run a new search.
+  Para buscar empresas brasileiras de verdade, importe um arquivo mensal da
+  Receita Federal:  ${bold('npm run ingest:br -- --inspect --estabelecimentos <arquivo>')}
+  Veja o README para o passo a passo completo.
 `);

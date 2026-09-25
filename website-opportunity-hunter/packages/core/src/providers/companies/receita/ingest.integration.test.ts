@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { LayoutMismatchError, ingestReceita } from './ingest.js';
 import { ReceitaFederalProvider } from './provider.js';
 
@@ -79,8 +79,16 @@ function writeZip(name: string, rows: string[][]): string {
 }
 
 maybe('Receita import (integration)', () => {
-  const db = new PrismaClient({ datasources: { db: { url: TEST_DATABASE_URL } } });
-  afterAll(() => db.$disconnect());
+  // Built in beforeAll, not in the describe body. Vitest evaluates the body of
+  // a skipped suite to collect its tests, so constructing the client here threw
+  // whenever TEST_DATABASE_URL was unset — turning "skip this suite" into
+  // "fail the whole file", which only showed up once the suite was run without
+  // the variable for the first time.
+  let db: PrismaClient;
+  beforeAll(() => {
+    db = new PrismaClient({ datasources: { db: { url: TEST_DATABASE_URL! } } });
+  });
+  afterAll(() => db?.$disconnect());
   beforeEach(() => db.receitaEstablishment.deleteMany());
 
   const municipios = write('Municipios.csv', [
@@ -215,8 +223,11 @@ maybe('Receita import (integration)', () => {
 });
 
 maybe('ReceitaFederalProvider', () => {
-  const db = new PrismaClient({ datasources: { db: { url: TEST_DATABASE_URL } } });
-  afterAll(() => db.$disconnect());
+  let db: PrismaClient;
+  beforeAll(() => {
+    db = new PrismaClient({ datasources: { db: { url: TEST_DATABASE_URL! } } });
+  });
+  afterAll(() => db?.$disconnect());
 
   async function loaded(): Promise<ReceitaFederalProvider> {
     await db.receitaEstablishment.deleteMany();

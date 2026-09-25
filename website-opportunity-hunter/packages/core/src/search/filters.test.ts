@@ -6,7 +6,8 @@ const NOW = new Date('2026-09-01T12:00:00Z');
 describe('parseFilters', () => {
   it('applies sensible defaults', () => {
     const filters = parseFilters({});
-    expect(filters.countryCode).toBe('GB');
+    // Brazil is the default now: it is the country this is used from and for.
+    expect(filters.countryCode).toBe('BR');
     expect(filters.companyAge).toBe('LAST_30_DAYS');
     expect(filters.websiteFilter).toBe('ANY');
     expect(filters.statuses).toEqual(['active']);
@@ -48,10 +49,10 @@ describe('describeFilters', () => {
     const summary = describeFilters(
       parseFilters({ industryKeys: ['dental'], city: 'Manchester', companyAge: 'LAST_30_DAYS', websiteFilter: 'NO_WEBSITE', minScore: 75 }),
     );
-    expect(summary).toContain('GB');
+    expect(summary).toContain('BR');
     expect(summary).toContain('dental');
     expect(summary).toContain('Manchester');
-    expect(summary).toContain('Last 30 days');
+    expect(summary).toContain('Últimos 30 dias');
     expect(summary).toContain('score 75+');
   });
 });

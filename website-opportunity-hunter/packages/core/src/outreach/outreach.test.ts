@@ -36,7 +36,7 @@ describe('buildOutreachFacts', () => {
 
   it('phrases a missing website as what we searched, not what the company has', () => {
     const fact = baseFacts().find((f) => f.key === 'no_website_found');
-    expect(fact?.statement).toContain('could not find');
+    expect(fact?.statement).toContain('não consegui encontrar');
     expect(fact?.statement).not.toMatch(/has no website|does not have a website/i);
   });
 
@@ -87,8 +87,8 @@ describe('generateOutreachDraft', () => {
     });
 
     expect(draft.blockedReason).toBeUndefined();
-    expect(draft.subject).toBe('Quick question about Demo Dental Studio Ltd');
-    expect(draft.body).toContain('I noticed');
+    expect(draft.subject).toBe('Uma pergunta rápida sobre a Demo Dental Studio Ltd');
+    expect(draft.body).toContain('Reparei que');
     expect(draft.usedFacts.length).toBeGreaterThan(0);
     for (const fact of draft.usedFacts) expect(draft.body).toContain(fact.statement);
   });
@@ -101,7 +101,7 @@ describe('generateOutreachDraft', () => {
       facts: contextOnly,
     });
     expect(draft.body).toBe('');
-    expect(draft.blockedReason).toContain('No factual observation');
+    expect(draft.blockedReason).toContain('Nenhuma observação factual');
   });
 
   it('greets generically when no recipient name is known', () => {
@@ -110,7 +110,7 @@ describe('generateOutreachDraft', () => {
       senderName: 'Alex',
       facts: baseFacts(),
     });
-    expect(draft.body.startsWith('Hello,')).toBe(true);
+    expect(draft.body.startsWith('Olá,')).toBe(true);
   });
 });
 
@@ -184,15 +184,15 @@ describe('buildPreviewBriefing', () => {
 
   it('labels sector-derived services as suggestions, not as facts', () => {
     expect(briefing.suggestedServices.every((s) => s.status === 'SUGGESTED_FROM_INDUSTRY')).toBe(true);
-    expect(briefing.toConfirm.join(' ')).toContain('confirm before showing it');
+    expect(briefing.toConfirm.join(' ')).toContain('confirme antes de mostrar');
   });
 
   it('forbids publishing to the prospect domain', () => {
-    expect(briefing.constraints.join(' ')).toMatch(/never publish/i);
+    expect(briefing.constraints.join(' ')).toMatch(/nunca publique/i);
   });
 
   it('flags missing contact details as things to confirm', () => {
-    expect(briefing.toConfirm).toEqual(expect.arrayContaining(['A phone number to display']));
+    expect(briefing.toConfirm).toEqual(expect.arrayContaining(['Um telefone para exibir']));
   });
 
   it('says so plainly when there is no review data', () => {
@@ -206,7 +206,7 @@ describe('buildPreviewBriefing', () => {
       now: NOW,
     });
     const trust = noReviews.sections.find((s) => s.key === 'trust');
-    expect(trust?.contentNotes.join(' ')).toContain('rather than inventing any');
+    expect(trust?.contentNotes.map((n) => n.text).join(' ')).toContain('em vez de inventar alguma');
   });
 
   it('marks observed services differently from suggested ones', () => {

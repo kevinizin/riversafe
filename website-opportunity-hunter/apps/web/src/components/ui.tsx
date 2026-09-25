@@ -44,7 +44,7 @@ export function Stat({
 }
 
 export function ClassificationBadge({ value }: { value: Classification | null | undefined }) {
-  if (!value) return <span className="chip border border-slate-200 bg-slate-100 text-slate-500">Not scored</span>;
+  if (!value) return <span className="chip border border-slate-200 bg-slate-100 text-slate-500">Sem pontuação</span>;
   const style = CLASSIFICATION_STYLE[value];
   return (
     <span className={`chip border ${style.className}`}>
@@ -54,11 +54,20 @@ export function ClassificationBadge({ value }: { value: Classification | null | 
   );
 }
 
-export function ConfidenceBadge({ value, prefix = 'Confidence' }: { value: Confidence | null | undefined; prefix?: string }) {
+const CONFIDENCE_LABEL: Record<Confidence, string> = {
+  HIGH: 'alta',
+  MEDIUM: 'média',
+  LOW: 'baixa',
+};
+
+export function ConfidenceBadge({ value, prefix = 'Confiança' }: { value: Confidence | null | undefined; prefix?: string }) {
   if (!value) return null;
   return (
-    <span className={`chip border ${CONFIDENCE_STYLE[value]}`} title="How sure we are about this, given the sources used">
-      {prefix}: {value.toLowerCase()}
+    <span
+      className={`chip border ${CONFIDENCE_STYLE[value]}`}
+      title="O quanto temos certeza disto, dadas as fontes usadas"
+    >
+      {prefix}: {CONFIDENCE_LABEL[value]}
     </span>
   );
 }
@@ -69,7 +78,7 @@ export function ScoreDial({ score }: { score: number | null | undefined }) {
       <span className={`text-3xl font-bold tabular-nums ${scoreColour(score)}`}>
         {score ?? '—'}
       </span>
-      <span className="text-[10px] uppercase tracking-wide text-slate-400">of 100</span>
+      <span className="text-[10px] uppercase tracking-wide text-slate-400">de 100</span>
     </div>
   );
 }
@@ -111,7 +120,7 @@ export function KeyValue({ label, children }: { label: string; children: ReactNo
 export function Unknown({ note }: { note?: string }) {
   return (
     <span className="text-sm text-slate-400" title={note}>
-      Unknown
+      Desconhecido
     </span>
   );
 }
@@ -139,12 +148,12 @@ export function AxisScores({
 }) {
   const primary =
     axis === 'SYSTEM'
-      ? { label: 'System', score: systemScore, classification: systemClassification }
-      : { label: 'Website', score: websiteScore, classification: websiteClassification };
+      ? { label: 'Sistema', score: systemScore, classification: systemClassification }
+      : { label: 'Site', score: websiteScore, classification: websiteClassification };
   const secondary =
     axis === 'SYSTEM'
-      ? { label: 'Website', score: websiteScore, classification: websiteClassification }
-      : { label: 'System', score: systemScore, classification: systemClassification };
+      ? { label: 'Site', score: websiteScore, classification: websiteClassification }
+      : { label: 'Sistema', score: systemScore, classification: systemClassification };
 
   return (
     <div className="flex w-24 flex-col items-center gap-2">
@@ -184,7 +193,7 @@ export function SizeBadge({
   fit?: string | null | undefined;
 }) {
   if (!band || from === null || from === undefined) {
-    return <span className="chip border border-slate-200 bg-slate-100 text-slate-500">Size unknown</span>;
+    return <span className="chip border border-slate-200 bg-slate-100 text-slate-500">Porte desconhecido</span>;
   }
   const range = to === null || to === undefined ? `${from}+` : `${from}–${to}`;
   const tone =
@@ -194,8 +203,11 @@ export function SizeBadge({
         ? 'border-amber-200 bg-amber-50 text-amber-700'
         : 'border-slate-200 bg-slate-100 text-slate-600';
   return (
-    <span className={`chip border ${tone}`} title="Estimated from the registry size class. No register publishes a headcount.">
-      est. {range} people
+    <span
+      className={`chip border ${tone}`}
+      title="Estimado a partir do porte declarado no registro. Nenhum registro publica número de funcionários."
+    >
+      est. {range} pessoas
     </span>
   );
 }

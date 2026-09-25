@@ -26,17 +26,17 @@ export default async function SearchPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold">New search</h1>
+        <h1 className="text-xl font-semibold">Nova busca</h1>
         <p className="text-sm text-slate-500">
-          Find companies, discover their digital presence, and score the opportunity.
+          Encontre empresas, descubra a presença digital delas e pontue a oportunidade.
         </p>
       </div>
 
       {status.webSearch === 'disabled' ? (
         <Notice tone="warn">
-          No web search provider is configured, so website and social discovery can only use the
-          registry record and likely-domain probes. Results will more often be “website not
-          checked” rather than “website not found”.
+          Nenhum provedor de busca na web está configurado, então a descoberta de site e de redes
+          só pode usar o registro da empresa e tentativas de domínios prováveis. O resultado será
+          mais vezes “site não verificado” do que “site não encontrado”.
         </Notice>
       ) : null}
 

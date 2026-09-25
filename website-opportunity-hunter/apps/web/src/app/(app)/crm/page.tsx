@@ -34,10 +34,10 @@ export default async function CrmPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold">CRM</h1>
+        <h1 className="text-xl font-semibold">Funil</h1>
         <p className="text-sm text-slate-500">
-          Move a lead along the pipeline as you work it. Nothing here sends messages — the stages
-          record what you did.
+          Mova o lead pelo funil conforme trabalha nele. Nada aqui envia mensagem — as etapas
+          registram o que você fez.
         </p>
       </div>
 
@@ -58,7 +58,7 @@ export default async function CrmPage() {
                     <span className="text-sm font-semibold tabular-nums">{company.currentScore ?? '—'}</span>
                   </div>
                   <p className="text-xs text-slate-500">
-                    {company.city ?? 'Location unknown'} · {formatDateTime(company.leadStatusAt)}
+                    {company.city ?? 'Localização desconhecida'} · {formatDateTime(company.leadStatusAt)}
                   </p>
                   <div className="mt-1 flex items-center justify-between gap-2">
                     <ClassificationBadge value={company.currentClassification} />
@@ -75,14 +75,14 @@ export default async function CrmPage() {
                         ))}
                       </select>
                       <button type="submit" className="text-xs text-brand hover:underline">
-                        Move
+                        Mover
                       </button>
                     </form>
                   </div>
                 </li>
               ))}
               {column.items.length === 0 ? (
-                <li className="text-xs text-slate-400">Nothing here.</li>
+                <li className="text-xs text-slate-400">Nada aqui.</li>
               ) : null}
             </ul>
           </Card>

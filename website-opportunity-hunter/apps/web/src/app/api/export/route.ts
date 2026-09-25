@@ -25,7 +25,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const rows = await prisma.company.findMany({
     where: leadWhere(query),
     include: { ...LEAD_INCLUDE, scores: { orderBy: { computedAt: 'desc' }, take: 1 } },
-    orderBy: leadOrderBy(query.sort),
+    orderBy: leadOrderBy(query.sort, query.axis),
     take: MAX_EXPORT_ROWS,
   });
 
@@ -47,6 +47,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         analysis?.qualityScore ?? '',
         company.currentScore ?? '',
         company.currentClassification ?? '',
+        company.systemScore ?? '',
+        company.systemClassification ?? '',
+        company.sizeBand ?? '',
+        company.sizeEmployeesFrom === null
+          ? ''
+          : `${company.sizeEmployeesFrom}${company.sizeEmployeesTo === null ? '+' : `-${company.sizeEmployeesTo}`}`,
+        company.sizeFit ?? '',
         company.phone ?? '',
         company.email ?? '',
         social('INSTAGRAM'),

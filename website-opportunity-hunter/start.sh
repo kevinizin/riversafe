@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # ===========================================================================
-#  Website Opportunity Hunter — launcher for macOS and Linux.
+#  Azven — launcher para macOS e Linux.
 #
-#  The twin of start.cmd. Brings the dashboard up from a cold machine:
-#  installs dependencies if they are missing, builds once, starts the server
-#  and opens the browser when the port actually answers.
+#  O gêmeo do start.cmd. Sobe o painel a partir de uma máquina fria: instala
+#  dependências se faltarem, aplica migrações, compila quando o código mudou,
+#  inicia o servidor e abre o navegador quando a porta realmente responde.
 #
-#  Closing this terminal stops the server. That is deliberate: a background
-#  server nobody can see is a server nobody remembers to stop.
+#  Fechar este terminal desliga o servidor. Isso é proposital: um servidor
+#  rodando escondido é um servidor que ninguém lembra de desligar.
 # ===========================================================================
 
 set -uo pipefail
@@ -18,8 +18,8 @@ PORT="${PORT:-3000}"
 URL="http://localhost:${PORT}"
 
 echo
-echo "  Website Opportunity Hunter"
-echo "  =========================="
+echo "  Azven"
+echo "  ====="
 echo
 
 port_open() {
@@ -37,33 +37,33 @@ fail() {
   echo
   echo "  $1"
   echo
-  echo "  If the database is unreachable, check that PostgreSQL is running."
+  echo "  Se o banco estiver inacessível, confira se o PostgreSQL está rodando."
   echo
   exit 1
 }
 
 # --- Already running? Just show it. -----------------------------------------
 if port_open; then
-  echo "  Already running. Opening ${URL}"
+  echo "  Já está rodando. Abrindo ${URL}"
   open_browser
   exit 0
 fi
 
 # --- Node --------------------------------------------------------------------
 if ! command -v node >/dev/null 2>&1; then
-  fail "Node.js is not installed, or not on the PATH. Install the LTS build from https://nodejs.org"
+  fail "O Node.js não está instalado, ou não está no PATH. Instale a versão LTS em https://nodejs.org"
 fi
 
 # --- Configuration -----------------------------------------------------------
 if [ ! -f .env ]; then
-  fail "No .env file yet, so the app does not know which database to use. Run: npm run setup"
+  fail "Ainda não existe o arquivo .env, então o sistema não sabe qual banco usar. Rode: npm run setup"
 fi
 
-# --- Dependencies, migrations and build --------------------------------------
-# One script, shared with start.cmd, so the two launchers cannot drift. It
-# installs if needed, applies pending migrations, and rebuilds when the code has
-# changed since the last build — which is what makes a git pull actually show up
-# instead of serving the previous build.
+# --- Dependências, migrações e build -----------------------------------------
+# Um script só, compartilhado com o start.cmd, para os dois launchers não
+# divergirem. Ele instala se precisar, aplica as migrações pendentes e recompila
+# quando o código mudou desde o último build — que é o que faz um git pull
+# realmente aparecer em vez de servir o build anterior.
 node scripts/prepare.mjs || exit 1
 
 # --- Open the browser once the port answers ----------------------------------
@@ -74,10 +74,10 @@ node scripts/prepare.mjs || exit 1
   done
 ) &
 
-echo "  Starting the server. This terminal keeps it running."
-echo "  Press Ctrl+C to stop."
+echo "  Iniciando o servidor. Este terminal é que o mantém no ar."
+echo "  Aperte Ctrl+C para desligar."
 echo
 echo "  ${URL}"
 echo
 
-npm start || fail "The server stopped with an error."
+npm start || fail "O servidor parou com um erro."

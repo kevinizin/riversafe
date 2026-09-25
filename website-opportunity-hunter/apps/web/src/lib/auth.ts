@@ -52,7 +52,7 @@ export async function login(email: string, password: string): Promise<LoginResul
         data: { action: 'login.failed', entity: 'user', entityId: normalised },
       })
       .catch(() => {});
-    return { ok: false, error: 'Email or password is incorrect.' };
+    return { ok: false, error: 'E-mail ou senha incorretos.' };
   }
 
   await createSession({ userId: user.id, email: user.email, role: user.role });

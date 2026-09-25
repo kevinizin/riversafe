@@ -1,7 +1,21 @@
-# Website Opportunity Hunter
+# Azven
 
 Finds businesses that are in the right moment to buy something from you — and
 explains, lead by lead, why it thinks so.
+
+> **Language.** The interface, the scoring explanations, the CSV export and the
+> outreach drafts are all in Brazilian Portuguese. The code, its comments and
+> this documentation are in English. That split is deliberate: the product is
+> used in Brazil, and the codebase is read by whoever maintains it.
+>
+> There is no message catalogue. A single-language product does not need the
+> indirection, and strings written where they are used are easier to get right
+> than strings looked up by key.
+
+> **Logo.** Drop a `logo.svg` (or `.png`, `.webp`, `.jpg`) into
+> `apps/web/public/` and the header and sign-in page pick it up on the next
+> start. Until one is there, the name is set as type — deliberately, because a
+> broken image icon in the corner of every page is worse than no logo.
 
 Two things, scored separately:
 
@@ -153,7 +167,7 @@ the browser instead of failing on a busy port.
 Closing the window stops the server — deliberately, because a background server
 nobody can see is a server nobody remembers to stop.
 
-On Windows, `npm run setup` puts a *Website Opportunity Hunter* icon on the
+On Windows, `npm run setup` puts a *Azven* icon on the
 desktop for you. If it is not there — the setup predates that, or the shortcut
 was deleted — run `create-desktop-shortcut.cmd` in this folder once. (By hand:
 right-click `start.cmd` → *Show more options → Send to → Desktop (create

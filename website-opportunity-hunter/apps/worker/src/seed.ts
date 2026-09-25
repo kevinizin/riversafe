@@ -52,7 +52,7 @@ async function main(): Promise<void> {
     },
     update: {},
   });
-  console.log(`user: ${email} / ${password}`);
+  console.log(`usuário: ${email} / ${password}`);
 
   const search = await prisma.search.upsert({
     where: { id: '00000000-0000-4000-8000-000000000001' },
@@ -424,7 +424,7 @@ async function main(): Promise<void> {
       socialProfiles: fresh.socials.map((s) => ({ platform: s.platform, url: s.url, confidence: s.confidence })),
     });
     console.log(
-      `  ${fresh.name}: ${score.score}/100 ${score.classification} (${outreachFacts.length} facts)`,
+      `  ${fresh.name}: site ${score.score}/100 · sistema ${systemScore.score}/100 (${outreachFacts.length} fatos)`,
     );
   }
 
@@ -446,7 +446,7 @@ async function main(): Promise<void> {
   });
 
   console.log(
-    `\nseeded ${created} companies (${duplicates} recognised as duplicates), ${hot} hot, ${high} high opportunity, ${warm} warm`,
+    `\n${created} empresas carregadas (${duplicates} reconhecidas como duplicadas), ${hot} quentes, ${high} de alta oportunidade, ${warm} mornas`,
   );
   await ctx.db.$disconnect();
 }

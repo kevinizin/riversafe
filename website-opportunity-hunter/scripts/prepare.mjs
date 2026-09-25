@@ -49,7 +49,7 @@ function capture(command) {
 }
 
 function fail(message, hint) {
-  console.error(`\n  ${red('Stopped:')} ${message}`);
+  console.error(`\n  ${red('Parou:')} ${message}`);
   if (hint) console.error(`\n${hint}\n`);
   process.exit(1);
 }
@@ -59,9 +59,9 @@ function fail(message, hint) {
 // will even parse. Checking the lockfile's own recorded state is cheaper and
 // more honest than running a full install every time.
 if (!existsSync(join(root, 'node_modules', '.package-lock.json'))) {
-  say('Installing dependencies. First run only — a couple of minutes.');
-  if (!run('npm install --no-audit --no-fund')) fail('Dependencies could not be installed.');
-  ok('dependencies installed');
+  say('Instalando dependências. Só na primeira vez — uns dois minutos.');
+  if (!run('npm install --no-audit --no-fund')) fail('Não foi possível instalar as dependências.');
+  ok('dependências instaladas');
 }
 
 // --- Database ----------------------------------------------------------------
@@ -69,9 +69,9 @@ if (!existsSync(join(root, 'node_modules', '.package-lock.json'))) {
 // database is already current. It never prompts and never drops anything, which
 // is what makes it safe to run on every start; `migrate dev` is the one that
 // can offer to reset, and it is deliberately not used here.
-say('Checking the database...');
+say('Conferindo o banco de dados...');
 if (!run('npm run db:generate --silent', { stdio: 'ignore' })) {
-  fail('The database client could not be generated.');
+  fail('Não foi possível gerar o cliente do banco de dados.');
 }
 
 const migrated = spawnSync('npx dotenv -e ../../.env -- prisma migrate deploy', {
@@ -83,20 +83,20 @@ const migrated = spawnSync('npx dotenv -e ../../.env -- prisma migrate deploy', 
 if (migrated.status !== 0) {
   const output = `${migrated.stdout ?? ''}${migrated.stderr ?? ''}`.toString();
   fail(
-    'Could not reach the database, so migrations were not applied.',
+    'Não consegui alcançar o banco de dados, então as migrações não foram aplicadas.',
     [
-      'Check that PostgreSQL is running:',
+      'Confira se o PostgreSQL está rodando:',
       '',
       '  Windows:      sc query postgresql-x64-16',
       '  macOS/Linux:  pg_isready',
       '',
-      'If DATABASE_URL in .env is wrong or missing, run: npm run setup',
+      'Se o DATABASE_URL no .env estiver errado ou faltando, rode: npm run setup',
       '',
       output.split('\n').filter(Boolean).slice(-4).join('\n'),
     ].join('\n'),
   );
 }
-ok('database schema is up to date');
+ok('o esquema do banco está em dia');
 
 // --- Build -------------------------------------------------------------------
 // Rebuild when the commit that produced the current build is not the commit
@@ -108,19 +108,19 @@ const dirty = capture('git status --porcelain') !== '';
 const builtFrom = existsSync(stampPath) ? readFileSync(stampPath, 'utf8').trim() : '';
 
 let reason = '';
-if (!existsSync(buildIdPath)) reason = 'no build yet';
-else if (!head) reason = 'cannot tell which commit is checked out';
-else if (!builtFrom) reason = 'the existing build does not say which commit it came from';
-else if (builtFrom !== head) reason = 'the code has changed since the last build';
-else if (dirty) reason = 'there are uncommitted changes';
+if (!existsSync(buildIdPath)) reason = 'ainda não há build';
+else if (!head) reason = 'não dá para saber qual commit está aberto';
+else if (!builtFrom) reason = 'o build existente não diz de qual commit veio';
+else if (builtFrom !== head) reason = 'o código mudou desde o último build';
+else if (dirty) reason = 'há alterações não commitadas';
 
 if (reason) {
-  say(`Building — ${reason}. A minute or two.`);
-  if (!run('npm run build')) fail('The build failed.');
+  say(`Compilando — ${reason}. Um ou dois minutos.`);
+  if (!run('npm run build')) fail('O build falhou.');
   if (head) writeFileSync(stampPath, `${head}\n`);
-  ok('build up to date');
+  ok('build atualizado');
 } else {
-  ok('build is current');
+  ok('o build já está atual');
 }
 
-console.log(`\n  ${bold('Ready.')}\n`);
+console.log(`\n  ${bold('Pronto.')}\n`);

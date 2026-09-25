@@ -5,8 +5,8 @@ import { z } from 'zod';
 import { login } from '@/lib/auth';
 
 const schema = z.object({
-  email: z.string().email('Enter a valid email address'),
-  password: z.string().min(1, 'Enter your password'),
+  email: z.string().email('Informe um e-mail válido'),
+  password: z.string().min(1, 'Informe sua senha'),
   next: z.string().optional(),
 });
 
@@ -21,7 +21,7 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
     next: formData.get('next'),
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? 'Check the form and try again.' };
+    return { error: parsed.error.issues[0]?.message ?? 'Confira o formulário e tente de novo.' };
   }
 
   const result = await login(parsed.data.email, parsed.data.password);

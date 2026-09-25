@@ -22,7 +22,7 @@ describe('estimateSizeFromPorte', () => {
     // The whole point: derived, not read.
     expect(result?.inferred).toBe(true);
     expect(result?.confidence).not.toBe('HIGH');
-    expect(result?.value.basis.join(' ')).toContain('estimate');
+    expect(result?.value.basis.join(' ')).toContain('estimativa');
   });
 
   it('reads ME as micro', () => {
@@ -59,7 +59,7 @@ describe('estimateSizeFromPorte', () => {
     const without = estimateSizeFromPorte('03', undefined, evidence);
     expect(without?.value.band).toBe(withCapital?.value.band);
     expect(without?.confidence).toBe('MEDIUM');
-    expect(without?.value.basis.join(' ')).toContain('not stated');
+    expect(without?.value.basis.join(' ')).toContain('não informado');
   });
 });
 
@@ -73,7 +73,7 @@ describe('estimateSizeFromAccounts', () => {
   it('warns that a small filing qualifies on two of three tests', () => {
     const result = estimateSizeFromAccounts('small', evidence);
     expect(result?.value.band).toBe('SMALL');
-    expect(result?.value.basis.join(' ')).toContain('two of three');
+    expect(result?.value.basis.join(' ')).toContain('dois de três');
   });
 
   it('says nothing about size for filings that only describe the filing', () => {
@@ -115,14 +115,14 @@ describe('fitsEmployeeTarget', () => {
 describe('describeSize', () => {
   it('always says the number is an estimate', () => {
     const epp = estimateSizeFromPorte('03', undefined, evidence);
-    expect(describeSize(epp?.value)).toBe('Small · estimated 10–49 people');
+    expect(describeSize(epp?.value)).toBe('Pequena · estimativa de 10–49 pessoas');
   });
 
   it('marks an open-ended band with a plus rather than inventing a ceiling', () => {
-    expect(describeSize({ band: 'LARGE', employeesFrom: 50, basis: [] })).toBe('Large · estimated 50+ people');
+    expect(describeSize({ band: 'LARGE', employeesFrom: 50, basis: [] })).toBe('Grande · estimativa de 50+ pessoas');
   });
 
   it('says unknown when nothing is known', () => {
-    expect(describeSize(undefined)).toBe('Size unknown');
+    expect(describeSize(undefined)).toBe('Porte desconhecido');
   });
 });

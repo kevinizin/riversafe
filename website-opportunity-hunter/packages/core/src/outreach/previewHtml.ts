@@ -1,4 +1,5 @@
-import type { PreviewBriefing } from './preview.js';
+import { normaliseNote, toFirstPersonVoice } from './preview.js';
+import type { BriefingNote, PreviewBriefing } from './preview.js';
 
 export interface PreviewHtmlOptions {
   /** Who prepared the concept. Named on the page so it cannot pass as official. */
@@ -50,7 +51,7 @@ export function renderPreviewHtml(briefing: PreviewBriefing, options: PreviewHtm
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Concept preview — ${esc(name)}</title>
+<title>Prévia conceitual — ${esc(name)}</title>
 <style>
   :root {
     --accent: ${esc(accent)};
@@ -121,10 +122,11 @@ export function renderPreviewHtml(briefing: PreviewBriefing, options: PreviewHtm
 
 <div class="concept-banner">
   <div class="wrap">
-    <strong>Concept preview.</strong>
-    This page was prepared by ${esc(preparer)} as an unsolicited design idea for ${esc(name)}.
-    It is not affiliated with, endorsed by, or commissioned by ${esc(name)}, and it is not a live
-    website. Highlighted text is a placeholder that has not been confirmed with the business.
+    <strong>Prévia conceitual.</strong>
+    Esta página foi preparada por ${esc(preparer)} como uma ideia de design não solicitada para
+    ${esc(name)}. Não tem vínculo com a ${esc(name)}, não foi aprovada nem encomendada por ela, e
+    não é um site no ar. O texto destacado é um preenchimento provisório que não foi confirmado
+    com a empresa.
   </div>
 </div>
 
@@ -133,7 +135,7 @@ export function renderPreviewHtml(briefing: PreviewBriefing, options: PreviewHtm
     <span class="logo">${esc(name)}</span>
     <nav>
       ${services.slice(0, 3).map((s) => `<span>${esc(s.name)}</span>`).join('\n      ')}
-      <span>Contact</span>
+      <span>Contato</span>
     </nav>
     <a class="cta" href="#contact">${esc(briefing.primaryCta)}</a>
   </div>
@@ -147,15 +149,15 @@ export function renderPreviewHtml(briefing: PreviewBriefing, options: PreviewHtm
     </p>
     <div class="hero-actions">
       <a class="cta" href="#contact">${esc(briefing.primaryCta)}</a>
-      <a class="ghost" href="#services">See what we do</a>
+      <a class="ghost" href="#services">Veja o que fazemos</a>
     </div>
-    <span class="ph-note">Headline and supporting line are drafts — confirm the wording with the business.</span>
+    <span class="ph-note">O título e a linha de apoio são rascunhos — confirme o texto com a empresa.</span>
   </div>
 </div>
 
 <section id="services">
   <div class="wrap">
-    <h2>Services</h2>
+    <h2>Serviços</h2>
     <div class="grid">
       ${services
         .map(
@@ -163,22 +165,22 @@ export function renderPreviewHtml(briefing: PreviewBriefing, options: PreviewHtm
         <h3>${esc(service.name)}</h3>
         <p>${
           service.status === 'OBSERVED_ON_WEBSITE'
-            ? 'Taken from the current website.'
-            : '<span class="ph">Suggested for this sector — confirm before use.</span>'
+            ? 'Retirado do site atual.'
+            : '<span class="ph">Sugerido para o setor — confirme antes de usar.</span>'
         }</p>
       </div>`,
         )
         .join('\n      ')}
     </div>
-    <span class="ph-note">Each service becomes its own page, so it can rank on its own terms.</span>
+    <span class="ph-note">Cada serviço vira uma página própria, para poder ranquear por conta própria.</span>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <h2>Why ${esc(name)}</h2>
+    <h2>Por que a ${esc(name)}</h2>
     <div class="grid">
-      ${trustCards(confirmed, trustSection?.contentNotes ?? [], name)}
+      ${trustCards(confirmed, notesOf(trustSection), name)}
     </div>
   </div>
 </section>
@@ -195,16 +197,16 @@ export function renderPreviewHtml(briefing: PreviewBriefing, options: PreviewHtm
   <div class="wrap">
     <div class="split">
       <div>
-        <h2>Contact</h2>
+        <h2>Contato</h2>
         <dl class="contact">
-          ${contactRows(contactSection?.contentNotes ?? [])}
+          ${contactRows(notesOf(contactSection))}
         </dl>
       </div>
       <div>
-        <h2>Find us</h2>
-        <div class="map">${location ? `Map of ${esc(location)}` : 'Map — address to confirm'}</div>
+        <h2>Como chegar</h2>
+        <div class="map">${location ? `Mapa de ${esc(location)}` : 'Mapa — endereço a confirmar'}</div>
         <span class="ph-note">
-          ${location ? `Registered location: ${esc(location)}. Confirm the trading address.` : 'Trading address to confirm with the business.'}
+          ${location ? `Localização registrada: ${esc(location)}. Confirme o endereço de operação.` : 'Endereço de operação a confirmar com a empresa.'}
         </span>
       </div>
     </div>
@@ -213,11 +215,11 @@ export function renderPreviewHtml(briefing: PreviewBriefing, options: PreviewHtm
 
 <footer class="site">
   <div class="wrap">
-    <p>${esc(name)} — concept design. ${esc(briefing.business.country)} · ${esc(briefing.business.currency)}</p>
+    <p>${esc(name)} — design conceitual. ${esc(briefing.business.country)} · ${esc(briefing.business.currency)}</p>
     <div class="legend">
-      <p><strong>Notes for whoever reviews this</strong></p>
-      <p>Text marked with <code class="ph">a dashed underline</code> is a placeholder that has not been
-      confirmed with the business. Before this is shown to anyone:</p>
+      <p><strong>Observações para quem revisar isto</strong></p>
+      <p>O texto marcado com <code class="ph">um sublinhado tracejado</code> é um preenchimento
+      provisório que não foi confirmado com a empresa. Antes de mostrar isto a alguém:</p>
       <ul>
         ${briefing.toConfirm.map((item) => `<li>${esc(item)}</li>`).join('\n        ')}
       </ul>
@@ -232,19 +234,19 @@ export function renderPreviewHtml(briefing: PreviewBriefing, options: PreviewHtm
 }
 
 function headline(industry: string, location: string | null): string {
-  const what = industry === 'Unclassified' ? 'Local services' : industry;
-  return location ? `${what} in ${location}` : what;
+  const what = industry === 'Unclassified' ? 'Serviços locais' : industry;
+  return location ? `${what} em ${location}` : what;
 }
 
 function strapline(industry: string, location: string | null): string {
-  const where = location ? ` across ${location}` : '';
-  return `A short line describing what ${industry.toLowerCase()} the business offers${where}, and who it is for.`;
+  const where = location ? ` em ${location}` : '';
+  return `Uma linha curta descrevendo o que a empresa oferece em ${industry.toLowerCase()}${where}, e para quem.`;
 }
 
 function ctaSupport(location: string | null): string {
   return location
-    ? `Tell us what you need and we will come back to you the same working day${location ? ` — we cover ${location} and the surrounding area` : ''}.`
-    : 'Tell us what you need and we will come back to you the same working day.';
+    ? `Conte o que você precisa e retornamos no mesmo dia útil — atendemos ${location} e região.`
+    : 'Conte o que você precisa e retornamos no mesmo dia útil.';
 }
 
 /**
@@ -253,49 +255,74 @@ function ctaSupport(location: string | null): string {
  * subject is swapped for "We" — a rewording of the same fact, not a new claim.
  */
 function toFirstPerson(value: string, companyName: string): string {
-  return value.startsWith(companyName) ? `We${value.slice(companyName.length)}` : capitalise(value);
+  // The briefing says "A Demo Ltda tem 127 avaliações"; a homepage speaks as
+  // the business, so it becomes "Temos 127 avaliações". Same fact, same
+  // numbers, different voice — and the verb has to agree, which is why this
+  // goes through the shared table rather than swapping the subject.
+  const first = toFirstPersonVoice(value, companyName);
+  return first === value ? capitalise(value) : first;
 }
 
 /** Trust cards built from confirmed facts first, placeholders only to fill. */
-function trustCards(confirmed: Map<string, string>, notes: string[], companyName: string): string {
+/**
+ * A section's notes, in the current shape.
+ *
+ * Briefings generated before notes carried a `confirmed` flag were stored as
+ * plain strings, and those rows are still in the database. Passing them
+ * straight through would read `note.text` off a string and render "undefined"
+ * on a page meant for a prospect, so they are normalised — and treated as
+ * unconfirmed, which errs towards marking something as a placeholder.
+ */
+function notesOf(section: { contentNotes?: (BriefingNote | string)[] } | undefined): BriefingNote[] {
+  return (section?.contentNotes ?? []).map(normaliseNote);
+}
+
+function trustCards(confirmed: Map<string, string>, notes: BriefingNote[], companyName: string): string {
   const cards: string[] = [];
 
   const reviews = confirmed.get('reviews');
   if (reviews) {
-    cards.push(`<div class="card"><h3>Reviews</h3><p>${esc(toFirstPerson(reviews, companyName))}</p></div>`);
+    cards.push(`<div class="card"><h3>Avaliações</h3><p>${esc(toFirstPerson(reviews, companyName))}</p></div>`);
   } else {
     cards.push(
-      '<div class="card"><h3>Reviews</h3><p><span class="ph">Space for reviews once the business supplies them.</span></p></div>',
+      '<div class="card"><h3>Avaliações</h3><p><span class="ph">Espaço para avaliações assim que a empresa fornecer.</span></p></div>',
     );
   }
 
   const incorporation = confirmed.get('recent incorporation');
   if (incorporation) {
     cards.push(
-      `<div class="card"><h3>Established</h3><p>${esc(toFirstPerson(incorporation, companyName))}</p></div>`,
+      `<div class="card"><h3>No mercado</h3><p>${esc(toFirstPerson(incorporation, companyName))}</p></div>`,
     );
   }
 
   cards.push(
-    '<div class="card"><h3>Accreditations</h3><p><span class="ph">Left blank until the business supplies them.</span></p></div>',
+    '<div class="card"><h3>Certificações</h3><p><span class="ph">Em branco até a empresa fornecer.</span></p></div>',
   );
 
-  const extra = notes.find((n) => n.toLowerCase().startsWith('photographs'));
+  // Matched by key, not by sniffing the text for an English word. The previous
+  // version looked for a note starting with "Photographs", which would have
+  // stopped matching the moment the briefing was written in another language.
+  const extra = notes.find((n) => !n.confirmed && /fotograf/i.test(n.text));
   if (extra) {
-    cards.push(`<div class="card"><h3>Photography</h3><p><span class="ph">${esc(extra)}</span></p></div>`);
+    cards.push(`<div class="card"><h3>Fotografia</h3><p><span class="ph">${esc(extra.text)}</span></p></div>`);
   }
 
   return cards.join('\n      ');
 }
 
-function contactRows(notes: string[]): string {
+function contactRows(notes: BriefingNote[]): string {
   return notes
     .map((note) => {
-      const [label, ...rest] = note.split(':');
+      const [label, ...rest] = note.text.split(':');
       const value = rest.join(':').trim();
-      const unknown = !value || /to be supplied|confirm|supplies/i.test(note);
-      return `<dt>${esc((label ?? 'Detail').trim())}</dt><dd>${
-        unknown ? `<span class="ph">${esc(value || note)}</span>` : esc(value)
+      // The note says whether it is confirmed. This used to be guessed by
+      // testing the text against /to be supplied|confirm|supplies/, which meant
+      // a translated briefing would have rendered every placeholder as if it
+      // were an established fact.
+      const unknown = !note.confirmed || !value;
+      return `<dt>${esc((label ?? 'Detalhe').trim())}</dt><dd>${
+        unknown ? `<span class="ph">${esc(value || note.text)}</span>` : esc(value)
       }</dd>`;
     })
     .join('\n          ');

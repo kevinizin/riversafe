@@ -1,4 +1,5 @@
-import { COMPANY_AGE_LABELS, INDUSTRIES, enabledCountries } from '@woh/core';
+import { COMPANY_AGE_LABELS, INDUSTRIES, enabledCountries, getCountry } from '@woh/core';
+import { DEFAULT_COUNTRY } from '@woh/config';
 import { Card, Notice, SectionTitle } from '@/components/ui';
 import { requireUser } from '@/lib/auth';
 import { env, integrations } from '@/lib/context';
@@ -12,13 +13,18 @@ export default async function SettingsPage() {
   const settings = await loadSettings();
   const config = env();
   const status = integrations();
+  // Read from the country profile rather than written out here. The card used
+  // to state "United Kingdom (GB) · GBP (£) · Europe/London" as fixed text,
+  // which quietly became false the moment the default country changed — a
+  // settings page that lies about the settings is worse than no card at all.
+  const home = getCountry(DEFAULT_COUNTRY);
 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold">Settings</h1>
+        <h1 className="text-xl font-semibold">Configurações</h1>
         <p className="text-sm text-slate-500">
-          Defaults for new searches, and the thresholds that turn a score into a classification.
+          Padrões para novas buscas, e os limites que transformam um score em uma classificação.
         </p>
       </div>
 
@@ -32,28 +38,32 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
-        <SectionTitle hint="Set with environment variables; never editable from the browser">
-          Deployment configuration
+        <SectionTitle hint="Definido por variáveis de ambiente; nunca editável pelo navegador">
+          Configuração da instalação
         </SectionTitle>
         <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
-          <Item label="Country" value="United Kingdom (GB)" />
-          <Item label="Currency" value="GBP (£)" />
-          <Item label="Timezone" value="Europe/London" />
-          <Item label="Language" value="en-GB" />
-          <Item label="Queue driver" value={config.QUEUE_DRIVER} />
+          <Item label="País padrão" value={home ? `${home.name} (${home.code})` : DEFAULT_COUNTRY} />
+          <Item label="Moeda" value={home ? `${home.currency} (${home.currencySymbol})` : '—'} />
+          <Item label="Fuso horário" value={home?.timezone ?? '—'} />
+          <Item label="Idioma" value={home?.language ?? '—'} />
+          <Item label="Países habilitados" value={enabledCountries().map((c) => c.code).join(', ')} />
+          <Item label="Driver da fila" value={config.QUEUE_DRIVER} />
           <Item label="Companies House" value={status.companiesHouse} />
-          <Item label="Web search" value={String(status.webSearch)} />
-          <Item label="Places" value={String(status.places)} />
-          <Item label="AI" value={String(status.ai)} />
-          <Item label="AI monthly budget" value={`£${config.AI_MONTHLY_BUDGET_GBP.toFixed(2)}`} />
-          <Item label="Respect robots.txt" value={config.RESPECT_ROBOTS_TXT ? 'yes' : 'no'} />
-          <Item label="Website analysis cache" value={`${config.WEBSITE_ANALYSIS_TTL_HOURS}h`} />
+          <Item label="Busca na web" value={String(status.webSearch)} />
+          <Item label="Fichas de negócio" value={String(status.places)} />
+          <Item label="IA" value={String(status.ai)} />
+          <Item
+            label="Orçamento mensal de IA"
+            value={config.AI_MONTHLY_BUDGET_GBP.toFixed(2)}
+          />
+          <Item label="Respeitar robots.txt" value={config.RESPECT_ROBOTS_TXT ? 'sim' : 'não'} />
+          <Item label="Cache da análise de site" value={`${config.WEBSITE_ANALYSIS_TTL_HOURS}h`} />
         </dl>
         <div className="mt-3">
           <Notice>
-            Additional countries (Germany, Netherlands, France, Spain, Ireland, Portugal, Italy) are
-            deliberately not enabled: each needs its own registry provider and its own privacy review
-            before it can be switched on. The architecture supports them; the MVP does not ship them.
+            Outros países não estão habilitados de propósito: cada um precisa do seu próprio provedor
+            de registro e da sua própria revisão de privacidade antes de ser ligado. A arquitetura
+            comporta mais países; esta versão entrega apenas os que foram revisados.
           </Notice>
         </div>
       </Card>

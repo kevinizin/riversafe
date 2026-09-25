@@ -34,11 +34,11 @@ export function classifyScore(score: number, thresholds: ClassificationThreshold
 }
 
 export const CLASSIFICATION_LABEL: Record<Classification, string> = {
-  HOT: 'Hot',
-  HIGH_OPPORTUNITY: 'High opportunity',
-  WARM: 'Warm',
-  LOW_PRIORITY: 'Low priority',
-  IGNORE: 'Ignore',
+  HOT: 'Quente',
+  HIGH_OPPORTUNITY: 'Alta oportunidade',
+  WARM: 'Morno',
+  LOW_PRIORITY: 'Baixa prioridade',
+  IGNORE: 'Descartar',
 };
 
 export const CLASSIFICATION_EMOJI: Record<Classification, string> = {
@@ -51,13 +51,13 @@ export const CLASSIFICATION_EMOJI: Record<Classification, string> = {
 
 /** Recency bands, most recent first. Points are the RECENCY component. */
 export const RECENCY_BANDS: { maxDays: number; points: number; label: string }[] = [
-  { maxDays: 7, points: 30, label: 'incorporated within the last week' },
-  { maxDays: 14, points: 28, label: 'incorporated within the last two weeks' },
-  { maxDays: 30, points: 24, label: 'incorporated within the last month' },
-  { maxDays: 60, points: 18, label: 'incorporated within the last two months' },
-  { maxDays: 90, points: 12, label: 'incorporated within the last three months' },
-  { maxDays: 180, points: 6, label: 'incorporated within the last six months' },
-  { maxDays: 365, points: 3, label: 'incorporated within the last year' },
+  { maxDays: 7, points: 30, label: 'aberta na última semana' },
+  { maxDays: 14, points: 28, label: 'aberta nas últimas duas semanas' },
+  { maxDays: 30, points: 24, label: 'aberta no último mês' },
+  { maxDays: 60, points: 18, label: 'aberta nos últimos dois meses' },
+  { maxDays: 90, points: 12, label: 'aberta nos últimos três meses' },
+  { maxDays: 180, points: 6, label: 'aberta nos últimos seis meses' },
+  { maxDays: 365, points: 3, label: 'aberta no último ano' },
 ];
 
 /** Points per activity-signal type. Recent incorporation is excluded because

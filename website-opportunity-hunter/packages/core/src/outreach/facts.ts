@@ -52,8 +52,8 @@ export function buildOutreachFacts(input: FactInput): OutreachFact[] {
     if (days >= 0 && days <= 120) {
       facts.push({
         key: 'recent_incorporation',
-        statement: `you registered ${input.companyName} ${days <= 1 ? 'this week' : `${days} days ago`}`,
-        evidence: `Companies House records an incorporation date of ${input.incorporationDate.toISOString().slice(0, 10)}`,
+        statement: `você abriu a ${input.companyName} ${days <= 1 ? 'esta semana' : `há ${days} dias`}`,
+        evidence: `o registro público informa data de abertura em ${input.incorporationDate.toISOString().slice(0, 10)}`,
         source: 'companies_house',
         ...(input.registryUrl ? { sourceUrl: input.registryUrl } : {}),
         confidence: 'HIGH',
@@ -66,8 +66,8 @@ export function buildOutreachFacts(input: FactInput): OutreachFact[] {
     facts.push({
       key: 'no_website_found',
       // Phrased as what we did, not as a claim about what the business has.
-      statement: `I could not find a website for ${input.companyName}`,
-      evidence: input.websiteStatusNote ?? 'no website found by any permitted discovery method',
+      statement: `não consegui encontrar um site da ${input.companyName}`,
+      evidence: input.websiteStatusNote ?? 'nenhum site encontrado por nenhum método de busca permitido',
       source: 'website_discovery',
       confidence: 'MEDIUM',
       kind: 'observation',
@@ -78,8 +78,8 @@ export function buildOutreachFacts(input: FactInput): OutreachFact[] {
     if (typeof input.websiteQualityScore === 'number') {
       facts.push({
         key: 'website_score',
-        statement: `I had a look at ${input.websiteDomain}`,
-        evidence: `automated check scored the homepage ${input.websiteQualityScore}/100`,
+        statement: `dei uma olhada no ${input.websiteDomain}`,
+        evidence: `a verificação automática pontuou a página inicial em ${input.websiteQualityScore}/100`,
         source: `website:${input.websiteDomain}`,
         sourceUrl: `https://${input.websiteDomain}`,
         confidence: 'HIGH',
@@ -90,7 +90,7 @@ export function buildOutreachFacts(input: FactInput): OutreachFact[] {
       facts.push({
         key: `website_weakness_${index}`,
         statement: lowerFirst(weakness),
-        evidence: `homepage analysis of ${input.websiteDomain}`,
+        evidence: `análise da página inicial de ${input.websiteDomain}`,
         source: `website:${input.websiteDomain}`,
         sourceUrl: `https://${input.websiteDomain}`,
         confidence: 'HIGH',
@@ -103,8 +103,8 @@ export function buildOutreachFacts(input: FactInput): OutreachFact[] {
     if (profile.platform === 'GOOGLE_BUSINESS') continue;
     facts.push({
       key: `social_${profile.platform.toLowerCase()}`,
-      statement: `you are on ${platformLabel(profile.platform as never)}`,
-      evidence: `profile found at ${profile.url}`,
+      statement: `vocês estão no ${platformLabel(profile.platform as never)}`,
+      evidence: `perfil encontrado em ${profile.url}`,
       source: 'social_discovery',
       sourceUrl: profile.url,
       confidence: profile.confidence,
@@ -113,11 +113,11 @@ export function buildOutreachFacts(input: FactInput): OutreachFact[] {
   }
 
   if (typeof input.reviewCount === 'number' && input.reviewCount > 0) {
-    const rating = typeof input.rating === 'number' ? ` at ${input.rating.toFixed(1)} stars` : '';
+    const rating = typeof input.rating === 'number' ? `, com nota ${input.rating.toFixed(1)}` : '';
     facts.push({
       key: 'reviews',
-      statement: `you have ${input.reviewCount} reviews${rating}`,
-      evidence: `business listing reports ${input.reviewCount} ratings${rating}`,
+      statement: `vocês têm ${input.reviewCount} avaliações${rating}`,
+      evidence: `a ficha do negócio informa ${input.reviewCount} avaliações${rating}`,
       source: 'places_provider',
       confidence: 'HIGH',
       kind: 'observation',
@@ -142,8 +142,8 @@ export function buildOutreachFacts(input: FactInput): OutreachFact[] {
   if (input.industryKey) {
     facts.push({
       key: 'industry',
-      statement: `you work in ${industryLabel(input.industryKey).toLowerCase()}`,
-      evidence: 'classified from the registered SIC code and the company name',
+      statement: `vocês atuam em ${industryLabel(input.industryKey).toLowerCase()}`,
+      evidence: 'classificado pelo código de atividade registrado e pelo nome da empresa',
       source: 'industry_classification',
       confidence: 'MEDIUM',
       kind: 'context',
@@ -153,8 +153,8 @@ export function buildOutreachFacts(input: FactInput): OutreachFact[] {
   if (input.city) {
     facts.push({
       key: 'location',
-      statement: `you are based in ${input.city}`,
-      evidence: 'registered office address',
+      statement: `vocês ficam em ${input.city}`,
+      evidence: 'endereço registrado da empresa',
       source: 'companies_house',
       confidence: 'HIGH',
       kind: 'context',
@@ -165,16 +165,16 @@ export function buildOutreachFacts(input: FactInput): OutreachFact[] {
 }
 
 const SIGNAL_STATEMENTS: Record<string, string> = {
-  NOW_OPEN: 'your site says you have just opened',
-  GRAND_OPENING: 'your site mentions a grand opening',
-  OPENING_SOON: 'your site says you are opening soon',
-  COMING_SOON: 'your site currently says "coming soon"',
-  NEW_LOCATION: 'your site mentions a new location',
-  NEW_BUSINESS: 'your site describes the business as newly established',
-  UNDER_CONSTRUCTION_WEBSITE: 'your website is still a placeholder page',
-  HIRING: 'you are advertising vacancies',
-  RECENT_REVIEWS: 'you have picked up reviews recently',
-  RECENT_SOCIAL_ACTIVITY: 'you have been posting recently',
+  NOW_OPEN: 'o site de vocês diz que acabaram de abrir',
+  GRAND_OPENING: 'o site de vocês menciona uma inauguração',
+  OPENING_SOON: 'o site de vocês diz que abrem em breve',
+  COMING_SOON: 'o site de vocês está como "em breve"',
+  NEW_LOCATION: 'o site de vocês menciona uma nova unidade',
+  NEW_BUSINESS: 'o site de vocês descreve o negócio como recém-aberto',
+  UNDER_CONSTRUCTION_WEBSITE: 'o site de vocês ainda é uma página provisória',
+  HIRING: 'vocês estão anunciando vagas',
+  RECENT_REVIEWS: 'vocês receberam avaliações recentemente',
+  RECENT_SOCIAL_ACTIVITY: 'vocês têm postado recentemente',
 };
 
 function lowerFirst(value: string): string {

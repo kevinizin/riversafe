@@ -52,241 +52,241 @@ export function scoreWebsite(facts: PageFacts, ctx: QualityContext = {}): Websit
   const checks: QualityCheck[] = [
     {
       key: 'https',
-      label: 'Served over HTTPS',
+      label: 'Servido por HTTPS',
       weight: 8,
       applicable: true,
       passed: facts.https,
-      evidence: facts.https ? 'final URL uses https://' : 'final URL uses http://',
-      weakness: 'No HTTPS — browsers show the site as "Not secure"',
+      evidence: facts.https ? 'a URL final usa https://' : 'a URL final usa http://',
+      weakness: 'Sem HTTPS — os navegadores mostram o site como "Não seguro"',
     },
     {
       key: 'responsive',
-      label: 'Mobile viewport declared',
+      label: 'Viewport para celular declarada',
       weight: 10,
       applicable: true,
       passed: facts.hasViewportMeta,
       evidence: facts.hasViewportMeta
-        ? '<meta name="viewport"> is present'
-        : 'no <meta name="viewport"> tag, so the page will not adapt to phones',
-      weakness: 'Not built for mobile — no viewport tag, so phones render the desktop layout',
+        ? '<meta name="viewport"> presente'
+        : 'sem a tag <meta name="viewport">, então a página não se adapta ao celular',
+      weakness: 'Não foi feito para celular — sem a tag viewport, o telefone renderiza o layout de computador',
     },
     {
       key: 'title',
-      label: 'Useful page title',
+      label: 'Título de página útil',
       weight: 6,
       applicable: true,
       passed: titleLength >= TITLE_MIN && titleLength <= TITLE_MAX,
       evidence: facts.title
-        ? `<title> is ${titleLength} characters: "${facts.title.slice(0, 80)}"`
-        : 'no <title> tag',
+        ? `<title> com ${titleLength} caracteres: "${facts.title.slice(0, 80)}"`
+        : 'sem tag <title>',
       weakness: facts.title
-        ? `Page title is ${titleLength} characters — outside the ${TITLE_MIN}–${TITLE_MAX} range search results display well`
-        : 'No page title',
+        ? `O título tem ${titleLength} caracteres — fora da faixa de ${TITLE_MIN} a ${TITLE_MAX} que os resultados de busca exibem bem`
+        : 'Sem título de página',
     },
     {
       key: 'meta_description',
-      label: 'Meta description',
+      label: 'Meta descrição',
       weight: 5,
       applicable: true,
       passed: !!facts.metaDescription && facts.metaDescription.length >= 50,
       evidence: facts.metaDescription
-        ? `meta description is ${facts.metaDescription.length} characters`
-        : 'no meta description',
-      weakness: 'No meta description — Google writes its own snippet for the listing',
+        ? `meta descrição com ${facts.metaDescription.length} caracteres`
+        : 'sem meta descrição',
+      weakness: 'Sem meta descrição — o Google escreve o próprio resumo na listagem',
     },
     {
       key: 'h1',
-      label: 'Exactly one H1',
+      label: 'Exatamente um H1',
       weight: 4,
       applicable: true,
       passed: facts.h1Texts.length === 1,
-      evidence: `${facts.h1Texts.length} <h1> element(s)`,
+      evidence: `${facts.h1Texts.length} elemento(s) <h1>`,
       weakness:
         facts.h1Texts.length === 0
-          ? 'No H1 heading, so the page has no stated subject'
-          : `${facts.h1Texts.length} H1 headings competing as the page subject`,
+          ? 'Sem título H1, então a página não declara seu assunto'
+          : `${facts.h1Texts.length} títulos H1 disputando o assunto da página`,
     },
     {
       key: 'cta',
-      label: 'Clear call to action',
+      label: 'Chamada para ação clara',
       weight: 10,
       applicable: true,
       passed: facts.hasCtaButton,
-      evidence: facts.ctaEvidence ?? 'no recognised call-to-action wording found',
-      weakness: 'No clear call to action — nothing tells a visitor what to do next',
+      evidence: facts.ctaEvidence ?? 'nenhum texto reconhecível de chamada para ação encontrado',
+      weakness: 'Sem chamada para ação clara — nada diz ao visitante o que fazer em seguida',
     },
     {
       key: 'phone',
-      label: 'Phone number on the page',
+      label: 'Telefone na página',
       weight: 6,
       applicable: true,
       passed: facts.phones.length > 0,
-      evidence: facts.phones.length ? `${facts.phones.length} phone number(s) found` : 'no phone number found',
-      weakness: 'No phone number on the homepage',
+      evidence: facts.phones.length ? `${facts.phones.length} telefone(s) encontrado(s)` : 'nenhum telefone encontrado',
+      weakness: 'Sem telefone na página inicial',
     },
     {
       key: 'contact_route',
-      label: 'A way to make contact',
+      label: 'Alguma forma de contato',
       weight: 6,
       applicable: true,
       passed: hasContactRoute,
       evidence: [
-        facts.hasContactForm ? 'contact form' : null,
-        facts.emails.length ? 'email address' : null,
-        facts.phones.length ? 'phone number' : null,
+        facts.hasContactForm ? 'formulário de contato' : null,
+        facts.emails.length ? 'endereço de e-mail' : null,
+        facts.phones.length ? 'telefone' : null,
       ]
         .filter(Boolean)
-        .join(', ') || 'no form, email address or phone number found',
-      weakness: 'No contact form, email address or phone number on the homepage',
+        .join(', ') || 'nenhum formulário, e-mail ou telefone encontrado',
+      weakness: 'Sem formulário, e-mail nem telefone na página inicial',
     },
     {
       key: 'booking',
-      label: 'Online booking',
+      label: 'Agendamento on-line',
       weight: 8,
       applicable: bookingExpected,
       passed: facts.hasBookingSignal,
-      evidence: facts.bookingEvidence ?? 'no booking link or booking wording found',
-      weakness: 'No online booking, which customers in this sector expect',
+      evidence: facts.bookingEvidence ?? 'nenhum link ou texto de agendamento encontrado',
+      weakness: 'Sem agendamento on-line, que o cliente deste setor espera encontrar',
     },
     {
       key: 'whatsapp',
-      label: 'WhatsApp contact',
+      label: 'Contato por WhatsApp',
       weight: 2,
       applicable: true,
       passed: facts.hasWhatsApp,
-      evidence: facts.hasWhatsApp ? 'wa.me or WhatsApp link found' : 'no WhatsApp link',
-      weakness: 'No WhatsApp option for quick enquiries',
+      evidence: facts.hasWhatsApp ? 'link wa.me ou do WhatsApp encontrado' : 'nenhum link do WhatsApp',
+      weakness: 'Sem opção de WhatsApp para uma dúvida rápida',
     },
     {
       key: 'map',
-      label: 'Map or location embed',
+      label: 'Mapa ou localização incorporada',
       weight: 4,
       applicable: true,
       passed: facts.hasMap,
-      evidence: facts.hasMap ? 'map embed or maps link found' : 'no map or maps link',
-      weakness: 'No map, so customers cannot see where the business is',
+      evidence: facts.hasMap ? 'mapa incorporado ou link de mapas encontrado' : 'nenhum mapa ou link de mapas',
+      weakness: 'Sem mapa, então o cliente não vê onde a empresa fica',
     },
     {
       key: 'service_pages',
-      label: 'Service pages',
+      label: 'Páginas de serviços',
       weight: 8,
       applicable: true,
       passed: facts.servicePages.length >= 2,
       evidence: facts.servicePages.length
-        ? `${facts.servicePages.length} service page link(s): ${facts.servicePages.slice(0, 3).join(', ')}`
-        : 'no service or treatment pages linked from the homepage',
-      weakness: 'No service-specific pages — one page has to rank for everything',
+        ? `${facts.servicePages.length} link(s) de página de serviço: ${facts.servicePages.slice(0, 3).join(', ')}`
+        : 'nenhuma página de serviço ligada a partir da inicial',
+      weakness: 'Sem páginas por serviço — uma única página tem que ranquear para tudo',
     },
     {
       key: 'location_pages',
-      label: 'Location pages',
+      label: 'Páginas por localidade',
       weight: 4,
       applicable: true,
       passed: facts.locationPages.length >= 1,
       evidence: facts.locationPages.length
-        ? `${facts.locationPages.length} location page link(s)`
-        : 'no location or areas-covered pages',
-      weakness: 'No location pages, which local search rewards',
+        ? `${facts.locationPages.length} link(s) de página por localidade`
+        : 'nenhuma página por localidade ou área atendida',
+      weakness: 'Sem páginas por localidade, que a busca local valoriza',
     },
     {
       key: 'testimonials',
-      label: 'Reviews or testimonials',
+      label: 'Avaliações ou depoimentos',
       weight: 5,
       applicable: true,
       passed: facts.hasTestimonials,
-      evidence: facts.testimonialEvidence ?? 'no testimonial or review section found',
-      weakness: 'No reviews or testimonials shown',
+      evidence: facts.testimonialEvidence ?? 'nenhuma seção de depoimento ou avaliação encontrada',
+      weakness: 'Nenhuma avaliação ou depoimento exibido',
     },
     {
       key: 'trust',
-      label: 'Accreditations or guarantees',
+      label: 'Certificações ou garantias',
       weight: 4,
       applicable: true,
       passed: facts.hasTrustSignals,
-      evidence: facts.trustEvidence ?? 'no accreditation or guarantee wording found',
-      weakness: 'No accreditations, guarantees or regulator references',
+      evidence: facts.trustEvidence ?? 'nenhum texto de certificação ou garantia encontrado',
+      weakness: 'Sem certificações, garantias ou referências a órgãos reguladores',
     },
     {
       key: 'privacy',
-      label: 'Privacy policy',
+      label: 'Política de privacidade',
       weight: 4,
       applicable: true,
       passed: facts.hasPrivacyPage,
-      evidence: facts.hasPrivacyPage ? 'privacy policy link found' : 'no privacy policy link',
-      weakness: 'No privacy policy link — a UK GDPR requirement for a site that collects enquiries',
+      evidence: facts.hasPrivacyPage ? 'link de política de privacidade encontrado' : 'nenhum link de política de privacidade',
+      weakness: 'Sem link de política de privacidade — exigido pela LGPD em um site que recebe contatos',
     },
     {
       key: 'cookies',
-      label: 'Cookie notice',
+      label: 'Aviso de cookies',
       weight: 2,
       applicable: true,
       passed: facts.hasCookieNotice,
-      evidence: facts.hasCookieNotice ? 'cookie consent wording found' : 'no cookie consent wording',
-      weakness: 'No cookie notice',
+      evidence: facts.hasCookieNotice ? 'texto de consentimento de cookies encontrado' : 'nenhum texto de consentimento de cookies',
+      weakness: 'Sem aviso de cookies',
     },
     {
       key: 'speed',
-      label: 'Responded quickly',
+      label: 'Respondeu rápido',
       weight: 6,
       applicable: ctx.responseTimeMs !== undefined,
       passed: (ctx.responseTimeMs ?? 0) < SLOW_MS,
       evidence:
         ctx.responseTimeMs !== undefined
-          ? `homepage responded in ${ctx.responseTimeMs}ms`
-          : 'response time not measured',
-      weakness: `Slow to respond (${ctx.responseTimeMs}ms for the homepage)`,
+          ? `a página inicial respondeu em ${ctx.responseTimeMs}ms`
+          : 'tempo de resposta não medido',
+      weakness: `Demora a responder (${ctx.responseTimeMs}ms na página inicial)`,
     },
     {
       key: 'modern_markup',
-      label: 'No obsolete markup',
+      label: 'Sem marcação obsoleta',
       weight: 4,
       applicable: true,
       passed: facts.outdatedHints.length === 0,
       evidence: facts.outdatedHints.length
-        ? `obsolete markup found: ${facts.outdatedHints.join(', ')}`
-        : 'no obsolete markup found',
-      weakness: `Dated build — ${facts.outdatedHints.join(', ')}`,
+        ? `marcação obsoleta encontrada: ${facts.outdatedHints.join(', ')}`
+        : 'nenhuma marcação obsoleta encontrada',
+      weakness: `Construção datada — ${facts.outdatedHints.join(', ')}`,
     },
     {
       key: 'image_alt',
-      label: 'Images have alt text',
+      label: 'Imagens com texto alternativo',
       weight: 4,
       applicable: facts.totalImages > 0,
       passed: facts.totalImages > 0 && facts.imagesMissingAlt / facts.totalImages <= 0.25,
-      evidence: `${facts.imagesMissingAlt} of ${facts.totalImages} images have no alt text`,
-      weakness: `${facts.imagesMissingAlt} of ${facts.totalImages} images have no alt text (accessibility)`,
+      evidence: `${facts.imagesMissingAlt} de ${facts.totalImages} imagens sem texto alternativo`,
+      weakness: `${facts.imagesMissingAlt} de ${facts.totalImages} imagens sem texto alternativo (acessibilidade)`,
     },
     {
       key: 'lang',
-      label: 'Language declared',
+      label: 'Idioma declarado',
       weight: 2,
       applicable: true,
       passed: !!facts.lang,
-      evidence: facts.lang ? `<html lang="${facts.lang}">` : 'no lang attribute on <html>',
-      weakness: 'No language attribute on <html> (accessibility)',
+      evidence: facts.lang ? `<html lang="${facts.lang}">` : 'sem atributo lang no <html>',
+      weakness: 'Sem atributo de idioma no <html> (acessibilidade)',
     },
     {
       key: 'social',
-      label: 'Links to social profiles',
+      label: 'Links para redes sociais',
       weight: 3,
       applicable: true,
       passed: facts.socialLinks.length > 0,
       evidence: facts.socialLinks.length
-        ? `links to ${facts.socialLinks.map((s) => s.platform).join(', ')}`
-        : 'no social profile links',
-      weakness: 'No links to social profiles',
+        ? `links para ${facts.socialLinks.map((s) => s.platform).join(', ')}`
+        : 'nenhum link para redes sociais',
+      weakness: 'Sem links para redes sociais',
     },
     {
       key: 'links_work',
-      label: 'Sampled links resolve',
+      label: 'Links testados funcionam',
       weight: 3,
       applicable: (ctx.checkedLinkCount ?? 0) > 0,
       passed: (ctx.brokenLinkCount ?? 0) === 0,
       evidence:
         (ctx.checkedLinkCount ?? 0) > 0
-          ? `${ctx.brokenLinkCount ?? 0} of ${ctx.checkedLinkCount} sampled links failed`
-          : 'no links sampled',
-      weakness: `${ctx.brokenLinkCount} of ${ctx.checkedLinkCount} sampled links are broken`,
+          ? `${ctx.brokenLinkCount ?? 0} de ${ctx.checkedLinkCount} links testados falharam`
+          : 'nenhum link testado',
+      weakness: `${ctx.brokenLinkCount} de ${ctx.checkedLinkCount} links testados estão quebrados`,
     },
   ];
 

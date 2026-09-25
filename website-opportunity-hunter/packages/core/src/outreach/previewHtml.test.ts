@@ -12,7 +12,7 @@ const briefing = (over: Parameters<typeof buildPreviewBriefing>[0] extends infer
     city: 'Manchester',
     countryName: 'United Kingdom',
     currency: 'GBP',
-    language: 'en-GB',
+    language: 'pt-BR',
     facts: buildOutreachFacts({
       companyName: 'Demo Dental Studio Ltd',
       city: 'Manchester',
@@ -42,9 +42,9 @@ describe('renderPreviewHtml', () => {
 
   it('cannot be mistaken for the business own site', () => {
     const output = html();
-    expect(output).toContain('Concept preview');
-    expect(output).toContain('not affiliated with, endorsed by, or commissioned by');
-    expect(output).toContain('prepared by Alex, Studio');
+    expect(output).toContain('Prévia conceitual');
+    expect(output).toContain('Não tem vínculo com a');
+    expect(output).toContain('preparada por Alex, Studio');
   });
 
   it('keeps itself out of search results', () => {
@@ -64,13 +64,13 @@ describe('renderPreviewHtml', () => {
 
   it('marks sector-suggested services as unconfirmed', () => {
     const output = html();
-    expect(output).toContain('Suggested for this sector — confirm before use.');
+    expect(output).toContain('Sugerido para o setor — confirme antes de usar.');
   });
 
   it('shows a confirmed review count as fact, not as a placeholder', () => {
     const output = html();
     // Stated in the business's own voice, but still only the fact we hold.
-    expect(output).toMatch(/<h3>Reviews<\/h3><p>We have 127 reviews at 4\.9 stars/);
+    expect(output).toMatch(/<h3>Avaliações<\/h3><p>Temos 127 avaliações, com nota 4\.9/);
   });
 
   it('leaves review space empty rather than inventing numbers', () => {
@@ -79,25 +79,25 @@ describe('renderPreviewHtml', () => {
         companyName: 'Demo Ltd',
         countryName: 'United Kingdom',
         currency: 'GBP',
-        language: 'en-GB',
+        language: 'pt-BR',
         facts: [],
         reviewCount: null,
         now: NOW,
       }),
       { preparedBy: 'Alex' },
     );
-    expect(withoutReviews).toContain('Space for reviews once the business supplies them.');
+    expect(withoutReviews).toContain('Espaço para avaliações assim que a empresa fornecer.');
     expect(withoutReviews).not.toMatch(/\d+ reviews/);
   });
 
   it('never asserts accreditations', () => {
-    expect(html()).toContain('Left blank until the business supplies them.');
+    expect(html()).toContain('Em branco até a empresa fornecer.');
   });
 
   it('lists what must be confirmed before the page is shown to anyone', () => {
     const output = html();
-    expect(output).toContain('Before this is shown to anyone');
-    expect(output).toContain('Opening hours');
+    expect(output).toContain('Antes de mostrar isto a alguém');
+    expect(output).toContain('Horário de funcionamento');
   });
 });
 
@@ -112,7 +112,7 @@ describe('esc', () => {
         companyName: '<img src=x onerror=alert(1)> Ltd',
         countryName: 'United Kingdom',
         currency: 'GBP',
-        language: 'en-GB',
+        language: 'pt-BR',
         facts: [],
         now: NOW,
       }),
@@ -120,5 +120,25 @@ describe('esc', () => {
     );
     expect(output).not.toContain('<img src=x');
     expect(output).toContain('&lt;img src=x onerror=alert(1)&gt; Ltd');
+  });
+});
+
+describe('briefings stored before notes carried a confirmed flag', () => {
+  it('renders them as placeholders rather than printing undefined', () => {
+    const current = briefing();
+    // Exactly what an older row looks like coming back out of the database.
+    const legacy = {
+      ...current,
+      sections: current.sections.map((section) => ({
+        ...section,
+        contentNotes: section.contentNotes.map((note) => note.text),
+      })),
+    } as unknown as typeof current;
+
+    const output = renderPreviewHtml(legacy, { preparedBy: 'Alex' });
+    expect(output).not.toContain('undefined');
+    // Unconfirmed is the safe reading of an unknown shape, so contact details
+    // come through marked as placeholders.
+    expect(output).toContain('class="ph"');
   });
 });

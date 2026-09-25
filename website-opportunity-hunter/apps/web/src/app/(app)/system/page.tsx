@@ -27,21 +27,21 @@ export default async function SystemPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold">System health</h1>
-        <p className="text-sm text-slate-500">Integrations, jobs, errors and API usage.</p>
+        <h1 className="text-xl font-semibold">Saúde do sistema</h1>
+        <p className="text-sm text-slate-500">Integrações, tarefas, erros e uso de API.</p>
       </div>
 
-      {!dbOk ? <Notice tone="error">The database did not answer a health query.</Notice> : null}
+      {!dbOk ? <Notice tone="error">O banco de dados não respondeu à consulta de saúde.</Notice> : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Database" value={dbOk ? 'OK' : 'Down'} />
-        <Stat label="Queue" value={queueHealth.ok ? 'OK' : 'Down'} hint={queueHealth.detail} />
-        <Stat label="Companies with failed stages" value={stuckStages} />
-        <Stat label="Recent errors" value={errors.length} />
+        <Stat label="Banco de dados" value={dbOk ? 'OK' : 'Fora do ar'} />
+        <Stat label="Fila" value={queueHealth.ok ? 'OK' : 'Fora do ar'} hint={queueHealth.detail} />
+        <Stat label="Empresas com etapas falhas" value={stuckStages} />
+        <Stat label="Erros recentes" value={errors.length} />
       </div>
 
       <Card>
-        <SectionTitle hint="Which external services this deployment can use">Integrations</SectionTitle>
+        <SectionTitle hint="Quais serviços externos esta instalação pode usar">Integrações</SectionTitle>
         <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 text-sm">
           {Object.entries(status).map(([key, value]) => (
             <div key={key}>
@@ -54,22 +54,23 @@ export default async function SystemPage() {
         </dl>
         {status.companiesHouse === 'missing' ? (
           <p className="mt-2 text-xs text-slate-500">
-            Without a Companies House key, searches use the fictional demo dataset. Register free at
-            developer.company-information.service.gov.uk.
+            Sem uma fonte de dados reais, as buscas usam as empresas fictícias de demonstração. Para
+            o Brasil, importe um arquivo mensal da Receita Federal; para o Reino Unido, registre-se
+            de graça em developer.company-information.service.gov.uk.
           </p>
         ) : null}
       </Card>
 
       <Card>
-        <SectionTitle>Recent jobs</SectionTitle>
+        <SectionTitle>Tarefas recentes</SectionTitle>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-              <th className="table-cell">Type</th>
-              <th className="table-cell">Status</th>
-              <th className="table-cell">Started</th>
-              <th className="table-cell">Finished</th>
-              <th className="table-cell">Error</th>
+              <th className="table-cell">Tipo</th>
+              <th className="table-cell">Situação</th>
+              <th className="table-cell">Início</th>
+              <th className="table-cell">Fim</th>
+              <th className="table-cell">Erro</th>
             </tr>
           </thead>
           <tbody>
@@ -83,7 +84,7 @@ export default async function SystemPage() {
               </tr>
             ))}
             {jobs.length === 0 ? (
-              <tr><td className="table-cell text-slate-500" colSpan={5}>No jobs recorded yet.</td></tr>
+              <tr><td className="table-cell text-slate-500" colSpan={5}>Nenhuma tarefa registrada ainda.</td></tr>
             ) : null}
           </tbody>
         </table>
@@ -91,7 +92,7 @@ export default async function SystemPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <SectionTitle>Errors</SectionTitle>
+          <SectionTitle>Erros</SectionTitle>
           <ul className="space-y-2 text-sm">
             {errors.map((log) => (
               <li key={log.id} className="border-b border-slate-100 pb-2 last:border-0">
@@ -100,26 +101,26 @@ export default async function SystemPage() {
                 <p className="text-xs text-slate-400">{formatDateTime(log.createdAt)}</p>
               </li>
             ))}
-            {errors.length === 0 ? <li className="text-slate-500">No errors logged.</li> : null}
+            {errors.length === 0 ? <li className="text-slate-500">Nenhum erro registrado.</li> : null}
           </ul>
         </Card>
 
         <Card>
-          <SectionTitle hint="Last 7 days">API usage</SectionTitle>
+          <SectionTitle hint="Últimos 7 dias">Uso de API</SectionTitle>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-                <th className="table-cell">Provider</th>
-                <th className="table-cell">Result</th>
-                <th className="table-cell text-right">Calls</th>
-                <th className="table-cell text-right">Avg ms</th>
+                <th className="table-cell">Fonte</th>
+                <th className="table-cell">Resultado</th>
+                <th className="table-cell text-right">Chamadas</th>
+                <th className="table-cell text-right">Média ms</th>
               </tr>
             </thead>
             <tbody>
               {apiUsage.map((row) => (
                 <tr key={`${row.provider}-${String(row.ok)}`} className="border-b border-slate-100 last:border-0">
                   <td className="table-cell">{row.provider}</td>
-                  <td className="table-cell">{row.ok ? 'ok' : 'failed'}</td>
+                  <td className="table-cell">{row.ok ? 'ok' : 'falhou'}</td>
                   <td className="table-cell text-right tabular-nums">{row._count._all}</td>
                   <td className="table-cell text-right tabular-nums">
                     {row._avg.durationMs ? Math.round(row._avg.durationMs) : '—'}
@@ -127,7 +128,7 @@ export default async function SystemPage() {
                 </tr>
               ))}
               {apiUsage.length === 0 ? (
-                <tr><td className="table-cell text-slate-500" colSpan={4}>No external calls recorded.</td></tr>
+                <tr><td className="table-cell text-slate-500" colSpan={4}>Nenhuma chamada externa registrada.</td></tr>
               ) : null}
             </tbody>
           </table>

@@ -38,34 +38,34 @@ export const COMPANY_AGE_PRESETS = {
 export type CompanyAgePreset = keyof typeof COMPANY_AGE_PRESETS;
 
 export const COMPANY_AGE_LABELS: Record<CompanyAgePreset, string> = {
-  TODAY: 'Incorporated today',
-  LAST_3_DAYS: 'Last 3 days',
-  LAST_7_DAYS: 'Last 7 days',
-  LAST_14_DAYS: 'Last 14 days',
-  LAST_30_DAYS: 'Last 30 days',
-  LAST_60_DAYS: 'Last 60 days',
-  LAST_90_DAYS: 'Last 90 days',
-  OVER_1_YEAR: 'Trading over 1 year',
-  OVER_2_YEARS: 'Trading over 2 years',
-  OVER_5_YEARS: 'Trading over 5 years',
-  ANY: 'Any age',
+  TODAY: 'Abertas hoje',
+  LAST_3_DAYS: 'Últimos 3 dias',
+  LAST_7_DAYS: 'Últimos 7 dias',
+  LAST_14_DAYS: 'Últimos 14 dias',
+  LAST_30_DAYS: 'Últimos 30 dias',
+  LAST_60_DAYS: 'Últimos 60 dias',
+  LAST_90_DAYS: 'Últimos 90 dias',
+  OVER_1_YEAR: 'Abertas há mais de 1 ano',
+  OVER_2_YEARS: 'Abertas há mais de 2 anos',
+  OVER_5_YEARS: 'Abertas há mais de 5 anos',
+  ANY: 'Qualquer idade',
 };
 
 export const WEBSITE_FILTERS = ['ANY', 'NO_WEBSITE', 'WEAK_WEBSITE', 'NO_OR_WEAK', 'HAS_WEBSITE'] as const;
 export type WebsiteFilter = (typeof WEBSITE_FILTERS)[number];
 
 export const WEBSITE_FILTER_LABELS: Record<WebsiteFilter, string> = {
-  ANY: 'Any',
-  NO_WEBSITE: 'No website found',
-  WEAK_WEBSITE: 'Weak website',
-  NO_OR_WEAK: 'No website or weak website',
-  HAS_WEBSITE: 'Has a website',
+  ANY: 'Qualquer',
+  NO_WEBSITE: 'Sem site encontrado',
+  WEAK_WEBSITE: 'Site fraco',
+  NO_OR_WEAK: 'Sem site ou site fraco',
+  HAS_WEBSITE: 'Tem site',
 };
 
 const industryKeys = INDUSTRIES.map((i) => i.key) as [string, ...string[]];
 
 export const searchFiltersSchema = z.object({
-  countryCode: z.string().length(2).default('GB'),
+  countryCode: z.string().length(2).default('BR'),
   /** Empty means every industry in the catalogue. */
   industryKeys: z.array(z.enum(industryKeys)).default([]),
   region: z.string().trim().max(80).optional(),
@@ -124,7 +124,7 @@ export function incorporationWindow(
 export function describeFilters(filters: SearchFilters): string {
   const parts: string[] = [];
   parts.push(filters.countryCode);
-  parts.push(filters.industryKeys.length ? filters.industryKeys.join(', ') : 'all industries');
+  parts.push(filters.industryKeys.length ? filters.industryKeys.join(', ') : 'todos os setores');
   if (filters.city) parts.push(filters.city);
   else if (filters.region) parts.push(filters.region);
   parts.push(COMPANY_AGE_LABELS[filters.companyAge]);
@@ -156,10 +156,10 @@ export interface SearchPreset {
 export const SEARCH_PRESETS: SearchPreset[] = [
   {
     key: 'new_no_website',
-    label: 'New companies with no website',
+    label: 'Empresas novas sem site',
     axis: 'WEBSITE',
     description:
-      'Opened in the last three months and no site found. They have not chosen a supplier yet, which is the whole opportunity.',
+      'Abertas nos últimos três meses e sem site encontrado. Ainda não escolheram fornecedor — é nisso que está a oportunidade.',
     filters: {
       companyAge: 'LAST_90_DAYS',
       websiteFilter: 'NO_OR_WEAK',
@@ -168,10 +168,10 @@ export const SEARCH_PRESETS: SearchPreset[] = [
   },
   {
     key: 'established_needs_system',
-    label: 'Established companies that need a system',
+    label: 'Empresas estabelecidas que precisam de sistema',
     axis: 'SYSTEM',
     description:
-      'Trading over a year, in sectors built on jobs, deadlines and records. Sorted by the system score, not the website one.',
+      'Abertas há mais de um ano, em setores movidos a ordens de serviço, prazos e registros. Ordenadas pelo score de sistema, não pelo de site.',
     filters: {
       companyAge: 'OVER_1_YEAR',
       websiteFilter: 'ANY',

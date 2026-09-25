@@ -10,13 +10,13 @@ import type { OfficerRecord } from '../providers/companies/types.js';
 
 /** Roles that plausibly make a buying decision, best first. */
 const DECISION_ROLES: { role: string; label: string; rank: number }[] = [
-  { role: 'llp-designated-member', label: 'Designated member', rank: 0 },
-  { role: 'director', label: 'Director', rank: 1 },
-  { role: 'llp-member', label: 'Member', rank: 2 },
-  { role: 'member-of-a-management-body', label: 'Management body member', rank: 3 },
-  { role: 'managing-officer', label: 'Managing officer', rank: 4 },
-  { role: 'judicial-factor', label: 'Judicial factor', rank: 8 },
-  { role: 'secretary', label: 'Company secretary', rank: 9 },
+  { role: 'llp-designated-member', label: 'Sócio designado', rank: 0 },
+  { role: 'director', label: 'Diretor(a)', rank: 1 },
+  { role: 'llp-member', label: 'Sócio(a)', rank: 2 },
+  { role: 'member-of-a-management-body', label: 'Membro do conselho', rank: 3 },
+  { role: 'managing-officer', label: 'Administrador(a)', rank: 4 },
+  { role: 'judicial-factor', label: 'Administrador judicial', rank: 8 },
+  { role: 'secretary', label: 'Secretário(a)', rank: 9 },
 ];
 
 export interface DecisionMaker {
@@ -61,11 +61,11 @@ export function selectDecisionMaker(
   if (usable.length === 0) {
     const why =
       officers.length === 0
-        ? 'the registry lists no officers'
+        ? 'o registro não lista nenhum responsável'
         : officers.every((o) => o.isCorporate)
-          ? 'every listed officer is another company, not a person'
-          : 'every listed appointment has been resigned';
-    return { others: [], activeDecisionMakers: 0, note: `No individual decision maker found: ${why}.` };
+          ? 'todos os responsáveis listados são outras empresas, não pessoas'
+          : 'todas as nomeações listadas já foram encerradas';
+    return { others: [], activeDecisionMakers: 0, note: `Nenhum decisor individual encontrado: ${why}.` };
   }
 
   const ranked = usable
@@ -88,16 +88,16 @@ export function selectDecisionMaker(
 
   const decisionMakers = ranked.map(({ officer, likelyFounder }): DecisionMaker => {
     const label = roleLabel(officer.role);
-    const parts = [`${label} on the public register`];
-    if (likelyFounder) parts.push('appointed at incorporation, so likely a founder');
-    else if (officer.appointedOn) parts.push(`appointed ${officer.appointedOn.toISOString().slice(0, 10)}`);
-    if (officer.occupation) parts.push(`occupation given as "${officer.occupation}"`);
+    const parts = [`${label} no registro público`];
+    if (likelyFounder) parts.push('nomeado(a) na abertura, então provavelmente fundador(a)');
+    else if (officer.appointedOn) parts.push(`nomeado(a) em ${officer.appointedOn.toISOString().slice(0, 10)}`);
+    if (officer.occupation) parts.push(`ocupação declarada: "${officer.occupation}"`);
     return { officer, roleLabel: label, reason: parts.join('; '), likelyFounder };
   });
 
   const soleTrader = decisionMakers.length === 1;
   const best = decisionMakers[0]!;
-  if (soleTrader) best.reason += '; the only active officer, so almost certainly the decision maker';
+  if (soleTrader) best.reason += '; único responsável ativo, então quase certamente é quem decide';
 
   return {
     best,

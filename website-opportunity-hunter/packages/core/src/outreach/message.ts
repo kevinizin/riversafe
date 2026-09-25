@@ -21,6 +21,12 @@ export interface DraftOptions {
   industryKey?: string | null;
   city?: string | null;
   facts: OutreachFact[];
+  /**
+   * What to offer. The two axes want opposite openings, and offering a website
+   * to a four-year-old practice that scored 86 for a system wastes the one
+   * chance the message gets. Defaults to the website pitch.
+   */
+  axis?: 'WEBSITE' | 'SYSTEM';
 }
 
 /**
@@ -45,23 +51,40 @@ export function generateOutreachDraft(options: DraftOptions): OutreachDraft {
       body: '',
       usedFacts: [],
       blockedReason:
-        'No factual observation has been established for this company yet. Run enrichment first — the template will not invent one.',
+        'Nenhuma observação factual foi estabelecida para esta empresa ainda. Rode o enriquecimento primeiro — o modelo não vai inventar uma.',
     };
   }
 
-  const industry = options.industryKey ? industryLabel(options.industryKey).toLowerCase() : 'local';
-  const location = options.city ? ` in ${options.city}` : '';
-  const greeting = options.recipientName ? `Hi ${options.recipientName},` : 'Hello,';
+  const industry = options.industryKey ? industryLabel(options.industryKey).toLowerCase() : 'empresas locais';
+  const location = options.city ? ` em ${options.city}` : '';
+  const greeting = options.recipientName ? `Olá, ${options.recipientName},` : 'Olá,';
 
   const primary = observations[0]!;
   const secondary = observations[1];
   const used = [primary, ...(secondary ? [secondary] : [])];
 
   const noticed = secondary
-    ? `I noticed ${primary.statement}, and ${secondary.statement}.`
-    : `I noticed ${primary.statement}.`;
+    ? `Reparei que ${primary.statement}, e que ${secondary.statement}.`
+    : `Reparei que ${primary.statement}.`;
 
-  const subject = `Quick question about ${options.companyName}`;
+  const system = options.axis === 'SYSTEM';
+
+  const found = system
+    ? `Encontrei a ${options.companyName} enquanto olhava empresas de ${industry}${location}.`
+    : `Encontrei a ${options.companyName} enquanto olhava empresas de ${industry}${location} abertas recentemente.`;
+
+  const offer = system
+    ? `Eu desenvolvo sistemas de gestão para empresas de ${industry} — o tipo de coisa que organiza ordens de serviço, prazos e o que está com quem.`
+    : `Eu faço sites para empresas de ${industry}, e montei uma ideia de como um site da ${options.companyName} poderia ficar.`;
+
+  const ask = system
+    ? 'Faria sentido conversarmos quinze minutos para eu entender como vocês controlam isso hoje?'
+    : 'Quer que eu envie a prévia?';
+
+  const subject = system
+    ? `Uma pergunta sobre a operação da ${options.companyName}`
+    : `Uma pergunta rápida sobre a ${options.companyName}`;
+
   const signature = options.senderBusiness
     ? `${options.senderName}\n${options.senderBusiness}`
     : options.senderName;
@@ -69,15 +92,15 @@ export function generateOutreachDraft(options: DraftOptions): OutreachDraft {
   const body = [
     greeting,
     '',
-    `I came across ${options.companyName} while looking at recently established ${industry} businesses${location}.`,
+    found,
     '',
     noticed,
     '',
-    `I build websites for ${industry} businesses, and I have put together an idea of what a site for ${options.companyName} could look like.`,
+    offer,
     '',
-    'Would you like me to send you the preview?',
+    ask,
     '',
-    'Best regards,',
+    'Abraço,',
     signature,
   ].join('\n');
 
@@ -101,12 +124,12 @@ export function outreachReadiness(input: ReadinessInput): Readiness {
   const reasons: string[] = [];
   const minScore = input.minScore ?? 60;
 
-  if ((input.score ?? 0) < minScore) reasons.push(`opportunity score is below ${minScore}`);
+  if ((input.score ?? 0) < minScore) reasons.push(`o score de oportunidade está abaixo de ${minScore}`);
   if (!input.facts.some((f) => f.kind === 'observation')) {
-    reasons.push('no factual observation to open the message with');
+    reasons.push('não há observação factual para abrir a mensagem');
   }
   if (!input.hasContactRoute) {
-    reasons.push('no business contact route recorded yet (add one on the company page)');
+    reasons.push('nenhum canal de contato comercial registrado ainda (adicione um na página da empresa)');
   }
 
   return { ready: reasons.length === 0, reasons };
@@ -118,7 +141,9 @@ export function outreachReadiness(input: ReadinessInput): Readiness {
  */
 export function personalisationSystemPrompt(): string {
   return [
-    'You rewrite a short B2B email so it reads naturally and specifically.',
+    'You rewrite a short B2B email, in BRAZILIAN PORTUGUESE, so it reads naturally',
+    'and specifically. The output must be in Portuguese regardless of the language',
+    'of these instructions.',
     'You are given a list of ALLOWED FACTS. You may only make statements that are',
     'supported by those facts. Do not add any claim, number, name, service, price,',
     'compliment or observation that is not in the list. Do not invent URLs or',
@@ -141,21 +166,21 @@ export function validatePersonalisation(
 
   for (const url of rewritten.match(/https?:\/\/\S+/gi) ?? []) {
     if (!allowed.includes(url.toLowerCase().replace(/[.,)]+$/, ''))) {
-      problems.push(`introduced a URL that is not in the facts: ${url}`);
+      problems.push(`introduziu uma URL que não está nos fatos: ${url}`);
     }
   }
   for (const email of rewritten.match(/[\w.+-]+@[\w.-]+\.\w{2,}/g) ?? []) {
     if (!allowed.includes(email.toLowerCase())) {
-      problems.push(`introduced an email address that is not in the facts: ${email}`);
+      problems.push(`introduziu um e-mail que não está nos fatos: ${email}`);
     }
   }
   for (const number of rewritten.match(/\b\d{2,}\b/g) ?? []) {
     if (!allowed.includes(number)) {
-      problems.push(`introduced the number ${number}, which no fact supports`);
+      problems.push(`introduziu o número ${number}, que nenhum fato sustenta`);
     }
   }
-  if (rewritten.trim().length < 40) problems.push('the rewrite is too short to be a usable email');
-  if (rewritten.split(/\s+/).length > 200) problems.push('the rewrite is longer than the brief allows');
+  if (rewritten.trim().length < 40) problems.push('a reescrita é curta demais para ser um e-mail utilizável');
+  if (rewritten.split(/\s+/).length > 200) problems.push('a reescrita é mais longa do que o briefing permite');
 
   return { ok: problems.length === 0, problems };
 }
@@ -163,7 +188,7 @@ export function validatePersonalisation(
 /** Sections a demo homepage should contain for the industry, when known. */
 export function sectionsForIndustry(industryKey: string | null | undefined): string[] {
   const profile = industryKey ? getIndustry(industryKey) : undefined;
-  return profile?.typicalServices ?? ['Services', 'About', 'Reviews', 'Contact'];
+  return profile?.typicalServices ?? ['Serviços', 'Sobre', 'Avaliações', 'Contato'];
 }
 
 const rank = (c: OutreachFact['confidence']): number => (c === 'HIGH' ? 2 : c === 'MEDIUM' ? 1 : 0);

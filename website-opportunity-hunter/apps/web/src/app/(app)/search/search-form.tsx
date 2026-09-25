@@ -46,7 +46,7 @@ export function SearchForm(props: Props) {
   return (
     <form action={formAction} className="space-y-5">
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-        <p className="label mb-2">Start from</p>
+        <p className="label mb-2">Começar a partir de</p>
         <div className="grid gap-2 sm:grid-cols-2">
           {props.presets.map((preset) => (
             <button
@@ -64,7 +64,7 @@ export function SearchForm(props: Props) {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <label className="label" htmlFor="countryCode">Country</label>
+          <label className="label" htmlFor="countryCode">País</label>
           <select
             id="countryCode"
             name="countryCode"
@@ -79,9 +79,9 @@ export function SearchForm(props: Props) {
         </div>
 
         <div>
-          <label className="label" htmlFor="region">Nation or region</label>
+          <label className="label" htmlFor="region">Estado ou região</label>
           <select id="region" name="region" className="input" defaultValue="">
-            <option value="">All of {country?.name ?? 'the country'}</option>
+            <option value="">Todo o {country?.name ?? 'país'}</option>
             {(country?.regions ?? []).map((r) => (
               <option key={r} value={r}>{r}</option>
             ))}
@@ -89,13 +89,13 @@ export function SearchForm(props: Props) {
         </div>
 
         <div>
-          <label className="label" htmlFor="city">City or town</label>
+          <label className="label" htmlFor="city">Cidade</label>
           <input
             id="city"
             name="city"
             list="country-cities"
             className="input"
-            placeholder="Any — or type any town"
+            placeholder="Qualquer — ou digite uma cidade"
           />
           <datalist id="country-cities">
             {(country?.cities ?? []).map((c) => (
@@ -105,7 +105,7 @@ export function SearchForm(props: Props) {
         </div>
 
         <div>
-          <label className="label" htmlFor="companyAge">Company age</label>
+          <label className="label" htmlFor="companyAge">Idade da empresa</label>
           <select
             id="companyAge"
             name="companyAge"
@@ -121,10 +121,10 @@ export function SearchForm(props: Props) {
       </div>
 
       <fieldset>
-        <legend className="label">Industries</legend>
+        <legend className="label">Setores</legend>
         <p className="mb-2 text-xs text-slate-500">
-          Leave everything unticked to search all industries. Selected industries are matched on
-          registered SIC codes.
+          Deixe tudo desmarcado para buscar em todos os setores. Os setores marcados são casados
+          pelos códigos CNAE registrados.
         </p>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {props.industriesByGroup.map((group) => (
@@ -154,7 +154,7 @@ export function SearchForm(props: Props) {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <label className="label" htmlFor="websiteFilter">Website</label>
+          <label className="label" htmlFor="websiteFilter">Site</label>
           <select
             id="websiteFilter"
             name="websiteFilter"
@@ -168,38 +168,38 @@ export function SearchForm(props: Props) {
           </select>
         </div>
         <div>
-          <label className="label" htmlFor="minScore">Minimum opportunity score</label>
+          <label className="label" htmlFor="minScore">Score mínimo de oportunidade</label>
           <input id="minScore" name="minScore" type="number" min={0} max={100} defaultValue={0} className="input" />
         </div>
         <div>
-          <label className="label" htmlFor="minReviews">Minimum reviews</label>
-          <input id="minReviews" name="minReviews" type="number" min={0} className="input" placeholder="Any" />
+          <label className="label" htmlFor="minReviews">Mínimo de avaliações</label>
+          <input id="minReviews" name="minReviews" type="number" min={0} className="input" placeholder="Qualquer" />
         </div>
         <div>
-          <label className="label" htmlFor="maxCompanies">Maximum companies</label>
+          <label className="label" htmlFor="maxCompanies">Máximo de empresas</label>
           <input id="maxCompanies" name="maxCompanies" type="number" min={1} max={500} defaultValue={100} className="input" />
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="label" htmlFor="name">Save this search as</label>
-          <input id="name" name="name" className="input" placeholder="Optional — a name is generated for you" />
+          <label className="label" htmlFor="name">Salvar esta busca como</label>
+          <input id="name" name="name" className="input" placeholder="Opcional — um nome é gerado para você" />
         </div>
         <div>
-          <label className="label" htmlFor="nameIncludes">Company name contains</label>
-          <input id="nameIncludes" name="nameIncludes" className="input" placeholder="Optional" />
+          <label className="label" htmlFor="nameIncludes">Nome da empresa contém</label>
+          <input id="nameIncludes" name="nameIncludes" className="input" placeholder="Opcional" />
         </div>
       </div>
 
       <div className="flex flex-wrap gap-4 text-sm">
         <label className="flex items-center gap-2">
           <input type="checkbox" name="requireSocialPresence" className="rounded border-slate-300" />
-          Only companies with a social profile
+          Só empresas com perfil em rede social
         </label>
         <label className="flex items-center gap-2">
           <input type="checkbox" name="skipWebsiteAnalysis" className="rounded border-slate-300" />
-          Skip website analysis (faster, much less useful)
+          Pular a análise do site (mais rápido, bem menos útil)
         </label>
       </div>
 
@@ -209,10 +209,10 @@ export function SearchForm(props: Props) {
 
       <div className="flex items-center gap-3">
         <button type="submit" disabled={pending} className="btn-primary">
-          {pending ? 'Starting…' : 'Search'}
+          {pending ? 'Iniciando…' : 'Buscar'}
         </button>
         <p className="text-xs text-slate-500">
-          The search runs in the background. You will land on its progress page.
+          A busca roda em segundo plano. Você vai cair na página de progresso dela.
         </p>
       </div>
     </form>

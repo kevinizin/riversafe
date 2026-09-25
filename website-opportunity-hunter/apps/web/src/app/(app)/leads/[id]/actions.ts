@@ -129,6 +129,10 @@ export async function prepareOutreachAction(formData: FormData): Promise<void> {
     ...(senderBusiness ? { senderBusiness } : {}),
     industryKey: company.industries[0]?.industryKey,
     city: company.city,
+    // Pitch whichever axis this company actually scored on. Offering a website
+    // to a four-year-old practice that scored 86 for a system wastes the one
+    // opening the message gets. Ties go to the website, which is the cheaper ask.
+    axis: (company.systemScore ?? 0) > (company.currentScore ?? 0) ? 'SYSTEM' : 'WEBSITE',
     facts,
   });
 

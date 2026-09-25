@@ -75,25 +75,25 @@ export default async function LeadDetailPage({ params }: PageProps) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link href="/leads" className="text-xs text-slate-500 hover:underline">← Back to leads</Link>
+          <Link href="/leads" className="text-xs text-slate-500 hover:underline">← Voltar aos leads</Link>
           <h1 className="text-xl font-semibold">{company.name}</h1>
           <p className="text-sm text-slate-500">
-            {[company.city, company.region, company.postcode].filter(Boolean).join(' · ') || 'Location unknown'}
+            {[company.city, company.region, company.postcode].filter(Boolean).join(' · ') || 'Localização desconhecida'}
           </p>
         </div>
         <div className="flex items-center gap-6">
           <div className="text-center">
-            <p className="text-[10px] uppercase tracking-wide text-slate-400">Website</p>
+            <p className="text-[10px] uppercase tracking-wide text-slate-400">Site</p>
             <ScoreDial score={company.currentScore} />
             <div className="mt-1"><ClassificationBadge value={company.currentClassification} /></div>
           </div>
           <div className="text-center">
-            <p className="text-[10px] uppercase tracking-wide text-slate-400">System</p>
+            <p className="text-[10px] uppercase tracking-wide text-slate-400">Sistema</p>
             <ScoreDial score={company.systemScore} />
             <div className="mt-1"><ClassificationBadge value={company.systemClassification} /></div>
           </div>
           <div className="text-center">
-            <p className="text-[10px] uppercase tracking-wide text-slate-400">Size</p>
+            <p className="text-[10px] uppercase tracking-wide text-slate-400">Porte</p>
             <div className="mt-2">
               <SizeBadge
                 band={company.sizeBand}
@@ -116,53 +116,53 @@ export default async function LeadDetailPage({ params }: PageProps) {
           <form action={setLeadStatusAction} className="flex items-end gap-2">
             <input type="hidden" name="companyId" value={company.id} />
             <div>
-              <label className="label" htmlFor="status">Pipeline stage</label>
+              <label className="label" htmlFor="status">Etapa no funil</label>
               <select id="status" name="status" defaultValue={company.leadStatus} className="input">
                 {CRM_PIPELINE.map((status) => (
                   <option key={status} value={status}>{LEAD_STATUS_LABEL[status]}</option>
                 ))}
               </select>
             </div>
-            <button type="submit" className="btn-ghost">Update</button>
+            <button type="submit" className="btn-ghost">Atualizar</button>
           </form>
 
           <form action={setLeadStatusAction}>
             <input type="hidden" name="companyId" value={company.id} />
             <input type="hidden" name="status" value="CONTACTED" />
-            <button type="submit" className="btn-ghost">Mark contacted</button>
+            <button type="submit" className="btn-ghost">Marcar como contatado</button>
           </form>
 
           <form action={setLeadStatusAction}>
             <input type="hidden" name="companyId" value={company.id} />
             <input type="hidden" name="status" value="DISCARDED" />
-            <button type="submit" className="btn-ghost">Discard</button>
+            <button type="submit" className="btn-ghost">Descartar</button>
           </form>
 
           <form action={reenrichAction}>
             <input type="hidden" name="companyId" value={company.id} />
-            <button type="submit" className="btn-ghost">Re-run enrichment</button>
+            <button type="submit" className="btn-ghost">Rodar enriquecimento de novo</button>
           </form>
 
           <form action={rescoreAction}>
             <input type="hidden" name="companyId" value={company.id} />
-            <button type="submit" className="btn-ghost">Recalculate score</button>
+            <button type="submit" className="btn-ghost">Recalcular score</button>
           </form>
         </div>
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <SectionTitle>Company overview</SectionTitle>
+          <SectionTitle>Visão geral da empresa</SectionTitle>
           <dl>
-            <KeyValue label="Company name">{company.name}</KeyValue>
-            <KeyValue label="Company number">
+            <KeyValue label="Razão social">{company.name}</KeyValue>
+            <KeyValue label="CNPJ / registro">
               {company.companyNumber ? (
                 <span className="font-mono">{company.companyNumber}</span>
               ) : (
-                <Unknown note="No registry number recorded for this company" />
+                <Unknown note="Nenhum número de registro gravado para esta empresa" />
               )}
             </KeyValue>
-            <KeyValue label="Industry">
+            <KeyValue label="Setor">
               {primaryIndustry ? (
                 <>
                   {industryLabel(primaryIndustry.industryKey)}
@@ -174,15 +174,15 @@ export default async function LeadDetailPage({ params }: PageProps) {
                 <Unknown note="No SIC code or keyword matched a known industry" />
               )}
             </KeyValue>
-            <KeyValue label="SIC codes">
+            <KeyValue label="Códigos de atividade">
               {company.sicCodes.length ? company.sicCodes.join(', ') : <Unknown />}
             </KeyValue>
-            <KeyValue label="Registered office">
+            <KeyValue label="Endereço registrado">
               {[company.addressLine1, company.addressLine2, company.city, company.postcode, company.country]
                 .filter(Boolean)
                 .join(', ') || <Unknown />}
             </KeyValue>
-            <KeyValue label="Incorporated">
+            <KeyValue label="Aberta em">
               {company.incorporationDate ? (
                 <>
                   {formatDate(company.incorporationDate)}{' '}
@@ -192,15 +192,15 @@ export default async function LeadDetailPage({ params }: PageProps) {
                 <Unknown />
               )}
             </KeyValue>
-            <KeyValue label="Status">{company.status}</KeyValue>
-            <KeyValue label="Phone">{company.phone ?? <Unknown />}</KeyValue>
+            <KeyValue label="Situação">{company.status}</KeyValue>
+            <KeyValue label="Telefone">{company.phone ?? <Unknown />}</KeyValue>
           </dl>
         </Card>
 
         <Card>
-          <SectionTitle>Digital presence</SectionTitle>
+          <SectionTitle>Presença digital</SectionTitle>
           <dl>
-            <KeyValue label="Website">
+            <KeyValue label="Site">
               {website ? (
                 <a href={website.url} target="_blank" rel="noreferrer noopener" className="text-brand hover:underline">
                   {website.domain}
@@ -209,7 +209,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
                 <span>{WEBSITE_STATUS_LABEL[company.websiteStatus]}</span>
               )}
             </KeyValue>
-            <KeyValue label="Website status">
+            <KeyValue label="Situação do site">
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span>{WEBSITE_STATUS_LABEL[company.websiteStatus]}</span>
@@ -234,9 +234,9 @@ export default async function LeadDetailPage({ params }: PageProps) {
                 </KeyValue>
               );
             })}
-            <KeyValue label="Reviews">
+            <KeyValue label="Avaliações">
               {company.reviewCount === null ? (
-                <Unknown note="No places provider is configured, so review counts are not collected" />
+                <Unknown note="Nenhuma fonte de fichas de negócio configurada, então avaliações não são coletadas" />
               ) : (
                 `${company.reviewCount}${company.rating ? ` · ${company.rating.toFixed(1)}★` : ''}`
               )}
@@ -246,15 +246,15 @@ export default async function LeadDetailPage({ params }: PageProps) {
       </div>
 
       <Card>
-        <SectionTitle hint="From the public officer register. Roles only, unless this deployment opts into names.">
-          Decision maker
+        <SectionTitle hint="Do registro público de responsáveis. Só cargos, a menos que esta instalação opte por guardar nomes.">
+          Quem decide
         </SectionTitle>
         {officers.length ? (
           <ul className="space-y-2 text-sm">
             {officers.map((officer, index) => (
               <li key={officer.id} className="border-b border-slate-100 pb-2 last:border-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">{officer.name ?? officer.role ?? 'Officer'}</span>
+                  <span className="font-medium">{officer.name ?? officer.role ?? 'Responsável'}</span>
                   {officer.name ? (
                     <span className="chip border border-slate-200 bg-slate-100 text-slate-600">
                       {officer.role}
@@ -262,7 +262,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
                   ) : null}
                   {index === 0 ? (
                     <span className="chip border border-emerald-200 bg-emerald-50 text-emerald-700">
-                      Best contact
+                      Melhor contato
                     </span>
                   ) : null}
                   <ConfidenceBadge value={officer.confidence} />
@@ -275,7 +275,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
                     rel="noreferrer noopener"
                     className="text-xs text-brand hover:underline"
                   >
-                    Public officer register
+                    Registro público de responsáveis
                   </a>
                 ) : null}
               </li>
@@ -283,29 +283,29 @@ export default async function LeadDetailPage({ params }: PageProps) {
           </ul>
         ) : (
           <p className="text-sm text-slate-500">
-            No individual decision maker recorded. Either the register lists no active individual
-            officer, or the officer lookup has not run for this company.
+            Nenhum decisor individual registrado. Ou o registro não lista nenhum responsável pessoa
+            física ativo, ou a consulta de responsáveis ainda não rodou para esta empresa.
           </p>
         )}
         {officers.length > 0 && !decisionMaker?.name ? (
           <p className="mt-2 text-xs text-slate-500">
-            Officer names are not collected in this deployment. Set COLLECT_OFFICER_NAMES=true to
-            store them — they are personal data, so that is a deliberate choice.
+            Nomes de responsáveis não são coletados nesta instalação. Defina COLLECT_OFFICER_NAMES=true
+            para guardá-los — são dados pessoais, então essa é uma escolha deliberada.
           </p>
         ) : null}
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <SectionTitle hint="Why the lead scored what it did">Opportunity</SectionTitle>
+          <SectionTitle hint="Por que o lead pontuou o que pontuou">Oportunidade de site</SectionTitle>
           {score ? (
             <>
               <div className="flex items-center gap-3">
                 <ScoreDial score={score.score} />
                 <div className="space-y-1">
                   <ClassificationBadge value={score.classification} />
-                  <ConfidenceBadge value={score.confidence} prefix="Score confidence" />
-                  <p className="text-xs text-slate-500">Computed {formatDateTime(score.computedAt)}</p>
+                  <ConfidenceBadge value={score.confidence} prefix="Confiança do score" />
+                  <p className="text-xs text-slate-500">Calculado em {formatDateTime(score.computedAt)}</p>
                 </div>
               </div>
 
@@ -326,7 +326,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
               {score.gaps.length ? (
                 <div className="mt-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    What we could not establish
+                    O que não conseguimos estabelecer
                   </p>
                   <ul className="mt-1 list-inside list-disc text-sm text-slate-600">
                     {score.gaps.map((gap) => (
@@ -342,8 +342,8 @@ export default async function LeadDetailPage({ params }: PageProps) {
         </Card>
 
         <Card>
-          <SectionTitle hint="Why it scored what it did for a management system">
-            System opportunity
+          <SectionTitle hint="Por que pontuou o que pontuou para um sistema de gestão">
+            Oportunidade de sistema
           </SectionTitle>
           {systemScore ? (
             <>
@@ -351,8 +351,8 @@ export default async function LeadDetailPage({ params }: PageProps) {
                 <ScoreDial score={systemScore.score} />
                 <div className="space-y-1">
                   <ClassificationBadge value={systemScore.classification} />
-                  <ConfidenceBadge value={systemScore.confidence} prefix="Score confidence" />
-                  <p className="text-xs text-slate-500">Computed {formatDateTime(systemScore.computedAt)}</p>
+                  <ConfidenceBadge value={systemScore.confidence} prefix="Confiança do score" />
+                  <p className="text-xs text-slate-500">Calculado em {formatDateTime(systemScore.computedAt)}</p>
                 </div>
               </div>
 
@@ -373,7 +373,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
               {systemScore.gaps.length ? (
                 <div className="mt-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    What we could not establish
+                    O que não conseguimos estabelecer
                   </p>
                   <ul className="mt-1 list-inside list-disc text-sm text-slate-600">
                     {systemScore.gaps.map((gap) => (
@@ -386,7 +386,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
               {systemUseCases.length ? (
                 <div className="mt-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    What a system would run for them
+                    O que um sistema rodaria para eles
                   </p>
                   <ul className="mt-1 list-inside list-disc text-sm text-slate-600">
                     {systemUseCases.map((useCase) => (
@@ -394,8 +394,8 @@ export default async function LeadDetailPage({ params }: PageProps) {
                     ))}
                   </ul>
                   <p className="mt-1 text-xs text-slate-500">
-                    Typical for the sector, not observed at this company — use them as questions, not
-                    as statements.
+                    Típico do setor, não observado nesta empresa — use como perguntas, não como
+                    afirmações.
                   </p>
                 </div>
               ) : null}
@@ -406,14 +406,14 @@ export default async function LeadDetailPage({ params }: PageProps) {
         </Card>
 
         <Card>
-          <SectionTitle hint="Only checks with observable evidence">Website analysis</SectionTitle>
+          <SectionTitle hint="Só verificações com evidência observável">Análise do site</SectionTitle>
           {analysis ? (
             <>
               <div className="flex flex-wrap items-center gap-3">
                 <ScoreDial score={analysis.qualityScore} />
                 <div className="text-sm">
                   <p className="font-medium">
-                    {analysis.qualityScore !== null ? qualityBand(analysis.qualityScore) : 'Not scored'}
+                    {analysis.qualityScore !== null ? qualityBand(analysis.qualityScore) : 'Sem pontuação'}
                   </p>
                   <p className="text-slate-500">
                     {analysis.detectedPlatform ? `${analysis.detectedPlatform} · ` : ''}
@@ -466,20 +466,20 @@ export default async function LeadDetailPage({ params }: PageProps) {
           ) : (
             <p className="text-sm text-slate-500">
               {company.websiteStatus === 'NO_WEBSITE_FOUND'
-                ? 'No website was found, so there is nothing to analyse. That is what makes this a lead.'
-                : 'No website analysis has been recorded yet.'}
+                ? 'Nenhum site foi encontrado, então não há o que analisar. É justamente isso que faz disto um lead.'
+                : 'Nenhuma análise de site foi registrada ainda.'}
             </p>
           )}
         </Card>
       </div>
 
       <Card>
-        <SectionTitle hint="Every claim above, with where it came from">Evidence</SectionTitle>
+        <SectionTitle hint="Cada afirmação acima, com a origem dela">Evidências</SectionTitle>
         <ul className="space-y-2 text-sm">
           {company.sources.map((source) => (
             <EvidenceItem
               key={source.id}
-              title={`Registry record via ${source.provider}`}
+              title={`Registro obtido via ${source.provider}`}
               detail={source.externalId ?? ''}
               url={source.sourceUrl}
               at={source.fetchedAt}
@@ -489,7 +489,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
           {company.websites.map((site) => (
             <EvidenceItem
               key={site.id}
-              title={`Website ${site.domain}`}
+              title={`Site ${site.domain}`}
               detail={`${site.discoveryMethod.toLowerCase().replace(/_/g, ' ')} — ${site.evidence ?? 'no evidence recorded'}`}
               url={site.url}
               at={site.firstSeenAt}
@@ -499,7 +499,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
           {company.socials.map((social) => (
             <EvidenceItem
               key={social.id}
-              title={`${social.platform} profile`}
+              title={`Perfil no ${social.platform}`}
               detail={social.evidence ?? ''}
               url={social.url}
               at={social.detectedAt}
@@ -521,62 +521,62 @@ export default async function LeadDetailPage({ params }: PageProps) {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <SectionTitle hint="Drafted from established facts only. Nothing is sent by this system.">
+          <SectionTitle hint="Redigido apenas a partir de fatos estabelecidos. Este sistema não envia nada.">
             Outreach
           </SectionTitle>
           <form action={prepareOutreachAction} className="grid gap-3 sm:grid-cols-3">
             <input type="hidden" name="companyId" value={company.id} />
             <div>
-              <label className="label" htmlFor="senderName">Your name</label>
+              <label className="label" htmlFor="senderName">Seu nome</label>
               <input id="senderName" name="senderName" required defaultValue={user.name} className="input" />
             </div>
             <div>
-              <label className="label" htmlFor="senderBusiness">Your business</label>
-              <input id="senderBusiness" name="senderBusiness" className="input" placeholder="Optional" />
+              <label className="label" htmlFor="senderBusiness">Sua empresa</label>
+              <input id="senderBusiness" name="senderBusiness" className="input" placeholder="Opcional" />
             </div>
             <div>
-              <label className="label" htmlFor="recipientName">Recipient name</label>
+              <label className="label" htmlFor="recipientName">Nome do destinatário</label>
               <input
                 id="recipientName"
                 name="recipientName"
                 defaultValue={suggestedGreeting ?? ''}
                 className="input"
-                placeholder={suggestedGreeting ? undefined : 'Optional'}
+                placeholder={suggestedGreeting ? undefined : 'Opcional'}
               />
             </div>
             <div className="sm:col-span-3">
-              <button type="submit" className="btn-primary">Prepare outreach</button>
+              <button type="submit" className="btn-primary">Preparar abordagem</button>
             </div>
           </form>
 
           {emailDraft ? (
             <div className="mt-4 space-y-2">
               <p className="text-xs text-slate-500">
-                Generated {formatDateTime(emailDraft.generatedAt)} by {emailDraft.generatedBy}
+                Gerado em {formatDateTime(emailDraft.generatedAt)} por {emailDraft.generatedBy}
                 {emailDraft.aiModel ? ` (${emailDraft.aiModel})` : ''}
               </p>
-              <p className="text-sm font-medium">Subject: {emailDraft.subject}</p>
+              <p className="text-sm font-medium">Assunto: {emailDraft.subject}</p>
               <pre className="whitespace-pre-wrap rounded-md bg-slate-50 p-3 text-sm">{emailDraft.body}</pre>
               <FactList facts={emailDraft.facts} />
               <form action={markOutreachSentAction}>
                 <input type="hidden" name="companyId" value={company.id} />
                 <input type="hidden" name="outreachId" value={emailDraft.id} />
-                <button type="submit" className="btn-ghost">I have sent this</button>
+                <button type="submit" className="btn-ghost">Já enviei isto</button>
               </form>
             </div>
           ) : (
-            <p className="mt-3 text-sm text-slate-500">No draft yet.</p>
+            <p className="mt-3 text-sm text-slate-500">Nenhum rascunho ainda.</p>
           )}
         </Card>
 
         <Card>
-          <SectionTitle hint="An internal brief for a demo homepage. Never published to the prospect.">
+          <SectionTitle hint="Um briefing interno para uma página de demonstração. Nunca publicado para o prospecto.">
             Website preview brief
           </SectionTitle>
           <div className="flex flex-wrap items-center gap-2">
             <form action={generatePreviewAction}>
               <input type="hidden" name="companyId" value={company.id} />
-              <button type="submit" className="btn-primary">Generate preview brief</button>
+              <button type="submit" className="btn-primary">Gerar briefing da prévia</button>
             </form>
             <a
               href={`/api/leads/${company.id}/preview`}
@@ -591,8 +591,8 @@ export default async function LeadDetailPage({ params }: PageProps) {
             </a>
           </div>
           <p className="mt-2 text-xs text-slate-500">
-            The demo page is generated on request and shown only to you. It carries a banner saying
-            who prepared it and that it was not commissioned, and it is never published anywhere.
+            A página de demonstração é gerada sob demanda e mostrada só para você. Ela leva um aviso
+            dizendo quem a preparou e que não foi encomendada, e nunca é publicada em lugar nenhum.
           </p>
 
           {briefing ? (
@@ -600,16 +600,16 @@ export default async function LeadDetailPage({ params }: PageProps) {
               <div>
                 <p className="font-medium">{briefing.business.name}</p>
                 <p className="text-slate-500">
-                  {briefing.business.industry} · {briefing.business.location ?? 'location to confirm'} ·{' '}
+                  {briefing.business.industry} · {briefing.business.location ?? 'localização a confirmar'} ·{' '}
                   {briefing.business.currency}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Primary call to action</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Chamada principal</p>
                 <p>{briefing.primaryCta}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sections</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Seções</p>
                 <ul className="mt-1 space-y-1">
                   {briefing.sections.map((section) => (
                     <li key={section.key}>
@@ -620,7 +620,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
                 </ul>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Confirm before showing</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Confirmar antes de mostrar</p>
                 <ul className="mt-1 list-inside list-disc text-slate-600">
                   {briefing.toConfirm.map((item) => (
                     <li key={item}>{item}</li>
@@ -629,7 +629,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
               </div>
               {briefing.brand.colourHints.length ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs uppercase tracking-wide text-slate-500">Colour hints</span>
+                  <span className="text-xs uppercase tracking-wide text-slate-500">Cores sugeridas</span>
                   {briefing.brand.colourHints.map((hex) => (
                     <span key={hex} className="flex items-center gap-1 text-xs">
                       <span className="inline-block h-4 w-4 rounded border border-slate-300" style={{ backgroundColor: hex }} />
@@ -641,50 +641,50 @@ export default async function LeadDetailPage({ params }: PageProps) {
               <Notice tone="warn">{briefing.constraints[1]}</Notice>
             </div>
           ) : (
-            <p className="mt-3 text-sm text-slate-500">No brief generated yet.</p>
+            <p className="mt-3 text-sm text-slate-500">Nenhum briefing gerado ainda.</p>
           )}
         </Card>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <SectionTitle>Notes</SectionTitle>
+          <SectionTitle>Anotações</SectionTitle>
           <form action={addNoteAction} className="flex gap-2">
             <input type="hidden" name="companyId" value={company.id} />
-            <input name="body" required maxLength={4000} className="input" placeholder="Add a note" />
-            <button type="submit" className="btn-ghost mt-1">Add</button>
+            <input name="body" required maxLength={4000} className="input" placeholder="Escreva uma anotação" />
+            <button type="submit" className="btn-ghost mt-1">Adicionar</button>
           </form>
           <ul className="mt-3 space-y-2 text-sm">
             {company.notes.map((note) => (
               <li key={note.id} className="border-b border-slate-100 pb-2 last:border-0">
                 <p>{note.body}</p>
                 <p className="text-xs text-slate-500">
-                  {note.user?.name ?? 'Someone'} · {formatDateTime(note.createdAt)}
+                  {note.user?.name ?? 'Alguém'} · {formatDateTime(note.createdAt)}
                 </p>
               </li>
             ))}
-            {company.notes.length === 0 ? <li className="text-slate-500">No notes yet.</li> : null}
+            {company.notes.length === 0 ? <li className="text-slate-500">Nenhuma anotação ainda.</li> : null}
           </ul>
         </Card>
 
         <Card>
-          <SectionTitle hint="Data protection">Record handling</SectionTitle>
+          <SectionTitle hint="Proteção de dados">Tratamento do registro</SectionTitle>
           <dl>
-            <KeyValue label="Source">{company.dataSource}</KeyValue>
-            <KeyValue label="Collected">{formatDateTime(company.collectedAt)}</KeyValue>
-            <KeyValue label="Purpose">{company.purpose}</KeyValue>
-            <KeyValue label="Retention">{company.retentionStatus}</KeyValue>
-            <KeyValue label="Contacts stored">{company.contacts.length}</KeyValue>
+            <KeyValue label="Fonte">{company.dataSource}</KeyValue>
+            <KeyValue label="Coletado em">{formatDateTime(company.collectedAt)}</KeyValue>
+            <KeyValue label="Finalidade">{company.purpose}</KeyValue>
+            <KeyValue label="Retenção">{company.retentionStatus}</KeyValue>
+            <KeyValue label="Contatos guardados">{company.contacts.length}</KeyValue>
           </dl>
           <form action={deleteCompanyAction} className="mt-3">
             <input type="hidden" name="companyId" value={company.id} />
             <button type="submit" className="btn-danger">
-              Delete this company and all its data
+              Excluir esta empresa e todos os dados dela
             </button>
           </form>
           <p className="mt-1 text-xs text-slate-500">
-            This is a permanent erasure, not a hidden flag. The audit log keeps only that a deletion
-            happened.
+            Isto é uma exclusão definitiva, não uma marcação escondida. O registro de auditoria guarda
+            apenas que uma exclusão aconteceu.
           </p>
         </Card>
       </div>
@@ -729,7 +729,7 @@ function FactList({ facts }: { facts: unknown }) {
   return (
     <details>
       <summary className="cursor-pointer text-xs text-slate-600">
-        Facts this message is allowed to rely on
+        Fatos em que esta mensagem pode se apoiar
       </summary>
       <ul className="mt-1 list-inside list-disc text-xs text-slate-600">
         {items.map((fact, index) => (

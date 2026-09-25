@@ -26,24 +26,24 @@ export function LeadCard({ lead, axis = 'WEBSITE' }: { lead: LeadRow; axis?: Lea
 
   if (axis === 'SYSTEM') {
     if (age !== null && age >= 365) {
-      why.push(`Trading for ${Math.floor(age / 365)} year(s)`);
+      why.push(`Aberta há ${Math.floor(age / 365)} ano(s)`);
     }
     if (lead.sizeBand && lead.sizeEmployeesFrom !== null) {
       const to = lead.sizeEmployeesTo === null ? '+' : `–${lead.sizeEmployeesTo}`;
-      why.push(`Estimated ${lead.sizeEmployeesFrom}${to} people`);
+      why.push(`Estimativa de ${lead.sizeEmployeesFrom}${to} pessoas`);
     }
-    if (industry) why.push(`${industryLabel(industry.industryKey)} — process-heavy sector`);
-    if (lead.websiteStatus === 'NO_WEBSITE_FOUND') why.push('No website found');
-    else if (analysis && !analysis.hasOnlineBooking) why.push('Brochure site, nothing running on it');
+    if (industry) why.push(`${industryLabel(industry.industryKey)} — setor movido a processo`);
+    if (lead.websiteStatus === 'NO_WEBSITE_FOUND') why.push('Sem site encontrado');
+    else if (analysis && !analysis.hasOnlineBooking) why.push('Site só institucional, nada rodando nele');
   } else {
-    if (age !== null && age <= 90) why.push(`Incorporated ${relativeDays(lead.incorporationDate)}`);
-    if (lead.websiteStatus === 'NO_WEBSITE_FOUND') why.push('No website found');
+    if (age !== null && age <= 90) why.push(`Aberta ${relativeDays(lead.incorporationDate)}`);
+    if (lead.websiteStatus === 'NO_WEBSITE_FOUND') why.push('Sem site encontrado');
     if (analysis?.qualityScore !== null && analysis?.qualityScore !== undefined && analysis.qualityScore < 55) {
-      why.push(`Website scores ${analysis.qualityScore}/100`);
+      why.push(`Site pontua ${analysis.qualityScore}/100`);
     }
-    if (socialPlatforms.length) why.push(`Active on ${socialPlatforms.length} social platform(s)`);
-    if (lead.reviewCount) why.push(`${lead.reviewCount} reviews`);
-    if (industry) why.push(`${industryLabel(industry.industryKey)} — high-value sector for a website`);
+    if (socialPlatforms.length) why.push(`Presente em ${socialPlatforms.length} rede(s) social(is)`);
+    if (lead.reviewCount) why.push(`${lead.reviewCount} avaliações`);
+    if (industry) why.push(`${industryLabel(industry.industryKey)} — setor de alto valor para um site`);
   }
 
   return (
@@ -62,7 +62,7 @@ export function LeadCard({ lead, axis = 'WEBSITE' }: { lead: LeadRow; axis?: Lea
             {lead.name}
           </Link>
           <span className="text-xs text-slate-500">
-            {[lead.city, lead.region].filter(Boolean).join(', ') || 'Location unknown'}
+            {[lead.city, lead.region].filter(Boolean).join(', ') || 'Localização desconhecida'}
           </span>
           {lead.leadStatus !== 'NEW' ? (
             <span className="chip border border-slate-200 bg-slate-100 text-slate-600">
@@ -72,18 +72,18 @@ export function LeadCard({ lead, axis = 'WEBSITE' }: { lead: LeadRow; axis?: Lea
         </div>
 
         <dl className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Incorporated" value={relativeDays(lead.incorporationDate)} />
+          <Field label="Aberta" value={relativeDays(lead.incorporationDate)} />
           <Field
-            label="Website"
+            label="Site"
             value={WEBSITE_STATUS_LABEL[lead.websiteStatus] ?? lead.websiteStatus}
           />
           <Field
-            label="Social"
-            value={socialPlatforms.length ? socialPlatforms.join(', ') : 'None found'}
+            label="Redes"
+            value={socialPlatforms.length ? socialPlatforms.join(', ') : 'Nenhuma encontrada'}
           />
           {axis === 'SYSTEM' ? (
             <div>
-              <dt className="text-[11px] uppercase tracking-wide text-slate-400">Size</dt>
+              <dt className="text-[11px] uppercase tracking-wide text-slate-400">Porte</dt>
               <dd>
                 <SizeBadge
                   band={lead.sizeBand}
@@ -95,8 +95,8 @@ export function LeadCard({ lead, axis = 'WEBSITE' }: { lead: LeadRow; axis?: Lea
             </div>
           ) : (
             <Field
-              label="Reviews"
-              value={lead.reviewCount === null ? 'Unknown' : String(lead.reviewCount)}
+              label="Avaliações"
+              value={lead.reviewCount === null ? 'Desconhecido' : String(lead.reviewCount)}
             />
           )}
         </dl>
@@ -111,9 +111,9 @@ export function LeadCard({ lead, axis = 'WEBSITE' }: { lead: LeadRow; axis?: Lea
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Link href={`/leads/${lead.id}`} className="btn-ghost">
-            View
+            Abrir
           </Link>
-          <ConfidenceBadge value={lead.websiteConfidence} prefix="Website check" />
+          <ConfidenceBadge value={lead.websiteConfidence} prefix="Verificação do site" />
         </div>
       </div>
     </article>

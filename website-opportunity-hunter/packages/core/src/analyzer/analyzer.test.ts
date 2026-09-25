@@ -99,7 +99,7 @@ describe('scoreWebsite', () => {
 
   it('lists weaknesses that each name an observable fact', () => {
     const weak = scoreWebsite(extractFacts(WEAK, 'http://weak.example.com/'), { bookingExpected: true });
-    expect(weak.weaknesses).toEqual(expect.arrayContaining([expect.stringContaining('mobile')]));
+    expect(weak.weaknesses).toEqual(expect.arrayContaining([expect.stringContaining('celular')]));
     expect(weak.weaknesses.some((w) => w.includes('HTTPS'))).toBe(true);
     // Every weakness must correspond to a failed, applicable check.
     for (const weakness of weak.weaknesses) {

@@ -50,63 +50,69 @@ export default async function AnalyticsPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold">Analytics</h1>
+        <h1 className="text-xl font-semibold">Métricas</h1>
         <p className="text-sm text-slate-500">
-          Counts come from what the system found and what you recorded. Nothing here is estimated.
+          Os números vêm do que o sistema encontrou e do que você registrou. Nada aqui é estimado.
         </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Companies discovered" value={discovered} />
-        <Stat label="Qualified leads" value={qualified} hint="warm or better" />
-        <Stat label="Hot leads" value={classification.get('HOT') ?? 0} />
-        <Stat label="Average score" value={totals._avg.currentScore ? Math.round(totals._avg.currentScore) : '—'} />
-        <Stat label="Previews created" value={previews} />
-        <Stat label="Contacts prepared" value={contactsPrepared} />
+        <Stat label="Empresas descobertas" value={discovered} />
+        <Stat label="Leads qualificados" value={qualified} hint="mornos ou acima" />
+        <Stat label="Leads quentes" value={classification.get('HOT') ?? 0} />
+        <Stat label="Score médio" value={totals._avg.currentScore ? Math.round(totals._avg.currentScore) : '—'} />
+        <Stat label="Prévias criadas" value={previews} />
+        <Stat label="Contatos preparados" value={contactsPrepared} />
         <Stat label="Contacted" value={contacted} />
         <Stat label="Won" value={won} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <SectionTitle hint="Each step as a share of the one before it">Conversion</SectionTitle>
+          <SectionTitle hint="Cada etapa como proporção da anterior">Conversão</SectionTitle>
           <table className="w-full text-sm">
             <tbody>
-              <FunnelRow label="Discovered → qualified" value={qualified} of={discovered} />
-              <FunnelRow label="Qualified → contacted" value={contacted} of={qualified} />
-              <FunnelRow label="Contacted → replied" value={replied} of={contacted} />
-              <FunnelRow label="Replied → interested" value={interested} of={replied} />
-              <FunnelRow label="Interested → demo" value={demos} of={interested} />
-              <FunnelRow label="Demo → proposal" value={proposals} of={demos} />
-              <FunnelRow label="Proposal → won" value={won} of={proposals} />
+              <FunnelRow label="Descobertos → qualificados" value={qualified} of={discovered} />
+              <FunnelRow label="Qualificados → contatados" value={contacted} of={qualified} />
+              <FunnelRow label="Contatados → responderam" value={replied} of={contacted} />
+              <FunnelRow label="Responderam → interessados" value={interested} of={replied} />
+              <FunnelRow label="Interessados → demonstração" value={demos} of={interested} />
+              <FunnelRow label="Demonstração → proposta" value={proposals} of={demos} />
+              <FunnelRow label="Proposta → ganho" value={won} of={proposals} />
             </tbody>
           </table>
         </Card>
 
         <Card>
-          <SectionTitle hint="This calendar month">Cost and usage</SectionTitle>
+          <SectionTitle hint="Neste mês corrente">Custo e uso</SectionTitle>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between border-b border-slate-100 pb-1">
-              <dt>Website analyses run</dt>
+              <dt>Análises de site executadas</dt>
               <dd className="tabular-nums">{analyses}</dd>
             </div>
             <div className="flex justify-between border-b border-slate-100 pb-1">
-              <dt>AI calls</dt>
+              <dt>Chamadas de IA</dt>
               <dd className="tabular-nums">{aiUsage._count._all}</dd>
             </div>
             <div className="flex justify-between border-b border-slate-100 pb-1">
-              <dt>AI tokens (in / out)</dt>
+              <dt>Tokens de IA (entrada / saída)</dt>
               <dd className="tabular-nums">
                 {aiUsage._sum.inputTokens ?? 0} / {aiUsage._sum.outputTokens ?? 0}
               </dd>
             </div>
             <div className="flex justify-between border-b border-slate-100 pb-1">
-              <dt>Estimated AI spend</dt>
-              <dd className="tabular-nums">£{(aiUsage._sum.estimatedCostGbp ?? 0).toFixed(2)}</dd>
+              {/* No currency symbol: the rate card is configurable per
+                  installation, so the unit is whatever was configured there.
+                  Printing a symbol we have not verified would be a small lie
+                  on a number people budget against. */}
+              <dt title="Na moeda da tabela de preços configurada para a IA">
+                Gasto estimado com IA
+              </dt>
+              <dd className="tabular-nums">{(aiUsage._sum.estimatedCostGbp ?? 0).toFixed(2)}</dd>
             </div>
             {apiUsage.map((row) => (
               <div key={row.provider} className="flex justify-between border-b border-slate-100 pb-1 last:border-0">
-                <dt>{row.provider} calls</dt>
+                <dt>Chamadas a {row.provider}</dt>
                 <dd className="tabular-nums">{row._count._all}</dd>
               </div>
             ))}
@@ -115,7 +121,7 @@ export default async function AnalyticsPage() {
       </div>
 
       <Card>
-        <SectionTitle>Pipeline</SectionTitle>
+        <SectionTitle>Funil</SectionTitle>
         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {Object.entries(LEAD_STATUS_LABEL).map(([key, label]) => (
             <div key={key}>

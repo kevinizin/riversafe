@@ -21,14 +21,14 @@ export default async function SearchesPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Search history</h1>
-          <p className="text-sm text-slate-500">Every search is saved and can be run again unchanged.</p>
+          <h1 className="text-xl font-semibold">Histórico de buscas</h1>
+          <p className="text-sm text-slate-500">Toda busca fica salva e pode ser rodada de novo sem alterações.</p>
         </div>
-        <Link href="/search" className="btn-primary">New search</Link>
+        <Link href="/search" className="btn-primary">Nova busca</Link>
       </div>
 
       {searches.length === 0 ? (
-        <Empty title="No searches yet" body="Create your first search to start finding companies." />
+        <Empty title="Nenhuma busca ainda" body="Crie sua primeira busca para começar a encontrar empresas." />
       ) : (
         searches.map((search) => {
           let summary = search.name;
@@ -56,14 +56,14 @@ export default async function SearchesPage() {
                 <table className="mt-3 w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-                      <th className="table-cell">Run</th>
-                      <th className="table-cell">Status</th>
-                      <th className="table-cell text-right">Found</th>
-                      <th className="table-cell text-right">New</th>
-                      <th className="table-cell text-right">Hot</th>
-                      <th className="table-cell text-right">No website</th>
-                      <th className="table-cell text-right">Weak site</th>
-                      <th className="table-cell">Finished</th>
+                      <th className="table-cell">Execução</th>
+                      <th className="table-cell">Situação</th>
+                      <th className="table-cell text-right">Encontradas</th>
+                      <th className="table-cell text-right">Novas</th>
+                      <th className="table-cell text-right">Quentes</th>
+                      <th className="table-cell text-right">Sem site</th>
+                      <th className="table-cell text-right">Site fraco</th>
+                      <th className="table-cell">Terminou</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -71,7 +71,7 @@ export default async function SearchesPage() {
                       <tr key={run.id} className="border-b border-slate-100 last:border-0">
                         <td className="table-cell">
                           <Link href={`/searches/${run.id}`} className="text-brand hover:underline">
-                            open
+                            abrir
                           </Link>
                         </td>
                         <td className="table-cell">{run.status}</td>

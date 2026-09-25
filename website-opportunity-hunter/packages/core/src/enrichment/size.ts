@@ -63,10 +63,10 @@ export interface EmployeeTarget {
 export type ReceitaPorte = '00' | '01' | '03' | '05';
 
 export const PORTE_LABEL: Record<ReceitaPorte, string> = {
-  '00': 'Not stated',
-  '01': 'Micro-enterprise (ME)',
-  '03': 'Small enterprise (EPP)',
-  '05': 'Other (above the Simples ceiling)',
+  '00': 'Não informado',
+  '01': 'Microempresa (ME)',
+  '03': 'Empresa de pequeno porte (EPP)',
+  '05': 'Demais (acima do teto do Simples)',
 };
 
 /**
@@ -96,7 +96,7 @@ export function estimateSizeFromPorte(
   if (!code || code === '00') return undefined;
 
   const capital = typeof capitalSocial === 'number' && capitalSocial > 0 ? capitalSocial : undefined;
-  const basis: string[] = [`Size class on the Receita Federal register: ${PORTE_LABEL[code]}`];
+  const basis: string[] = [`Porte declarado na Receita Federal: ${PORTE_LABEL[code]}`];
 
   let band: SizeBand;
   let employeesFrom: number;
@@ -110,7 +110,7 @@ export function estimateSizeFromPorte(
     employeesFrom = 1;
     employeesTo = 9;
     confidence = 'MEDIUM';
-    basis.push('Revenue up to R$ 360k a year (LC 123/2006) — the micro band');
+    basis.push('Faturamento até R$ 360 mil por ano (LC 123/2006) — faixa micro');
   } else if (code === '03') {
     // EPP is the band the ten-to-fifteen target lives in, and it is wide:
     // R$ 360k to R$ 4.8M of annual revenue covers a two-person agency and a
@@ -119,7 +119,7 @@ export function estimateSizeFromPorte(
     employeesFrom = 10;
     employeesTo = 49;
     confidence = 'MEDIUM';
-    basis.push('Revenue between R$ 360k and R$ 4.8M a year (LC 123/2006)');
+    basis.push('Faturamento entre R$ 360 mil e R$ 4,8 milhões por ano (LC 123/2006)');
   } else {
     // "Demais" means only "above the Simples Nacional ceiling". It covers a
     // fifty-person firm and a multinational subsidiary, so the range stays open
@@ -128,25 +128,25 @@ export function estimateSizeFromPorte(
     employeesFrom = 20;
     employeesTo = undefined;
     confidence = 'LOW';
-    basis.push('Above the Simples Nacional ceiling — a wide band with no known upper limit');
+    basis.push('Acima do teto do Simples Nacional — faixa ampla, sem limite superior conhecido');
   }
 
   if (capital !== undefined) {
-    basis.push(`Declared share capital: ${formatBrl(capital)}`);
+    basis.push(`Capital social declarado: ${formatBrl(capital)}`);
     if (capital >= CAPITAL_SUGGESTS_STAFFED && band !== 'MICRO') {
       // Agrees with the band and adds something: raise the floor, not the band.
       employeesFrom = Math.max(employeesFrom, 10);
       confidence = 'MEDIUM';
-      basis.push('Capital consistent with an operation that employs its own staff');
+      basis.push('Capital compatível com uma operação que emprega equipe própria');
     } else if (capital <= CAPITAL_SUGGESTS_MINIMAL) {
       confidence = 'LOW';
-      basis.push('Token capital — common in companies with no structure, but also never updated in a great many');
+      basis.push('Capital simbólico — comum em empresas sem estrutura, mas também nunca atualizado em muitas outras');
     }
   } else {
-    basis.push('Share capital not stated');
+    basis.push('Capital social não informado');
   }
 
-  basis.push('No public register states a headcount — this is an estimate');
+  basis.push('Nenhum registro público informa número de funcionários — isto é uma estimativa');
 
   return sourced({ band, employeesFrom, employeesTo, basis }, confidence, evidence, true);
 }
@@ -180,7 +180,7 @@ export function estimateSizeFromAccounts(
   if (!accountsType) return undefined;
 
   const type = accountsType.trim().toLowerCase();
-  const note = 'Companies House publishes an accounts category, never a headcount — this is an estimate';
+  const note = 'O registro britânico publica uma categoria contábil, nunca número de funcionários — isto é uma estimativa';
 
   switch (type) {
     case 'micro-entity':
@@ -189,7 +189,7 @@ export function estimateSizeFromAccounts(
           band: 'MICRO',
           employeesFrom: 1,
           employeesTo: 10,
-          basis: ['Last accounts filed as micro-entity', 'Micro-entity thresholds include 10 employees or fewer', note],
+          basis: ['Último balanço entregue como micro-entity', 'O critério de micro-entity inclui 10 funcionários ou menos', note],
         },
         'MEDIUM',
         evidence,
@@ -204,8 +204,8 @@ export function estimateSizeFromAccounts(
           employeesFrom: 5,
           employeesTo: 50,
           basis: [
-            `Last accounts filed as ${type}`,
-            'Small-company thresholds cap at 50 employees, but qualify on any two of three tests, so headcount may be far lower',
+            `Último balanço entregue como ${type}`,
+            'O critério de empresa pequena vai até 50 funcionários, mas se qualifica por dois de três testes, então o número real pode ser bem menor',
             note,
           ],
         },
@@ -219,7 +219,7 @@ export function estimateSizeFromAccounts(
           band: 'MEDIUM',
           employeesFrom: 50,
           employeesTo: 250,
-          basis: ['Last accounts filed as medium', note],
+          basis: ['Último balanço entregue como medium', note],
         },
         'MEDIUM',
         evidence,
@@ -231,7 +231,7 @@ export function estimateSizeFromAccounts(
         {
           band: 'LARGE',
           employeesFrom: 50,
-          basis: [`Last accounts filed as ${type}`, 'Above the small-company regime', note],
+          basis: [`Último balanço entregue como ${type}`, 'Acima do regime de empresa pequena', note],
         },
         'LOW',
         evidence,
@@ -273,19 +273,19 @@ export function fitsEmployeeTarget(
 
 /** One line for a lead card, honest about being an estimate. */
 export function describeSize(estimate: SizeEstimate | undefined): string {
-  if (!estimate) return 'Size unknown';
+  if (!estimate) return 'Porte desconhecido';
   const range =
     estimate.employeesTo === undefined
-      ? `${estimate.employeesFrom}+ people`
-      : `${estimate.employeesFrom}–${estimate.employeesTo} people`;
-  return `${BAND_LABEL[estimate.band]} · estimated ${range}`;
+      ? `${estimate.employeesFrom}+ pessoas`
+      : `${estimate.employeesFrom}–${estimate.employeesTo} pessoas`;
+  return `${BAND_LABEL[estimate.band]} · estimativa de ${range}`;
 }
 
 export const BAND_LABEL: Record<SizeBand, string> = {
   MICRO: 'Micro',
-  SMALL: 'Small',
-  MEDIUM: 'Medium',
-  LARGE: 'Large',
+  SMALL: 'Pequena',
+  MEDIUM: 'Média',
+  LARGE: 'Grande',
 };
 
 /**

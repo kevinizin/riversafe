@@ -19,7 +19,7 @@ describe('selectDecisionMaker', () => {
       INCORPORATED,
     );
     expect(result.best?.officer.role).toBe('director');
-    expect(result.best?.roleLabel).toBe('Director');
+    expect(result.best?.roleLabel).toBe('Diretor(a)');
   });
 
   it('breaks a tie on the earliest appointment', () => {
@@ -34,7 +34,7 @@ describe('selectDecisionMaker', () => {
   it('marks an officer appointed at incorporation as a likely founder', () => {
     const result = selectDecisionMaker([officer()], INCORPORATED);
     expect(result.best?.likelyFounder).toBe(true);
-    expect(result.best?.reason).toContain('likely a founder');
+    expect(result.best?.reason).toContain('provavelmente fundador');
   });
 
   it('does not call a late appointment a founder', () => {
@@ -48,25 +48,25 @@ describe('selectDecisionMaker', () => {
   it('excludes corporate officers and says why when none are left', () => {
     const result = selectDecisionMaker([officer({ isCorporate: true })], INCORPORATED);
     expect(result.best).toBeUndefined();
-    expect(result.note).toContain('another company');
+    expect(result.note).toContain('outras empresas');
     expect(result.activeDecisionMakers).toBe(0);
   });
 
   it('excludes resigned appointments', () => {
     const result = selectDecisionMaker([officer({ isActive: false })], INCORPORATED);
     expect(result.best).toBeUndefined();
-    expect(result.note).toContain('resigned');
+    expect(result.note).toContain('encerradas');
   });
 
   it('notes when there is a single active officer', () => {
     const result = selectDecisionMaker([officer()], INCORPORATED);
-    expect(result.best?.reason).toContain('only active officer');
+    expect(result.best?.reason).toContain('único responsável ativo');
     expect(result.others).toHaveLength(0);
   });
 
   it('reports an empty register plainly', () => {
     const result = selectDecisionMaker([], INCORPORATED);
-    expect(result.note).toContain('no officers');
+    expect(result.note).toContain('não lista nenhum responsável');
   });
 
   it('carries no name when the deployment did not collect one', () => {
@@ -98,7 +98,7 @@ describe('greetingName', () => {
 
 describe('roleLabel', () => {
   it('humanises a known role and falls back gracefully', () => {
-    expect(roleLabel('llp-designated-member')).toBe('Designated member');
+    expect(roleLabel('llp-designated-member')).toBe('Sócio designado');
     expect(roleLabel('some-new-role')).toBe('Some new role');
   });
 });
