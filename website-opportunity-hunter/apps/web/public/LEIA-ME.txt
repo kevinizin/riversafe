@@ -1,0 +1,22 @@
+Coloque aqui a logo da Azven.
+
+Nomes aceitos, nesta ordem de preferência:
+
+  logo.svg    (melhor opção — fica nítida em qualquer tela e em qualquer tamanho)
+  logo.png
+  logo.webp
+  logo.jpg
+
+Basta salvar o arquivo nesta pasta com um desses nomes. Não precisa mexer em
+mais nada: o cabeçalho e a tela de entrada passam a usá-lo sozinhos na próxima
+vez que o sistema iniciar.
+
+Enquanto não houver arquivo nenhum, aparece o nome "Azven" escrito. Isso é de
+propósito — uma imagem quebrada no canto de todas as páginas fica pior do que
+logo nenhuma.
+
+A altura é ajustada automaticamente (24px no cabeçalho, 40px na tela de
+entrada) e a largura acompanha a proporção da imagem, então tanto uma logo
+larga quanto um símbolo quadrado funcionam. Se for PNG, use cerca de 3x essa
+altura (por exemplo 120px de altura) para ficar nítida em telas de alta
+resolução.

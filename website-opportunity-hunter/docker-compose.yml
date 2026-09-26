@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: woh
+      POSTGRES_PASSWORD: woh
+      POSTGRES_DB: woh
+    ports: ["5432:5432"]
+    volumes: ["woh-pg:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U woh"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    volumes: ["woh-redis:/data"]
+volumes:
+  woh-pg:
+  woh-redis:
