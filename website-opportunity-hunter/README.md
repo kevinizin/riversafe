@@ -410,13 +410,14 @@ every failure path reports what it tried and what came back.
 
 Each table is split into ten numbered parts, and the split is arbitrary rather
 than by state, so **all ten are needed** — a company in Amazonas can be in any
-of them. As of the September 2026 extraction that is roughly 6.4 GB:
+of them. That is 21 files: `Estabelecimentos0.zip` … `Estabelecimentos9.zip`,
+`Empresas0.zip` … `Empresas9.zip`, and `Municipios.zip`.
 
-| File | Parts | Size |
-| --- | --- | --- |
-| `Estabelecimentos0.zip` … `Estabelecimentos9.zip` | 10 | ~5.1 GB |
-| `Empresas0.zip` … `Empresas9.zip` | 10 | ~1.3 GB |
-| `Municipios.zip` | 1 | 42 KB |
+The total is not written down here, because a figure written down once goes
+stale: `Empresas0.zip` alone was 537 MB in the September 2026 extraction, well
+past what an earlier note in this file claimed for all ten. The listing
+declares each file's size, so `download:br` adds them up, prints the real
+total before it starts, and says so when the disk will not hold it.
 
 The importer warns loudly when a numbered part looks absent, because importing
 some of the parts produces a database that reports a healthy row count and is

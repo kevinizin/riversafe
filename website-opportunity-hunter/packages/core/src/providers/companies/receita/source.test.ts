@@ -28,13 +28,18 @@ let base: string;
 let davRoot: 'modern' | 'legacy' = 'modern';
 let requests: { method: string; url: string; depth?: string; auth?: string }[] = [];
 
-function multistatus(href: string, children: { name: string; collection: boolean }[]): string {
-  const entry = (path: string, collection: boolean) => `
+function multistatus(
+  href: string,
+  children: { name: string; collection: boolean; bytes?: number }[],
+): string {
+  const entry = (path: string, collection: boolean, bytes?: number) => `
     <d:response>
       <d:href>${path}</d:href>
       <d:propstat><d:prop><d:resourcetype>${
         collection ? '<d:collection/>' : ''
-      }</d:resourcetype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat>
+      }</d:resourcetype>${
+        bytes === undefined ? '' : `<d:getcontentlength>${bytes}</d:getcontentlength>`
+      }</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat>
     </d:response>`;
 
   return `<?xml version="1.0"?>
@@ -42,7 +47,11 @@ function multistatus(href: string, children: { name: string; collection: boolean
     ${entry(href, true)}
     ${children
       .map((child) =>
-        entry(`${href}${encodeURIComponent(child.name)}${child.collection ? '/' : ''}`, child.collection),
+        entry(
+          `${href}${encodeURIComponent(child.name)}${child.collection ? '/' : ''}`,
+          child.collection,
+          child.bytes,
+        ),
       )
       .join('')}
   </d:multistatus>`;
@@ -87,10 +96,10 @@ beforeAll(async () => {
       }
       res.end(
         multistatus(`${root}/2026-09-14/`, [
-          { name: 'Empresas0.zip', collection: false },
-          { name: 'Estabelecimentos0.zip', collection: false },
-          { name: 'Municipios.zip', collection: false },
-          { name: 'LEIAME.txt', collection: false },
+          { name: 'Empresas0.zip', collection: false, bytes: 563_000_000 },
+          { name: 'Estabelecimentos0.zip', collection: false, bytes: 1_200_000_000 },
+          { name: 'Municipios.zip', collection: false, bytes: 43_000 },
+          { name: 'LEIAME.txt', collection: false, bytes: 900 },
         ]),
       );
       return;
@@ -210,11 +219,28 @@ describe('openSource against a share', () => {
 
     expect(await listMonths(source)).toEqual(['2026-08-16', '2026-09-14']);
     // LEIAME.txt is offered and is not an archive.
-    expect((await listArchives(source, '2026-09-14')).sort()).toEqual([
+    expect((await listArchives(source, '2026-09-14')).map((e) => e.name).sort()).toEqual([
       'Empresas0.zip',
       'Estabelecimentos0.zip',
       'Municipios.zip',
     ]);
+  });
+
+  it('carries the declared size, so the total can be told before starting', async () => {
+    // "About 6 GB" was a guess written down once and it went stale. The
+    // listing knows the real figure; the operator needs it for the disk.
+    davRoot = 'modern';
+    const source = await openSource(`${base}/index.php/s/${TOKEN}`);
+    const archives = await listArchives(source, '2026-09-14');
+
+    expect(archives.find((e) => e.name === 'Empresas0.zip')?.bytes).toBe(563_000_000);
+    expect(archives.reduce((sum, e) => sum + (e.bytes ?? 0), 0)).toBe(1_763_043_000);
+  });
+
+  it('leaves the size out for a folder, which has none', async () => {
+    davRoot = 'modern';
+    const source = await openSource(`${base}/index.php/s/${TOKEN}`);
+    expect((await source.list('')).find((e) => e.name === '2026-09-14/')?.bytes).toBeUndefined();
   });
 
   it('asks with PROPFIND, depth 1 and the share credential', async () => {
@@ -277,10 +303,10 @@ describe('openSource against a directory index', () => {
   it('still reads a plain listing, so --url can point at a mirror', async () => {
     const source = await openSource(`${base}/indice`);
     expect(await listMonths(source)).toEqual(['2026-08-16', '2026-09-14']);
-    expect((await listArchives(source, '2026-09-14')).sort()).toEqual([
-      'Empresas0.zip',
-      'Municipios.zip',
-    ]);
+    // A directory index declares no sizes; the entries still come through.
+    const archives = await listArchives(source, '2026-09-14');
+    expect(archives.map((e) => e.name).sort()).toEqual(['Empresas0.zip', 'Municipios.zip']);
+    expect(archives.every((e) => e.bytes === undefined)).toBe(true);
   });
 
   it('reports the status rather than a bare failure', async () => {

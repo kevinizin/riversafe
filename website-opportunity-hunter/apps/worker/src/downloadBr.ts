@@ -16,6 +16,7 @@
  */
 
 import { existsSync } from 'node:fs';
+import { statfs } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 // Deliberately the module rather than the '@woh/core' barrel: that barrel
@@ -84,6 +85,32 @@ function bar(received: number, total: number | undefined): string {
   return `[${'#'.repeat(done)}${'.'.repeat(24 - done)}] ${size(received)} / ${size(total)}`;
 }
 
+/**
+ * Says so when the disk will not hold the extraction.
+ *
+ * A warning rather than a refusal: the figure counts what is already
+ * downloaded as still to come, so it errs pessimistic, and an operator who
+ * knows their disk should not be stopped by an estimate. Running out of space
+ * eleven gigabytes into a download is the thing worth avoiding.
+ */
+async function warnIfTight(destination: string, needed: number): Promise<void> {
+  let free: number;
+  try {
+    const fs = await statfs(existsSync(destination) ? destination : ROOT);
+    free = fs.bavail * fs.bsize;
+  } catch {
+    // Not available on every platform or filesystem; not worth a failure.
+    return;
+  }
+
+  if (free >= needed) return;
+  console.log(
+    `  ATENÇÃO: o disco tem ${size(free)} livres e a extração ocupa ${size(needed)}.\n` +
+      `  O download vai parar quando o espaço acabar. Libere espaço, ou use\n` +
+      `  outro disco:  npm run download:br -- --pasta D:\\cnpj\n`,
+  );
+}
+
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const destination = resolve(ROOT, args.folder ?? 'dados-cnpj');
@@ -123,7 +150,9 @@ async function main(): Promise<void> {
   // ten-parts convention: how many parts the Receita publishes is theirs to
   // change, and downloading a list of names that no longer exist would be 21
   // 404s and a confusing afternoon.
-  const offered = new Set(await listArchives(source, month));
+  const archives = await listArchives(source, month);
+  const bytesOf = new Map(archives.map((entry) => [entry.name, entry.bytes]));
+  const offered = new Set(bytesOf.keys());
   const wanted = monthlyFiles().filter((f) => offered.has(f));
   const absent = monthlyFiles().filter((f) => !offered.has(f));
   const extra = [...offered].filter(
@@ -144,8 +173,20 @@ async function main(): Promise<void> {
     wanted.push(...extra);
   }
 
+  // The listing declares the sizes, so say the real figure rather than the
+  // "about 6 GB" that was written down once and went stale. An extraction
+  // that does not fit on the disk is worth knowing before the first byte,
+  // not eleven gigabytes in.
+  const total = wanted.reduce((sum, file) => sum + (bytesOf.get(file) ?? 0), 0);
+
   console.log(`  ${wanted.length} arquivos para ${destination}`);
-  console.log(`  Cerca de 6 GB. Pode interromper e rodar de novo — continua de onde parou.\n`);
+  console.log(
+    total
+      ? `  ${size(total)} no total. Pode interromper e rodar de novo — continua de onde parou.\n`
+      : `  Pode interromper e rodar de novo — continua de onde parou.\n`,
+  );
+
+  if (total) await warnIfTight(destination, total);
 
   const started = Date.now();
   let transferred = 0;

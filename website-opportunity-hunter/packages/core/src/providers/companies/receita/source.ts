@@ -20,16 +20,18 @@ import {
   RECEITA_HEADERS,
   filesFromNames,
   foldersFromNames,
-  parseDavListing,
+  parseDavEntries,
   parseShareLink,
   shareAuthHeader,
   shareDavRoots,
+  type Entry,
   type ShareLink,
 } from './download.js';
 
 export interface Source {
-  /** Entry names directly under a path relative to the root. */
-  list(path: string): Promise<string[]>;
+  /** Entries directly under a path relative to the root, with sizes when the
+   *  source declares them. */
+  list(path: string): Promise<Entry[]>;
   /** The URL a file at that path is downloaded from. */
   fileUrl(path: string): string;
   /** Headers each download needs — a share's Authorization lives here. */
@@ -46,7 +48,9 @@ export interface OpenSourceOptions {
 export class SourceUnreachableError extends Error {}
 
 const PROPFIND_BODY =
-  '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/></d:prop></d:propfind>';
+  '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop>' +
+  '<d:resourcetype/><d:getcontentlength/>' +
+  '</d:prop></d:propfind>';
 
 function encodePath(path: string): string {
   return path
@@ -87,7 +91,8 @@ export function htmlSource(baseUrl: string, options: OpenSourceOptions = {}): So
         );
       }
       const html = await response.text();
-      return [...hrefNames(html)];
+      // A directory index declares no sizes, so these entries carry none.
+      return hrefNames(html).map((name) => ({ name }));
     },
   };
 }
@@ -141,7 +146,7 @@ export async function openShare(
     }
 
     const base = new URL(root).pathname;
-    const first = parseDavListing(await response.text(), base);
+    const first = parseDavEntries(await response.text(), base);
 
     return {
       describe: `${root} (compartilhamento ${share.token})`,
@@ -163,7 +168,7 @@ export async function openShare(
             `Não consegui listar "${path}" no compartilhamento (HTTP ${listing.status}).`,
           );
         }
-        return parseDavListing(await listing.text(), `${base}/${path}`);
+        return parseDavEntries(await listing.text(), `${base}/${path}`);
       },
     };
   }
@@ -188,10 +193,12 @@ export async function openSource(
 
 /** The monthly extraction folders a source offers, newest last. */
 export async function listMonths(source: Source): Promise<string[]> {
-  return foldersFromNames(await source.list(''));
+  return foldersFromNames((await source.list('')).map((entry) => entry.name));
 }
 
-/** The archives a monthly folder offers. */
-export async function listArchives(source: Source, month: string): Promise<string[]> {
-  return filesFromNames(await source.list(month));
+/** The archives a monthly folder offers, with the sizes it declared. */
+export async function listArchives(source: Source, month: string): Promise<Entry[]> {
+  const entries = await source.list(month);
+  const archives = new Set(filesFromNames(entries.map((entry) => entry.name)));
+  return entries.filter((entry) => archives.has(entry.name));
 }

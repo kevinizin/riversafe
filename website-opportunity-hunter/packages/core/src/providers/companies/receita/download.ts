@@ -116,25 +116,41 @@ export function shareDavRoots(share: ShareLink): string[] {
   ];
 }
 
+/** One entry in a listing. `bytes` is absent for folders and for sources
+ *  that do not declare a size. */
+export interface Entry {
+  name: string;
+  bytes?: number;
+}
+
 /**
- * The direct children named by a PROPFIND response.
+ * The direct children described by a PROPFIND response.
+ *
+ * Read per `response` element rather than by sweeping the whole document for
+ * hrefs, so each name keeps the size declared alongside it — a listing that
+ * knows the sizes is the difference between "about 6 GB" and the truth.
  *
  * Collections come back with a trailing slash, which is what tells a monthly
- * folder from a file. The namespace prefix on `href` varies between servers
- * (`d:`, `D:`, none), so the element is matched by local name.
+ * folder from a file. The namespace prefix varies between servers (`d:`, `D:`,
+ * none), so elements are matched by local name.
  */
-export function parseDavListing(xml: string, basePath: string): string[] {
+export function parseDavEntries(xml: string, basePath: string): Entry[] {
   const base = `/${basePath.replace(/^\/+|\/+$/g, '')}/`.replace(/^\/+/, '/');
-  const names = new Set<string>();
+  const entries = new Map<string, Entry>();
 
-  for (const match of xml.matchAll(/<[\w-]*:?href\s*>([^<]*)<\/[\w-]*:?href\s*>/gi)) {
+  for (const block of xml.matchAll(/<[\w-]*:?response[\s>][\s\S]*?<\/[\w-]*:?response\s*>/gi)) {
+    const xmlBlock = block[0];
+    const hrefRaw = /<[\w-]*:?href\s*>([^<]*)<\/[\w-]*:?href\s*>/i.exec(xmlBlock)?.[1];
+    if (hrefRaw === undefined) continue;
+
     let href: string;
     try {
-      href = decodeURIComponent(match[1]!.trim());
+      href = decodeURIComponent(hrefRaw.trim());
     } catch {
       // A malformed percent-escape is not worth failing the whole listing for.
       continue;
     }
+
     // Servers answer with either an absolute path or a full URL.
     const path = /^https?:\/\//i.test(href) ? new URL(href).pathname : href;
     if (!path.startsWith(base)) continue;
@@ -145,10 +161,25 @@ export function parseDavListing(xml: string, basePath: string): string[] {
     const parts = rest.split('/');
     const first = parts[0];
     if (!first) continue;
-    names.add(parts.length > 1 && parts[1] === '' ? `${first}/` : first);
+    const isFolder = parts.length > 1 && parts[1] === '';
+    const name = isFolder ? `${first}/` : first;
+
+    const declared = Number(
+      /<[\w-]*:?getcontentlength\s*>(\d+)<\/[\w-]*:?getcontentlength\s*>/i.exec(xmlBlock)?.[1] ??
+        '',
+    );
+    entries.set(name, {
+      name,
+      ...(!isFolder && Number.isFinite(declared) && declared > 0 ? { bytes: declared } : {}),
+    });
   }
 
-  return [...names];
+  return [...entries.values()];
+}
+
+/** The direct children named by a PROPFIND response. */
+export function parseDavListing(xml: string, basePath: string): string[] {
+  return parseDavEntries(xml, basePath).map((entry) => entry.name);
 }
 
 /**
