@@ -1,6 +1,11 @@
 import { createServer, type Server } from 'node:http';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { parseDavListing, parseShareLink, shareAuthHeader } from './download.js';
+import {
+  foldersFromNames,
+  parseDavListing,
+  parseShareLink,
+  shareAuthHeader,
+} from './download.js';
 import { SourceUnreachableError, listArchives, listMonths, openSource } from './source.js';
 
 /**
@@ -172,6 +177,29 @@ describe('parseDavListing', () => {
       <d:response><d:href>/somewhere/else/Empresas9.zip</d:href></d:response>
     </d:multistatus>`;
     expect(parseDavListing(stray, '/dav')).toEqual([]);
+  });
+});
+
+describe('foldersFromNames', () => {
+  it('accepts the month folders the Receita actually publishes', () => {
+    // The real share lists 2024-11, 2025-01 … — by month, not by extraction
+    // date. Accepting only YYYY-MM-DD read a full directory as an empty one.
+    expect(foldersFromNames(['2024-11/', '2025-10/', 'LEIAME.txt'])).toEqual([
+      '2024-11',
+      '2025-10',
+    ]);
+  });
+
+  it('still accepts a dated folder, which the old index used', () => {
+    expect(foldersFromNames(['2026-09-14/'])).toEqual(['2026-09-14']);
+  });
+
+  it('sorts oldest first, so the last one is the newest', () => {
+    expect(foldersFromNames(['2025-01/', '2024-12/', '2025-10/']).at(-1)).toBe('2025-10');
+  });
+
+  it('ignores a folder that merely starts with digits', () => {
+    expect(foldersFromNames(['2025-1/', '20250101/', 'regimetributario/'])).toEqual([]);
   });
 });
 

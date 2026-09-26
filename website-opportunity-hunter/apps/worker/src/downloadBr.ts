@@ -108,7 +108,8 @@ async function main(): Promise<void> {
         `Nenhuma pasta no formato AAAA-MM-DD em ${args.baseUrl}.\n\n` +
           `  O que existe lá:\n` +
           (names.length
-            ? names.slice(0, 30).map((n) => `    ${n}`).join('\n')
+            ? names.slice(-40).map((n) => `    ${n}`).join('\n') +
+              (names.length > 40 ? `\n    ... e mais ${names.length - 40} antes dessas` : '')
             : '    (nada — a listagem veio vazia)') +
           `\n\n  Se os arquivos estiverem numa pasta com outro nome, passe:\n` +
           `    npm run download:br -- --mes <nome da pasta>\n` +

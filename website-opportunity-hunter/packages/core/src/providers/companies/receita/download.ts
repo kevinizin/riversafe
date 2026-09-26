@@ -151,11 +151,19 @@ export function parseDavListing(xml: string, basePath: string): string[] {
   return [...names];
 }
 
-/** The monthly extraction folders among a set of entry names, newest last. */
+/**
+ * The monthly extraction folders among a set of entry names, newest last.
+ *
+ * Both `2025-10` and `2026-09-14` count. The Receita names these folders by
+ * month, and did name some of them by the extraction date — accepting only
+ * one of the two shapes meant reading a directory full of extractions and
+ * reporting that it held none. Sorting them as text is also sorting them by
+ * date, which is the one thing these names are good for.
+ */
 export function foldersFromNames(names: string[]): string[] {
   const folders = new Set<string>();
   for (const name of names) {
-    const folder = /^(\d{4}-\d{2}-\d{2})\/?$/.exec(name)?.[1];
+    const folder = /^(\d{4}-\d{2}(?:-\d{2})?)\/?$/.exec(name)?.[1];
     if (folder) folders.add(folder);
   }
   return [...folders].sort();

@@ -155,7 +155,8 @@ function parseArgs(argv: string[]): Args {
 function discoverDownload(folder: string): { path: string; month: string } | undefined {
   let months: string[];
   try {
-    months = readdirSync(folder).filter((entry) => /^\d{4}-\d{2}-\d{2}$/.test(entry));
+    // Both shapes the Receita uses: 2025-10 and 2026-09-14.
+    months = readdirSync(folder).filter((entry) => /^\d{4}-\d{2}(?:-\d{2})?$/.test(entry));
   } catch {
     return undefined;
   }

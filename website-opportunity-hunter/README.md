@@ -390,7 +390,9 @@ that address started answering 404 — in a browser as well as from code — whe
 they were moved onto a Nextcloud instance ("SERPRO+"). What the dataset page
 hands out now is a public share link:
 `https://arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9`, still one
-folder per monthly extraction (`2026-09-14/` and so on).
+folder per monthly extraction. Those folders are named by month (`2025-10/`),
+though some are named by extraction date (`2026-09-14/`); both are recognised,
+and the newest is used unless `--mes` says otherwise.
 
 `npm run download:br` speaks both. A share link is read over its WebDAV
 endpoint — not by scraping the share's web page, which is a JavaScript
