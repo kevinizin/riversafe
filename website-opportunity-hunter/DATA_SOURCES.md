@@ -229,9 +229,19 @@ then serves searches from that table behind the same `CompanySourceProvider`
 interface as every other source, and reports itself unconfigured — so the demo
 data takes over — until a snapshot exists.
 
-Files are not downloaded by the tool. They are several gigabytes and the host
-rate-limits, and a half-finished download that looks finished is the worst
-outcome available.
+`npm run download:br` fetches an extraction: it reads the directory listing to
+find the newest monthly folder, confirms the file names the folder actually
+offers rather than trusting the ten-parts convention, and downloads one file at
+a time because the host rate-limits. Every file resumes from what is on disk
+with a Range request, and a transfer that ends shorter than the length the
+server declared is an error rather than a warning — the importer downstream
+cannot tell a truncated archive from a small one.
+
+That code is covered by tests against a real socket rather than a mocked fetch,
+including a connection that drops mid-file: the behaviour worth proving is the
+protocol, and a mock only proves the mock. What the tests cannot cover is the
+Receita's own server, which refuses connections from outside Brazil, so the
+first real run is the operator's.
 
 Each table is split into ten numbered parts and the split is arbitrary, not by
 state, so a company in Amazonas can be in any of them. Importing a subset gives

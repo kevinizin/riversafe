@@ -405,18 +405,20 @@ which carries an extraction date and no part number, so keep the zips or keep
 track yourself.
 
 ```bash
-# Download the files yourself — the host rate-limits, it refuses connections
-# from outside Brazil, and a half-finished download that looks finished is the
-# worst outcome available. A browser or a resumable downloader is the right tool.
+# 0. Download the extraction. Picks the newest folder, fetches one file at a
+#    time because the host rate-limits, and resumes on re-run — so an
+#    interrupted download costs the current file rather than the lot.
+npm run download:br
+#    or:  npm run download:br -- --pasta D:\cnpj --mes 2026-09-14
 
 # 1. ALWAYS do this first — see below
-npm run ingest:br -- --inspect --estabelecimentos ./Estabelecimentos0.zip
+npm run ingest:br -- --inspect --estabelecimentos ./dados-cnpj/2026-09-14/Estabelecimentos0.zip
 
 # 2. Then import, keeping one state
-npm run ingest:br -- --estabelecimentos ./Estabelecimentos*.zip \
-                     --empresas ./Empresas*.zip \
-                     --municipios ./Municipios.zip \
-                     --uf AM --tag 2026-08
+npm run ingest:br -- --estabelecimentos ./dados-cnpj/2026-09-14/Estabelecimentos*.zip \
+                     --empresas ./dados-cnpj/2026-09-14/Empresas*.zip \
+                     --municipios ./dados-cnpj/2026-09-14/Municipios.zip \
+                     --uf AM --tag 2026-09-14
 ```
 
 Once a snapshot is imported, Brazilian searches use it automatically; until

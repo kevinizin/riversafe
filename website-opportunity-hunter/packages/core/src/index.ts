@@ -48,6 +48,7 @@ export * from './scoring/system.js';
 
 export * from './providers/companies/receita/layout.js';
 export * from './providers/companies/receita/read.js';
+export * from './providers/companies/receita/download.js';
 export * from './providers/companies/receita/ingest.js';
 export * from './providers/companies/receita/provider.js';
 export * from './search/filters.js';
