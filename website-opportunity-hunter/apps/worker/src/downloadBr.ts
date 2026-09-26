@@ -18,13 +18,17 @@
 import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+// Deliberately the module rather than the '@woh/core' barrel: that barrel
+// re-exports @woh/db, which loads @prisma/client, so importing it would make a
+// six-gigabyte HTTP download refuse to start until the database was generated
+// and reachable. Downloading needs neither. This module imports only node:*.
 import {
   RECEITA_BASE_URL,
   downloadFile,
   monthlyFiles,
   parseFileListing,
   parseFolderListing,
-} from '@woh/core';
+} from '@woh/core/providers/companies/receita/download';
 
 /**
  * The repository root, regardless of where npm ran this from.
@@ -77,11 +81,25 @@ function bar(received: number, total: number | undefined): string {
 }
 
 async function readListing(url: string): Promise<string> {
-  const response = await fetch(url);
+  let response: Response;
+  try {
+    response = await fetch(url);
+  } catch (cause) {
+    // fetch throws a bare "fetch failed" for everything below HTTP: no route,
+    // refused connection, DNS, a TLS reset. That tells the operator nothing,
+    // and the likeliest cause here is specific enough to name.
+    throw new Error(
+      `Não consegui nem conectar em ${url}.\n` +
+        `  Causa técnica: ${cause instanceof Error ? cause.message : String(cause)}\n\n` +
+        `  O servidor da Receita costuma recusar conexões de fora do Brasil, e sai do ar\n` +
+        `  com alguma frequência. Abra ${RECEITA_BASE_URL}/ no navegador:\n` +
+        `  se abrir aí e não aqui, me avise; se não abrir, é o servidor deles.`,
+    );
+  }
   if (!response.ok) {
     throw new Error(
       `Não consegui ler a listagem em ${url} (HTTP ${response.status}).\n` +
-        `O servidor da Receita recusa conexões de fora do Brasil, e às vezes fica fora do ar.`,
+        `  O servidor respondeu, mas recusou. Se for 403, é bloqueio por região.`,
     );
   }
   return response.text();

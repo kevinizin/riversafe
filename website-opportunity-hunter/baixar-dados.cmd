@@ -31,7 +31,18 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM Uma copia recem-clonada nao tem node_modules, e o erro que o npm da nesse
+REM caso fala de um pacote que nao existe -- nao de uma instalacao que falta.
+if not exist "node_modules" (
+    echo   Primeira vez aqui: instalando as dependencias. Leva alguns minutos.
+    echo.
+    call npm.cmd install
+    if errorlevel 1 goto :Failed
+    echo.
+)
+
 REM npm.cmd, nao npm: dentro de um .cmd o wrapper .cmd e o que funciona.
+REM O download nao precisa de banco de dados -- so de internet.
 call npm.cmd run download:br
 if errorlevel 1 goto :Failed
 
