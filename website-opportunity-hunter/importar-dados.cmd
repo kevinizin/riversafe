@@ -5,10 +5,12 @@ REM
 REM  De dois cliques depois do baixar-dados.cmd. Ele acha sozinho a extracao
 REM  mais recente dentro de dados-cnpj.
 REM
-REM  Mostra primeiro o layout das colunas para voce conferir contra o PDF de
-REM  metadados da Receita, e so importa se voce confirmar. Essa conferencia
-REM  existe porque um parser com a ordem errada nao quebra: ele grava capital
-REM  social no campo de porte e produz numeros convincentes e errados.
+REM  Mostra primeiro o layout das colunas e so importa se voce confirmar.
+REM  A ordem ja foi conferida contra o documento oficial da Receita -- os 30
+REM  campos de Estabelecimentos e os 7 de Empresas batem. A conferencia na
+REM  tela continua porque a Receita pode mudar o layout: um parser com a ordem
+REM  errada nao quebra, ele grava capital social no campo de porte e produz
+REM  numeros convincentes e errados.
 REM ===========================================================================
 
 setlocal
@@ -46,21 +48,25 @@ if errorlevel 1 goto :Failed
 
 echo.
 echo   ---------------------------------------------------------------------
-echo   Compare o que apareceu acima com o PDF de metadados da Receita:
-echo   https://www.gov.br/receitafederal/dados/cnpj-metadados.pdf
-echo.
 echo   Cada linha mostra a posicao, o nome que o sistema espera, e o valor
-echo   encontrado. Se algo estiver fora do lugar, uma seta ^<-- aponta.
+echo   encontrado no arquivo. Se algo estiver fora do lugar, uma seta ^<--
+echo   aponta.
+echo.
+echo   A ordem ja foi conferida contra o documento oficial da Receita, entao
+echo   o esperado e que esteja tudo certo. Uma olhada rapida basta: os nomes
+echo   devem fazer sentido para os valores ao lado ^(um CNPJ no campo de CNPJ,
+echo   uma UF no campo de UF^).
 echo   ---------------------------------------------------------------------
 echo.
 
-choice /c SN /m "Os nomes das colunas batem com o PDF? Importar agora"
+choice /c SN /m "Os valores batem com os nomes das colunas? Importar agora"
 if errorlevel 2 (
     echo.
     echo   Importacao cancelada. Nada foi gravado.
     echo.
-    echo   Se uma coluna estiver no lugar errado, me diga qual -- a correcao
-    echo   e uma linha em packages\core\src\providers\companies\receita\layout.ts
+    echo   Se uma coluna estiver no lugar errado, me diga qual -- significa que
+    echo   a Receita mudou o layout. A correcao e uma linha em
+    echo   packages\core\src\providers\companies\receita\layout.ts
     echo.
     pause
     exit /b 0

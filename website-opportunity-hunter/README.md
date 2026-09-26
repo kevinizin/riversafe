@@ -438,7 +438,7 @@ track yourself.
 npm run download:br
 #    or:  npm run download:br -- --pasta D:\cnpj --mes 2026-09-14
 
-# 1. ALWAYS do this first — see below
+# 1. Show the column layout against the first rows — see below
 npm run ingest:br -- --inspect
 
 # 2. Then import, keeping one state
@@ -454,25 +454,33 @@ On Windows the same two steps are **`baixar-dados.cmd`** and
 **`importar-dados.cmd`**, to be double-clicked. They exist because PowerShell
 refuses to run `npm.ps1` under the default execution policy, which makes
 `npm run …` fail with `PSSecurityException` on a machine where nothing is
-wrong; a `.cmd` file is not subject to that policy. `importar-dados.cmd` runs
-the inspection first and imports only on confirmation.
+wrong; a `.cmd` file is not subject to that policy. `importar-dados.cmd` shows the
+layout first and imports only on confirmation.
 
 Once a snapshot is imported, Brazilian searches use it automatically; until
 then they fall back to the fictional demo companies.
 
-**Why `--inspect` first.** These CSVs have no header row, so the column order
-has to be declared in code — and that declaration could not be verified here:
-the official layout is a PDF with no extractable text, and the file host
-refuses connections from outside Brazil. A parser with the order wrong does not
-crash; it files a *capital social* as a *porte* and produces confident nonsense.
+**The column order is verified.** These CSVs have no header row, so the order
+has to be declared in code, and a parser with it wrong does not crash: it files
+a *capital social* as a *porte* and produces confident nonsense. All 30
+`Estabelecimentos` columns and all 7 `Empresas` columns were checked against
+the official layout document on 26 September 2026 and matched, in order.
 
-Two things guard against that. The importer checks sampled rows against each
+That document is a PDF with no ToUnicode mapping, which defeats every ordinary
+text extractor and is why this file previously said the order could not be
+checked. It can: the fonts are subset Type1 whose `/Encoding` carries a
+`/Differences` array of real glyph names, so character code → glyph name →
+character is a lookup. `npm run layout:br -- <pdf>` does that, with no
+dependencies. Run it when the Receita publishes a new layout instead of
+trusting the date above.
+
+Verification does not retire the guards built when it was absent, because the
+layout can change under us. The importer checks sampled rows against each
 column's own domain — CNPJ shapes, `porte` in `{00,01,03,05}`, dates as
 `YYYYMMDD`, valid UFs — and **refuses the whole import**, writing nothing, if
-they do not hold. And `--inspect` prints the first rows column by column with
-the name the code believes each has, so two minutes against
-[the metadata PDF](https://www.gov.br/receitafederal/dados/cnpj-metadados.pdf)
-confirms it. Any correction is a one-line edit in
+they do not hold. `--inspect` prints the first rows column by column with the
+name the code gives each one, so a changed order is visible before anything is
+written. Any correction is a one-line edit in
 `packages/core/src/providers/companies/receita/layout.ts`.
 
 The partner list (QSA) is **not** imported. It carries names of natural

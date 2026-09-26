@@ -2,28 +2,41 @@
  * The column layout of the Receita Federal CNPJ open-data CSVs.
  *
  * ────────────────────────────────────────────────────────────────────────────
- *  READ THIS BEFORE TRUSTING AN IMPORT
+ *  VERIFIED against the official layout document, 26 September 2026.
  *
- *  The orders declared below are UNVERIFIED against the official layout
- *  document. That document is published as a PDF at
- *  https://www.gov.br/receitafederal/dados/cnpj-metadados.pdf and carries no
- *  ToUnicode mapping, so its text cannot be extracted programmatically; and the
- *  file host (arquivos.receitafederal.gov.br) refuses connections from outside
- *  Brazil, so the order could not be checked against a real file either.
+ *  Source: https://www.gov.br/receitafederal/dados/cnpj-metadados.pdf
+ *  ("Novo Layout para os DADOS ABERTOS do CNPJ"), 6 pages. All 30 columns of
+ *  ESTABELECIMENTOS and all 7 of EMPRESAS matched, in order.
+ *
+ *  That PDF has no ToUnicode mapping, which is why an earlier version of this
+ *  file said the order could not be checked. It can: the fonts are subset
+ *  Type1 whose /Encoding carries a /Differences array of real glyph names, so
+ *  code → glyph name → character is a lookup rather than a guess.
+ *  `npm run layout:br` re-runs that extraction — use it when the Receita
+ *  publishes a new layout rather than trusting this comment's date.
  *
  *  A CSV parser with the wrong column order does not crash. It files a capital
  *  social as a porte and produces confident nonsense, which is the single worst
- *  failure this project can have. So two things guard it:
+ *  failure this project can have. Verification does not retire the two guards
+ *  that were built when it was absent, because the layout can change under us:
  *
  *   1. Every field below declares what its values must look like. The importer
  *      checks a sample of rows against those rules and refuses the whole import
- *      if they do not hold — a wrong order fails loudly on the first rows
+ *      if they do not hold — a changed order fails loudly on the first rows
  *      instead of silently poisoning the database.
  *
  *   2. `npm run ingest:br -- --inspect` prints the first rows column by column
- *      with the name this file believes each one has. Two minutes with the PDF
- *      open confirms or corrects it, and the correction is a one-line edit
- *      here rather than a hunt through the parser.
+ *      with the name this file gives each one, so a mismatch is visible before
+ *      anything is written. The correction is a one-line edit here rather than
+ *      a hunt through the parser.
+ *
+ *  One note on SITUAÇÃO CADASTRAL. The PDF renders its values as
+ *  "01 – NULA / 2 – ATIVA / 3 – SUSPENSA / 4 – INAPTA / 08 – BAIXADA": the
+ *  middle three lost their leading zero to the document's own auto-numbered
+ *  list, since 01 and 08 — which cannot be list numbers in sequence — kept
+ *  theirs. The data is two-digit throughout, and the rule below requires that.
+ *  If a future extraction really does ship single digits, the import refuses
+ *  rather than misreads, which is the right way round.
  * ────────────────────────────────────────────────────────────────────────────
  *
  * Format notes that are verified, because they are properties of the files
