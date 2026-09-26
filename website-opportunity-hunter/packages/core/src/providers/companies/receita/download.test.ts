@@ -33,11 +33,11 @@ let base: string;
 
 /** Set per test to steer the handler. */
 let mode: 'whole' | 'die-halfway' | 'ignore-range' | 'no-length' = 'whole';
-let requests: { range: string | undefined }[] = [];
+let requests: { range: string | undefined; userAgent: string | undefined }[] = [];
 
 beforeAll(async () => {
   server = createServer((req, res) => {
-    requests.push({ range: req.headers.range });
+    requests.push({ range: req.headers.range, userAgent: req.headers['user-agent'] });
 
     if (req.url === '/listing') {
       res.writeHead(200, { 'content-type': 'text/html' });
@@ -234,6 +234,15 @@ describe('downloadFile', () => {
 
     expect(seen.length).toBeGreaterThan(0);
     expect(seen[seen.length - 1]).toBe(PAYLOAD.length);
+  });
+
+  it('names itself, because a request with no User-Agent gets refused', async () => {
+    // Node's fetch sends no User-Agent at all, and the Receita's host answers
+    // such a request with a 404 — which reads as the file having moved.
+    mode = 'whole';
+    requests = [];
+    await downloadFile(`${base}/f.zip`, join(dir, 'ua.zip'), { sleep: noSleep });
+    expect(requests.at(-1)?.userAgent).toMatch(/Azven/);
   });
 
   it('sends a range header only when there is something to resume', async () => {

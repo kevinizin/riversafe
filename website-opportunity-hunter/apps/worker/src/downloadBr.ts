@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 // and reachable. Downloading needs neither. This module imports only node:*.
 import {
   RECEITA_BASE_URL,
+  RECEITA_HEADERS,
   downloadFile,
   monthlyFiles,
   parseFileListing,
@@ -83,7 +84,7 @@ function bar(received: number, total: number | undefined): string {
 async function readListing(url: string): Promise<string> {
   let response: Response;
   try {
-    response = await fetch(url);
+    response = await fetch(url, { headers: RECEITA_HEADERS });
   } catch (cause) {
     // fetch throws a bare "fetch failed" for everything below HTTP: no route,
     // refused connection, DNS, a TLS reset. That tells the operator nothing,
@@ -98,8 +99,15 @@ async function readListing(url: string): Promise<string> {
   }
   if (!response.ok) {
     throw new Error(
-      `Não consegui ler a listagem em ${url} (HTTP ${response.status}).\n` +
-        `  O servidor respondeu, mas recusou. Se for 403, é bloqueio por região.`,
+      `Não consegui ler a listagem em ${url} (HTTP ${response.status}).\n\n` +
+        `  O servidor respondeu — então chegou até ele — mas não entregou a página.\n\n` +
+        `  Abra este mesmo endereço no navegador:\n` +
+        `    ${url}\n\n` +
+        `  Se abrir no navegador e não aqui, o endereço está certo e o problema é\n` +
+        `  a requisição; me mande a tela do navegador.\n` +
+        `  Se der o mesmo erro no navegador, a Receita mudou o endereço de lugar.\n` +
+        `  Ache o novo em https://dados.gov.br/dados/conjuntos-dados/cadastro-nacional-da-pessoa-juridica---cnpj\n` +
+        `  e passe assim:  npm run download:br -- --url <endereço novo>`,
     );
   }
   return response.text();

@@ -30,6 +30,23 @@ import { pipeline } from 'node:stream/promises';
 export const RECEITA_BASE_URL = 'https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj';
 
 /**
+ * Headers every request here carries.
+ *
+ * Node's fetch sends no User-Agent at all, and a fair number of public-sector
+ * servers answer such a request with a 404 or a 403 — which reads, wrongly,
+ * as the file having moved. So the client names itself honestly: this is not
+ * pretending to be a browser, which would be working around a block rather
+ * than being a well-behaved client. The Accept header is there for the same
+ * reason: the listing is a plain HTML index, and a request that asks for
+ * nothing in particular is the one most likely to be refused.
+ */
+export const RECEITA_HEADERS: Record<string, string> = {
+  'user-agent': 'Azven/0.1 (open-data client; contact via the repository)',
+  accept: 'text/html,application/xhtml+xml,*/*;q=0.8',
+  'accept-language': 'pt-BR,pt;q=0.9',
+};
+
+/**
  * The files one monthly extraction is made of.
  *
  * Ten numbered parts each for the two big tables, plus the municipality
@@ -141,7 +158,7 @@ export async function downloadFile(
 
     try {
       const response = await fetchImpl(url, {
-        headers: from > 0 ? { range: `bytes=${from}-` } : {},
+        headers: from > 0 ? { ...RECEITA_HEADERS, range: `bytes=${from}-` } : { ...RECEITA_HEADERS },
       });
 
       // 416 means the range starts past the end of the file, which for a
