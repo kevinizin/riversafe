@@ -413,11 +413,16 @@ than by state, so **all ten are needed** — a company in Amazonas can be in any
 of them. That is 21 files: `Estabelecimentos0.zip` … `Estabelecimentos9.zip`,
 `Empresas0.zip` … `Empresas9.zip`, and `Municipios.zip`.
 
-The total is not written down here, because a figure written down once goes
-stale: `Empresas0.zip` alone was 537 MB in the September 2026 extraction, well
-past what an earlier note in this file claimed for all ten. The listing
-declares each file's size, so `download:br` adds them up, prints the real
-total before it starts, and says so when the disk will not hold it.
+The September 2026 extraction is about 6.4 GB: roughly 1.3 GB of `Empresas`
+and 5 GB of `Estabelecimentos`. The parts are not evenly sized —
+`Empresas0.zip` is 537 MB against 74–94 MB for the other nine, and
+`Estabelecimentos0.zip` is 2.1 GB against ~320 MB — so no single part tells
+you the total.
+
+That figure is here for orientation only. `download:br` does not rely on it:
+the listing declares each file's size, so it adds up what it is about to
+fetch, prints that before starting, and says so when the disk will not hold
+it. A number in a README goes stale; a number read from the server does not.
 
 The importer warns loudly when a numbered part looks absent, because importing
 some of the parts produces a database that reports a healthy row count and is
