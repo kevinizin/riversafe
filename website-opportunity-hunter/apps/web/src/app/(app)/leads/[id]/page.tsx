@@ -1,6 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getIndustry, greetingName, industryLabel, qualityBand, type PreviewBriefing } from '@woh/core';
+import {
+  getCountry,
+  getIndustry,
+  greetingName,
+  industryLabel,
+  qualityBand,
+  type PreviewBriefing,
+} from '@woh/core';
 import { prisma } from '@woh/db';
 import { Card, ClassificationBadge, ConfidenceBadge, KeyValue, Notice, ScoreDial, SectionTitle, SizeBadge, Unknown } from '@/components/ui';
 import { requireUser } from '@/lib/auth';
@@ -195,6 +202,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
             <KeyValue label="Situação">{company.status}</KeyValue>
             <KeyValue label="Telefone">{company.phone ?? <Unknown />}</KeyValue>
           </dl>
+          <SourceDisclosure countryCode={company.countryCode} />
         </Card>
 
         <Card>
@@ -689,6 +697,46 @@ export default async function LeadDetailPage({ params }: PageProps) {
         </Card>
       </div>
     </div>
+  );
+}
+
+/**
+ * The answer to "where did you get my number?", ready to be read aloud.
+ *
+ * It sits beside the phone number because that is where the question gets
+ * asked, and because the honest answer — a named public register the prospect
+ * can check — is short and specific, while an improvised one under pressure
+ * tends to be neither. The offer of erasure is part of the script rather than
+ * a reaction to being pushed: the right to object is theirs either way.
+ */
+function SourceDisclosure({ countryCode }: { countryCode: string }) {
+  const profile = getCountry(countryCode as Parameters<typeof getCountry>[0]);
+  if (!profile) return null;
+
+  const { answer, verifyUrl, offer } = profile.sourceDisclosure;
+
+  return (
+    <details className="mt-4 border-t border-slate-200 pt-3 text-sm">
+      <summary className="cursor-pointer text-slate-600 hover:text-slate-900">
+        Se perguntarem de onde veio este contato
+      </summary>
+      <div className="mt-2 space-y-2 text-slate-700">
+        <p>{answer}</p>
+        <p>{offer}</p>
+        <p className="text-xs text-slate-500">
+          Quem quiser conferir vê o cadastro em{' '}
+          <a
+            href={verifyUrl}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="text-brand hover:underline"
+          >
+            {new URL(verifyUrl).hostname}
+          </a>
+          . Apagar o lead nesta página apaga o registro de verdade, em cascata.
+        </p>
+      </div>
+    </details>
   );
 }
 

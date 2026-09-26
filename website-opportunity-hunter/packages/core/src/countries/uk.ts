@@ -24,5 +24,14 @@ export const UNITED_KINGDOM: CountryProfile = {
     'Processing basis for prospecting is legitimate interests (UK GDPR Art. 6(1)(f)); a balancing test is documented in PRIVACY.md.',
     'Marketing to individual subscribers is restricted by PECR; this system prepares outreach but never sends it.',
   ],
+  sourceDisclosure: {
+    answer:
+      'Your details are on the public register at Companies House, where every UK ' +
+      "company's registered contact information is published. I did not buy a list.",
+    verifyUrl: 'https://find-and-update.company-information.service.gov.uk/',
+    offer:
+      "If you would rather not hear from me again, say so and I will delete your " +
+      'record — deleted, not flagged.',
+  },
   enabled: true,
 };

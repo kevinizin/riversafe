@@ -47,5 +47,16 @@ export const BRAZIL: CountryProfile = {
     'Individual rights under the LGPD — access, correction, deletion, opposition — are served by the same controls as the UK: a full record view, an export, and a real cascading delete.',
     'A microempreendedor individual (MEI) is a natural person trading as a business; treat that record as personal data even though it carries a CNPJ.',
   ],
+  sourceDisclosure: {
+    answer:
+      'Seu contato está no cadastro público do CNPJ, que a Receita Federal publica ' +
+      'como dados abertos. É o telefone que a própria empresa informou no registro do ' +
+      'estabelecimento. Não comprei lista e não peguei de rede social.',
+    verifyUrl:
+      'https://dados.gov.br/dados/conjuntos-dados/cadastro-nacional-da-pessoa-juridica---cnpj',
+    offer:
+      'Se preferir não receber mais contato meu, é só dizer que eu apago seu registro ' +
+      'agora — apago de verdade, não fica marcado como inativo.',
+  },
   enabled: true,
 };

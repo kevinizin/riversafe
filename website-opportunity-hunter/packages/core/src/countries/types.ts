@@ -32,5 +32,23 @@ export interface CountryProfile {
   postcodeKey(value: string | null | undefined): string | null;
   /** Notes surfaced in the UI about lawful processing in this jurisdiction. */
   privacyNotes: string[];
+  /**
+   * What to say when a prospect asks where their contact details came from.
+   *
+   * This is the operator's script, not a legal notice, so it is written in the
+   * language they will be speaking and in the second person. It exists because
+   * the honest answer is short and specific — a named public register, which
+   * the prospect can check — and improvising under pressure tends to produce
+   * something vaguer and worse. The right to object is theirs, so the script
+   * ends by offering erasure rather than waiting to be asked.
+   */
+  sourceDisclosure: {
+    /** Where the details came from, in one or two sentences. */
+    answer: string;
+    /** Where the prospect can see the register for themselves. */
+    verifyUrl: string;
+    /** What the operator offers next, unprompted. */
+    offer: string;
+  };
   enabled: boolean;
 }
