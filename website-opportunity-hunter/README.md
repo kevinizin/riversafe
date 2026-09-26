@@ -382,10 +382,29 @@ bulk files — so Brazilian searches answer from a local snapshot:
 
 Start at the dataset's official page,
 <https://www.gov.br/receitafederal/pt-br/acesso-a-informacao/dados-abertos/cadastros/cnpj>,
-which redirects to the entry on the federal open data portal. The files
-themselves are served from
-`https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/`, in one
+which redirects to the entry on the federal open data portal.
+
+**The files moved.** They were a plain directory index at
+`https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/` until
+that address started answering 404 — in a browser as well as from code — when
+they were moved onto a Nextcloud instance ("SERPRO+"). What the dataset page
+hands out now is a public share link:
+`https://arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9`, still one
 folder per monthly extraction (`2026-09-14/` and so on).
+
+`npm run download:br` speaks both. A share link is read over its WebDAV
+endpoint — not by scraping the share's web page, which is a JavaScript
+application, and not least because WebDAV is what supports the Range requests
+that make an interrupted download resume. A plain index still works, so
+`--url` can point at a mirror, or at wherever this lands next.
+
+That address is the one thing here that depends on a third party staying put,
+so it is a single constant overridden by `--url`; when it moves again, that is
+a one-line change rather than a rewrite. None of it could be verified from the
+machine this was built on — the Receita's host completes the TLS handshake and
+then closes without answering any connection from outside Brazil — so the
+protocol handling is exercised against a local server in `source.test.ts`, and
+every failure path reports what it tried and what came back.
 
 Each table is split into ten numbered parts, and the split is arbitrary rather
 than by state, so **all ten are needed** — a company in Amazonas can be in any

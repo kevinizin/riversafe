@@ -26,8 +26,20 @@ import { dirname } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
-/** Where the Receita publishes the CNPJ open data. */
-export const RECEITA_BASE_URL = 'https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj';
+/**
+ * Where the Receita publishes the CNPJ open data.
+ *
+ * This was a plain directory listing at
+ * `/dados/cnpj/dados_abertos_cnpj/` until the files moved to a Nextcloud
+ * instance ("SERPRO+"), at which point that address started answering 404 —
+ * in a browser as well as here. A public share link is what the dataset page
+ * hands out now.
+ *
+ * It is the one thing in this project that depends on a third party keeping
+ * an address, which is why it is a lone constant and why `--url` overrides it.
+ * When it moves again, that is a one-line change.
+ */
+export const RECEITA_BASE_URL = 'https://arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9';
 
 /**
  * Headers every request here carries.
@@ -63,6 +75,98 @@ export function monthlyFiles(parts = 10): string[] {
 }
 
 /**
+ * A Nextcloud public share, split into the parts its WebDAV endpoint needs.
+ *
+ * Returns undefined for anything that is not a share link, which is how the
+ * caller decides between the two protocols rather than by guessing.
+ */
+export interface ShareLink {
+  origin: string;
+  token: string;
+}
+
+export function parseShareLink(url: string): ShareLink | undefined {
+  const match = /^(https?:\/\/[^/]+)\/(?:index\.php\/)?s\/([A-Za-z0-9_-]+)\/?$/.exec(url.trim());
+  return match ? { origin: match[1]!, token: match[2]! } : undefined;
+}
+
+/**
+ * A public share authenticates as the share token with an empty password.
+ *
+ * That is the documented scheme for these links, not a way around a login:
+ * the share is public, and the token is the whole of the credential — the
+ * same token that is already in the URL.
+ */
+export function shareAuthHeader(token: string): string {
+  return `Basic ${Buffer.from(`${token}:`).toString('base64')}`;
+}
+
+/**
+ * The WebDAV roots a public share answers on, likeliest first.
+ *
+ * Nextcloud moved public shares from `/public.php/webdav` to
+ * `/public.php/dav/files/<token>`, and which one a given instance serves
+ * depends on its version. Rather than pin a guess, both are tried and the
+ * one that answers is used.
+ */
+export function shareDavRoots(share: ShareLink): string[] {
+  return [
+    `${share.origin}/public.php/dav/files/${share.token}`,
+    `${share.origin}/public.php/webdav`,
+  ];
+}
+
+/**
+ * The direct children named by a PROPFIND response.
+ *
+ * Collections come back with a trailing slash, which is what tells a monthly
+ * folder from a file. The namespace prefix on `href` varies between servers
+ * (`d:`, `D:`, none), so the element is matched by local name.
+ */
+export function parseDavListing(xml: string, basePath: string): string[] {
+  const base = `/${basePath.replace(/^\/+|\/+$/g, '')}/`.replace(/^\/+/, '/');
+  const names = new Set<string>();
+
+  for (const match of xml.matchAll(/<[\w-]*:?href\s*>([^<]*)<\/[\w-]*:?href\s*>/gi)) {
+    let href: string;
+    try {
+      href = decodeURIComponent(match[1]!.trim());
+    } catch {
+      // A malformed percent-escape is not worth failing the whole listing for.
+      continue;
+    }
+    // Servers answer with either an absolute path or a full URL.
+    const path = /^https?:\/\//i.test(href) ? new URL(href).pathname : href;
+    if (!path.startsWith(base)) continue;
+
+    const rest = path.slice(base.length);
+    if (!rest) continue; // the collection being listed, not a child of it
+
+    const parts = rest.split('/');
+    const first = parts[0];
+    if (!first) continue;
+    names.add(parts.length > 1 && parts[1] === '' ? `${first}/` : first);
+  }
+
+  return [...names];
+}
+
+/** The monthly extraction folders among a set of entry names, newest last. */
+export function foldersFromNames(names: string[]): string[] {
+  const folders = new Set<string>();
+  for (const name of names) {
+    const folder = /^(\d{4}-\d{2}-\d{2})\/?$/.exec(name)?.[1];
+    if (folder) folders.add(folder);
+  }
+  return [...folders].sort();
+}
+
+/** The archives among a set of entry names. */
+export function filesFromNames(names: string[]): string[] {
+  return [...new Set(names.filter((name) => /\.zip$/i.test(name)))];
+}
+
+/**
  * The monthly extraction folders, newest last.
  *
  * The index is a plain directory listing, so this reads the hrefs rather than
@@ -71,23 +175,24 @@ export function monthlyFiles(parts = 10): string[] {
  * list of nonexistent months.
  */
 export function parseFolderListing(html: string): string[] {
-  const folders = new Set<string>();
-  for (const match of html.matchAll(/href\s*=\s*["']([^"']+)["']/gi)) {
-    const href = match[1]!;
-    const name = /(\d{4}-\d{2}-\d{2})\/?$/.exec(href.replace(/\/+$/, '/'))?.[1];
-    if (name) folders.add(name);
-  }
-  return [...folders].sort();
+  return foldersFromNames(
+    [...html.matchAll(/href\s*=\s*["']([^"']+)["']/gi)].map((match) => {
+      const href = match[1]!;
+      // Keep the trailing slash a directory link carries: it is what the name
+      // filters use to tell a folder from a file.
+      const trailing = /\/$/.test(href) ? '/' : '';
+      return `${href.replace(/\/+$/, '').split('/').pop() ?? ''}${trailing}`;
+    }),
+  );
 }
 
 /** The file names a folder listing actually offers. */
 export function parseFileListing(html: string): string[] {
-  const files = new Set<string>();
-  for (const match of html.matchAll(/href\s*=\s*["']([^"']+)["']/gi)) {
-    const name = match[1]!.split('/').pop();
-    if (name && /\.zip$/i.test(name)) files.add(name);
-  }
-  return [...files];
+  return filesFromNames(
+    [...html.matchAll(/href\s*=\s*["']([^"']+)["']/gi)].map(
+      (match) => match[1]!.split('/').pop() ?? '',
+    ),
+  );
 }
 
 export interface DownloadProgress {
@@ -101,6 +206,8 @@ export interface DownloadProgress {
 
 export interface DownloadOptions {
   fetchImpl?: typeof fetch;
+  /** Merged over the default headers — the share's Authorization goes here. */
+  headers?: Record<string, string>;
   /** Called as bytes arrive, at most a few times a second. */
   onProgress?: (progress: DownloadProgress) => void;
   /** How many times to retry a transfer that dies mid-stream. */
@@ -158,7 +265,11 @@ export async function downloadFile(
 
     try {
       const response = await fetchImpl(url, {
-        headers: from > 0 ? { ...RECEITA_HEADERS, range: `bytes=${from}-` } : { ...RECEITA_HEADERS },
+        headers: {
+          ...RECEITA_HEADERS,
+          ...options.headers,
+          ...(from > 0 ? { range: `bytes=${from}-` } : {}),
+        },
       });
 
       // 416 means the range starts past the end of the file, which for a

@@ -24,12 +24,15 @@ import { fileURLToPath } from 'node:url';
 // and reachable. Downloading needs neither. This module imports only node:*.
 import {
   RECEITA_BASE_URL,
-  RECEITA_HEADERS,
   downloadFile,
   monthlyFiles,
-  parseFileListing,
-  parseFolderListing,
 } from '@woh/core/providers/companies/receita/download';
+import {
+  SourceUnreachableError,
+  listArchives,
+  listMonths,
+  openSource,
+} from '@woh/core/providers/companies/receita/source';
 
 /**
  * The repository root, regardless of where npm ran this from.
@@ -81,38 +84,6 @@ function bar(received: number, total: number | undefined): string {
   return `[${'#'.repeat(done)}${'.'.repeat(24 - done)}] ${size(received)} / ${size(total)}`;
 }
 
-async function readListing(url: string): Promise<string> {
-  let response: Response;
-  try {
-    response = await fetch(url, { headers: RECEITA_HEADERS });
-  } catch (cause) {
-    // fetch throws a bare "fetch failed" for everything below HTTP: no route,
-    // refused connection, DNS, a TLS reset. That tells the operator nothing,
-    // and the likeliest cause here is specific enough to name.
-    throw new Error(
-      `Não consegui nem conectar em ${url}.\n` +
-        `  Causa técnica: ${cause instanceof Error ? cause.message : String(cause)}\n\n` +
-        `  O servidor da Receita costuma recusar conexões de fora do Brasil, e sai do ar\n` +
-        `  com alguma frequência. Abra ${RECEITA_BASE_URL}/ no navegador:\n` +
-        `  se abrir aí e não aqui, me avise; se não abrir, é o servidor deles.`,
-    );
-  }
-  if (!response.ok) {
-    throw new Error(
-      `Não consegui ler a listagem em ${url} (HTTP ${response.status}).\n\n` +
-        `  O servidor respondeu — então chegou até ele — mas não entregou a página.\n\n` +
-        `  Abra este mesmo endereço no navegador:\n` +
-        `    ${url}\n\n` +
-        `  Se abrir no navegador e não aqui, o endereço está certo e o problema é\n` +
-        `  a requisição; me mande a tela do navegador.\n` +
-        `  Se der o mesmo erro no navegador, a Receita mudou o endereço de lugar.\n` +
-        `  Ache o novo em https://dados.gov.br/dados/conjuntos-dados/cadastro-nacional-da-pessoa-juridica---cnpj\n` +
-        `  e passe assim:  npm run download:br -- --url <endereço novo>`,
-    );
-  }
-  return response.text();
-}
-
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const destination = resolve(ROOT, args.folder ?? 'dados-cnpj');
@@ -120,27 +91,38 @@ async function main(): Promise<void> {
   console.log(`\n  Dados abertos do CNPJ — Receita Federal`);
   console.log(`  ${'='.repeat(38)}\n`);
 
+  console.log('  Abrindo a origem dos arquivos...');
+  const source = await openSource(args.baseUrl);
+  console.log(`  ${source.describe}\n`);
+
   let month = args.month;
   if (!month) {
     console.log('  Procurando a extração mais recente...');
-    const folders = parseFolderListing(await readListing(`${args.baseUrl}/`));
+    const names = await source.list('');
+    const folders = await listMonths(source);
     month = folders[folders.length - 1];
     if (!month) {
+      // Print what was actually there. A bare "nothing found" from a place
+      // only the operator can reach leaves neither of us anything to go on.
       throw new Error(
-        `Nenhuma pasta mensal encontrada em ${args.baseUrl}/.\n` +
-          `Abra esse endereço no navegador e passe a pasta com --mes AAAA-MM-DD.`,
+        `Nenhuma pasta no formato AAAA-MM-DD em ${args.baseUrl}.\n\n` +
+          `  O que existe lá:\n` +
+          (names.length
+            ? names.slice(0, 30).map((n) => `    ${n}`).join('\n')
+            : '    (nada — a listagem veio vazia)') +
+          `\n\n  Se os arquivos estiverem numa pasta com outro nome, passe:\n` +
+          `    npm run download:br -- --mes <nome da pasta>\n` +
+          `  Se a lista acima parecer estranha, me mande esta tela.`,
       );
     }
     console.log(`  Extração mais recente: ${month}\n`);
   }
 
-  const folderUrl = `${args.baseUrl}/${month}`;
-
   // Confirm against what the folder actually holds rather than trusting the
   // ten-parts convention: how many parts the Receita publishes is theirs to
   // change, and downloading a list of names that no longer exist would be 21
   // 404s and a confusing afternoon.
-  const offered = new Set(parseFileListing(await readListing(`${folderUrl}/`)));
+  const offered = new Set(await listArchives(source, month));
   const wanted = monthlyFiles().filter((f) => offered.has(f));
   const absent = monthlyFiles().filter((f) => !offered.has(f));
   const extra = [...offered].filter(
@@ -172,7 +154,8 @@ async function main(): Promise<void> {
     const path = resolve(destination, month, file);
     const prefix = `  ${String(index + 1).padStart(2)}/${wanted.length} ${file.padEnd(24)}`;
 
-    const outcome = await downloadFile(`${folderUrl}/${file}`, path, {
+    const outcome = await downloadFile(source.fileUrl(`${month}/${file}`), path, {
+      headers: source.headers,
       onProgress: ({ received, total }) => {
         process.stdout.write(`\r${prefix} ${bar(received, total)}   `);
       },
@@ -212,6 +195,13 @@ async function main(): Promise<void> {
 
 main().catch((error) => {
   console.error(`\n  ${error instanceof Error ? error.message : String(error)}\n`);
+  if (error instanceof SourceUnreachableError) {
+    console.error(
+      `  Se o endereço mudou de novo, ache o atual em\n` +
+        `  https://dados.gov.br/dados/conjuntos-dados/cadastro-nacional-da-pessoa-juridica---cnpj\n` +
+        `  e passe assim:  npm run download:br -- --url <endereço novo>\n`,
+    );
+  }
   if (!existsSync(resolve(ROOT, 'dados-cnpj'))) {
     console.error('  Nada foi baixado. Nenhum arquivo parcial ficou para trás.\n');
   } else {
