@@ -10,7 +10,7 @@ import {
   checkLayout,
   describeRow,
 } from './layout.js';
-import { missingParts } from './ingest.js';
+import { missingParts, parseMoney } from './ingest.js';
 import { parseCsvLine, rowsOfFile } from './read.js';
 
 const dir = mkdtempSync(join(tmpdir(), 'receita-'));
@@ -237,5 +237,42 @@ describe('missingParts', () => {
 
   it('says nothing about a set that is not numbered', () => {
     expect(missingParts(['Municipios.zip']).missing).toEqual([]);
+  });
+});
+
+describe('parseMoney', () => {
+  it('reads the comma as the decimal separator, which is how the files write it', () => {
+    // Observed in the September 2026 extraction: "3000,00".
+    expect(parseMoney('3000,00')).toBe(3000);
+    expect(parseMoney('1500,75')).toBe(1500.75);
+  });
+
+  it('treats dots as thousand separators when a comma settles the question', () => {
+    // An earlier version replaced only the first comma, so this became
+    // "1.234.567.89" and then NaN — a capital silently lost.
+    expect(parseMoney('1.234.567,89')).toBe(1234567.89);
+    expect(parseMoney('10.000,00')).toBe(10000);
+  });
+
+  it('reads a plain integer', () => {
+    expect(parseMoney('50000')).toBe(50000);
+  });
+
+  it('refuses to guess at dots with no comma', () => {
+    // "3000.50" could be three thousand and fifty cents or three million;
+    // stripping the dot would turn it into 300050. Number reads it as a
+    // decimal, and a shape Number cannot read comes back undefined.
+    expect(parseMoney('3000.50')).toBe(3000.5);
+    expect(parseMoney('1.234.567')).toBeUndefined();
+  });
+
+  it('is undefined for blank and for nonsense, never zero', () => {
+    // Zero is a real capital social. Reporting it for a missing value would
+    // make an unknown look like a fact.
+    expect(parseMoney('')).toBeUndefined();
+    expect(parseMoney('   ')).toBeUndefined();
+    expect(parseMoney(undefined)).toBeUndefined();
+    expect(parseMoney('ABC')).toBeUndefined();
+    expect(parseMoney('0,00')).toBe(0);
   });
 });

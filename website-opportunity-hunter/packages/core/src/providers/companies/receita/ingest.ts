@@ -199,11 +199,22 @@ function parseDate(value: string | undefined): Date | undefined {
 }
 
 /** The register writes money with a comma. */
-function parseMoney(value: string | undefined): number | undefined {
-  const raw = (value ?? '').trim().replace(',', '.');
+export function parseMoney(value: string | undefined): number | undefined {
+  const raw = (value ?? '').trim();
   if (!raw) return undefined;
-  const n = Number(raw);
-  return Number.isFinite(n) ? n : undefined;
+
+  // The files write capital social the Brazilian way: comma for the decimal
+  // separator, e.g. "3000,00". A comma therefore settles what any dots are —
+  // thousand separators — and "1.234.567,89" is one number, not three.
+  //
+  // Without a comma the dots are ambiguous, and guessing is how a capital of
+  // 3000.50 becomes 300050. So those are left for Number to read as it will:
+  // a plain integer parses, anything else comes back undefined, and an absent
+  // capital is a company sized UNKNOWN rather than one sized wrongly.
+  const normalised = raw.includes(',') ? raw.replace(/\./g, '').replace(',', '.') : raw;
+
+  const parsed = Number(normalised);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 /** A phone from the separate DDD and number columns, or nothing. */
