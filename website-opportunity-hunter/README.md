@@ -412,14 +412,23 @@ npm run download:br
 #    or:  npm run download:br -- --pasta D:\cnpj --mes 2026-09-14
 
 # 1. ALWAYS do this first — see below
-npm run ingest:br -- --inspect --estabelecimentos ./dados-cnpj/2026-09-14/Estabelecimentos0.zip
+npm run ingest:br -- --inspect
 
 # 2. Then import, keeping one state
-npm run ingest:br -- --estabelecimentos ./dados-cnpj/2026-09-14/Estabelecimentos*.zip \
-                     --empresas ./dados-cnpj/2026-09-14/Empresas*.zip \
-                     --municipios ./dados-cnpj/2026-09-14/Municipios.zip \
-                     --uf AM --tag 2026-09-14
+npm run ingest:br -- --uf AM
 ```
+
+Neither step needs file names: both find the newest dated folder under
+`dados-cnpj/` and read every part in it, and the import is tagged with that
+folder's date. Name the files explicitly — `--estabelecimentos`,
+`--empresas`, `--municipios`, `--tag` — only when they live somewhere else.
+
+On Windows the same two steps are **`baixar-dados.cmd`** and
+**`importar-dados.cmd`**, to be double-clicked. They exist because PowerShell
+refuses to run `npm.ps1` under the default execution policy, which makes
+`npm run …` fail with `PSSecurityException` on a machine where nothing is
+wrong; a `.cmd` file is not subject to that policy. `importar-dados.cmd` runs
+the inspection first and imports only on confirmation.
 
 Once a snapshot is imported, Brazilian searches use it automatically; until
 then they fall back to the fictional demo companies.

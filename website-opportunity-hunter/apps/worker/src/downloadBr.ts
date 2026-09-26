@@ -16,7 +16,8 @@
  */
 
 import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   RECEITA_BASE_URL,
   downloadFile,
@@ -24,6 +25,16 @@ import {
   parseFileListing,
   parseFolderListing,
 } from '@woh/core';
+
+/**
+ * The repository root, regardless of where npm ran this from.
+ *
+ * `npm run -w @woh/worker …` sets the working directory to the workspace, so a
+ * relative default like `./dados-cnpj` lands in apps/worker rather than beside
+ * the launchers — where the operator looked for it, and where the .cmd files
+ * check for it.
+ */
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 interface Args {
   folder?: string;
@@ -78,7 +89,7 @@ async function readListing(url: string): Promise<string> {
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
-  const destination = resolve(args.folder ?? './dados-cnpj');
+  const destination = resolve(ROOT, args.folder ?? 'dados-cnpj');
 
   console.log(`\n  Dados abertos do CNPJ — Receita Federal`);
   console.log(`  ${'='.repeat(38)}\n`);
@@ -160,22 +171,22 @@ async function main(): Promise<void> {
   Os arquivos estão em:
     ${at}
 
-  Próximo passo — confira o layout antes de importar:
+  Próximo passo — confira o layout das colunas antes de importar:
 
-    npm run ingest:br -- --inspect --estabelecimentos "${resolve(at, 'Estabelecimentos0.zip')}"
+    npm run ingest:br -- --inspect
 
   E depois a importação, só o Amazonas:
 
-    npm run ingest:br -- --estabelecimentos "${resolve(at, 'Estabelecimentos*.zip')}" \\
-                         --empresas "${resolve(at, 'Empresas*.zip')}" \\
-                         --municipios "${resolve(at, 'Municipios.zip')}" \\
-                         --uf AM --tag ${month}
+    npm run ingest:br -- --uf AM
+
+  Os dois acham esta pasta sozinhos. No Windows, é só dar dois cliques em
+  importar-dados.cmd, que faz os dois passos na ordem.
 `);
 }
 
 main().catch((error) => {
   console.error(`\n  ${error instanceof Error ? error.message : String(error)}\n`);
-  if (!existsSync(resolve('./dados-cnpj'))) {
+  if (!existsSync(resolve(ROOT, 'dados-cnpj'))) {
     console.error('  Nada foi baixado. Nenhum arquivo parcial ficou para trás.\n');
   } else {
     console.error('  O que já tinha sido baixado continua lá. Rode o comando de novo para continuar.\n');

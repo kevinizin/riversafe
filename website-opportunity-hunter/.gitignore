@@ -8,3 +8,6 @@ coverage/
 .env.*.local
 .DS_Store
 /tmp/
+
+# A extração do CNPJ baixada por "npm run download:br" — ~6 GB.
+dados-cnpj/
