@@ -22,11 +22,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const params = Object.fromEntries(request.nextUrl.searchParams.entries());
   const query = parseLeadQuery(params);
 
+  // `?limite=30` takes the best 30 of the current filter rather than all of
+  // it, because a call list is worked through in an afternoon and a file of
+  // five thousand rows is not a call list. The order is the one on screen, so
+  // the rows cut are the lowest-scoring ones.
+  const limit = Number(params.limite);
+  const take =
+    Number.isInteger(limit) && limit > 0 ? Math.min(limit, MAX_EXPORT_ROWS) : MAX_EXPORT_ROWS;
+
   const rows = await prisma.company.findMany({
     where: leadWhere(query),
     include: { ...LEAD_INCLUDE, scores: { orderBy: { computedAt: 'desc' }, take: 1 } },
     orderBy: leadOrderBy(query.sort, query.axis),
-    take: MAX_EXPORT_ROWS,
+    take,
   });
 
   const body = toCsv(

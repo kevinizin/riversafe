@@ -24,9 +24,15 @@ export default async function LeadsPage({ searchParams }: PageProps) {
 
   const pages = Math.max(1, Math.ceil(total / LEAD_PAGE_SIZE));
   const page = query.page ?? 1;
-  const exportHref = `/api/export?${new URLSearchParams(
+  const exportParams = new URLSearchParams(
     Object.entries(params).flatMap(([k, v]) => (typeof v === 'string' ? [[k, v] as [string, string]] : [])),
-  ).toString()}`;
+  );
+  const exportHref = `/api/export?${exportParams.toString()}`;
+  // A day's calling list rather than the whole filter. Same order as the
+  // screen, so these are the best-scoring ones.
+  const shortlistParams = new URLSearchParams(exportParams);
+  shortlistParams.set('limite', '30');
+  const shortlistHref = `/api/export?${shortlistParams.toString()}`;
 
   return (
     <div className="space-y-4">
@@ -39,7 +45,8 @@ export default async function LeadsPage({ searchParams }: PageProps) {
           </p>
         </div>
         <div className="flex gap-2">
-          <a href={exportHref} className="btn-ghost">Exportar CSV</a>
+          <a href={shortlistHref} className="btn-ghost">Exportar 30 melhores</a>
+          <a href={exportHref} className="btn-ghost">Exportar tudo</a>
           <Link href="/search" className="btn-primary">Nova busca</Link>
         </div>
       </div>
