@@ -1,0 +1,253 @@
+#!/usr/bin/env node
+/**
+ * Downloads a Receita Federal monthly extraction.
+ *
+ *   npm run download:br
+ *   npm run download:br -- --pasta ./dados-cnpj --mes 2026-09-14
+ *
+ * Picks the newest monthly folder unless told otherwise, checks what the
+ * folder actually contains before starting, and fetches one file at a time —
+ * the host rate-limits, so a parallel download finishes sooner right up until
+ * it starts getting refused.
+ *
+ * Safe to interrupt and re-run. Each file resumes from what is already on
+ * disk, and a file that is already complete is skipped without transferring
+ * anything. An extraction is roughly 6.4 GB across 21 files.
+ */
+
+import { existsSync } from 'node:fs';
+import { statfs } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+// Deliberately the module rather than the '@woh/core' barrel: that barrel
+// re-exports @woh/db, which loads @prisma/client, so importing it would make a
+// six-gigabyte HTTP download refuse to start until the database was generated
+// and reachable. Downloading needs neither. This module imports only node:*.
+import {
+  RECEITA_BASE_URL,
+  downloadFile,
+  monthlyFiles,
+} from '@woh/core/providers/companies/receita/download';
+import {
+  SourceUnreachableError,
+  listArchives,
+  listMonths,
+  openSource,
+} from '@woh/core/providers/companies/receita/source';
+
+/**
+ * The repository root, regardless of where npm ran this from.
+ *
+ * `npm run -w @woh/worker …` sets the working directory to the workspace, so a
+ * relative default like `./dados-cnpj` lands in apps/worker rather than beside
+ * the launchers — where the operator looked for it, and where the .cmd files
+ * check for it.
+ */
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+
+interface Args {
+  folder?: string;
+  month?: string;
+  baseUrl: string;
+}
+
+function parseArgs(argv: string[]): Args {
+  const args: Args = { baseUrl: RECEITA_BASE_URL };
+  for (let i = 0; i < argv.length; i += 1) {
+    switch (argv[i]) {
+      case '--pasta':
+        args.folder = argv[++i];
+        break;
+      case '--mes':
+        args.month = argv[++i];
+        break;
+      case '--url':
+        args.baseUrl = argv[++i] ?? RECEITA_BASE_URL;
+        break;
+      default:
+        throw new Error(`Opção desconhecida: ${argv[i]}`);
+    }
+  }
+  return args;
+}
+
+/** A size a human reads at a glance. Municipios.zip is 42 KB and the big
+ *  archives are gigabytes, so one fixed unit is wrong for one end or the other. */
+function size(bytes: number): string {
+  if (bytes >= 1_073_741_824) return `${(bytes / 1_073_741_824).toFixed(1)} GB`;
+  if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(0)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+function bar(received: number, total: number | undefined): string {
+  if (!total) return size(received);
+  const done = Math.min(24, Math.round((received / total) * 24));
+  return `[${'#'.repeat(done)}${'.'.repeat(24 - done)}] ${size(received)} / ${size(total)}`;
+}
+
+/**
+ * Says so when the disk will not hold the extraction.
+ *
+ * A warning rather than a refusal: the figure counts what is already
+ * downloaded as still to come, so it errs pessimistic, and an operator who
+ * knows their disk should not be stopped by an estimate. Running out of space
+ * eleven gigabytes into a download is the thing worth avoiding.
+ */
+async function warnIfTight(destination: string, needed: number): Promise<void> {
+  let free: number;
+  try {
+    const fs = await statfs(existsSync(destination) ? destination : ROOT);
+    free = fs.bavail * fs.bsize;
+  } catch {
+    // Not available on every platform or filesystem; not worth a failure.
+    return;
+  }
+
+  if (free >= needed) return;
+  console.log(
+    `  ATENÇÃO: o disco tem ${size(free)} livres e a extração ocupa ${size(needed)}.\n` +
+      `  O download vai parar quando o espaço acabar. Libere espaço, ou use\n` +
+      `  outro disco:  npm run download:br -- --pasta D:\\cnpj\n`,
+  );
+}
+
+async function main(): Promise<void> {
+  const args = parseArgs(process.argv.slice(2));
+  const destination = resolve(ROOT, args.folder ?? 'dados-cnpj');
+
+  console.log(`\n  Dados abertos do CNPJ — Receita Federal`);
+  console.log(`  ${'='.repeat(38)}\n`);
+
+  console.log('  Abrindo a origem dos arquivos...');
+  const source = await openSource(args.baseUrl);
+  console.log(`  ${source.describe}\n`);
+
+  let month = args.month;
+  if (!month) {
+    console.log('  Procurando a extração mais recente...');
+    const names = await source.list('');
+    const folders = await listMonths(source);
+    month = folders[folders.length - 1];
+    if (!month) {
+      // Print what was actually there. A bare "nothing found" from a place
+      // only the operator can reach leaves neither of us anything to go on.
+      throw new Error(
+        `Nenhuma pasta no formato AAAA-MM-DD em ${args.baseUrl}.\n\n` +
+          `  O que existe lá:\n` +
+          (names.length
+            ? names.slice(-40).map((n) => `    ${n}`).join('\n') +
+              (names.length > 40 ? `\n    ... e mais ${names.length - 40} antes dessas` : '')
+            : '    (nada — a listagem veio vazia)') +
+          `\n\n  Se os arquivos estiverem numa pasta com outro nome, passe:\n` +
+          `    npm run download:br -- --mes <nome da pasta>\n` +
+          `  Se a lista acima parecer estranha, me mande esta tela.`,
+      );
+    }
+    console.log(`  Extração mais recente: ${month}\n`);
+  }
+
+  // Confirm against what the folder actually holds rather than trusting the
+  // ten-parts convention: how many parts the Receita publishes is theirs to
+  // change, and downloading a list of names that no longer exist would be 21
+  // 404s and a confusing afternoon.
+  const archives = await listArchives(source, month);
+  const bytesOf = new Map(archives.map((entry) => [entry.name, entry.bytes]));
+  const offered = new Set(bytesOf.keys());
+  const wanted = monthlyFiles().filter((f) => offered.has(f));
+  const absent = monthlyFiles().filter((f) => !offered.has(f));
+  const extra = [...offered].filter(
+    (f) => /^(Empresas|Estabelecimentos)\d+\.zip$/i.test(f) && !wanted.includes(f),
+  );
+
+  if (wanted.length === 0) {
+    throw new Error(
+      `A pasta ${month} não tem nenhum dos arquivos esperados.\n` +
+        `Ela oferece: ${[...offered].slice(0, 10).join(', ') || '(nada)'}`,
+    );
+  }
+  if (absent.length) {
+    console.log(`  Aviso: a pasta não oferece ${absent.join(', ')}.`);
+  }
+  if (extra.length) {
+    console.log(`  A Receita publicou partes a mais desta vez: ${extra.join(', ')}. Baixando também.`);
+    wanted.push(...extra);
+  }
+
+  // The listing declares the sizes, so say the real figure rather than the
+  // "about 6 GB" that was written down once and went stale. An extraction
+  // that does not fit on the disk is worth knowing before the first byte,
+  // not eleven gigabytes in.
+  const total = wanted.reduce((sum, file) => sum + (bytesOf.get(file) ?? 0), 0);
+
+  console.log(`  ${wanted.length} arquivos para ${destination}`);
+  console.log(
+    total
+      ? `  ${size(total)} no total. Pode interromper e rodar de novo — continua de onde parou.\n`
+      : `  Pode interromper e rodar de novo — continua de onde parou.\n`,
+  );
+
+  if (total) await warnIfTight(destination, total);
+
+  const started = Date.now();
+  let transferred = 0;
+  let skipped = 0;
+
+  for (const [index, file] of wanted.entries()) {
+    const path = resolve(destination, month, file);
+    const prefix = `  ${String(index + 1).padStart(2)}/${wanted.length} ${file.padEnd(24)}`;
+
+    const outcome = await downloadFile(source.fileUrl(`${month}/${file}`), path, {
+      headers: source.headers,
+      onProgress: ({ received, total }) => {
+        process.stdout.write(`\r${prefix} ${bar(received, total)}   `);
+      },
+    });
+
+    if (outcome.skipped) {
+      skipped += 1;
+      process.stdout.write(`\r${prefix} já estava completo (${size(outcome.bytes)})${' '.repeat(12)}\n`);
+    } else {
+      transferred += 1;
+      const note = outcome.resumed ? ' (retomado)' : '';
+      process.stdout.write(`\r${prefix} pronto ${size(outcome.bytes)}${note}${' '.repeat(12)}\n`);
+    }
+  }
+
+  const minutes = Math.round((Date.now() - started) / 60_000);
+  const at = resolve(destination, month);
+
+  console.log(`
+  Pronto em ${minutes} min. ${transferred} baixados, ${skipped} já estavam completos.
+
+  Os arquivos estão em:
+    ${at}
+
+  Próximo passo — confira o layout das colunas antes de importar:
+
+    npm run ingest:br -- --inspect
+
+  E depois a importação, só o Amazonas:
+
+    npm run ingest:br -- --uf AM
+
+  Os dois acham esta pasta sozinhos. No Windows, é só dar dois cliques em
+  importar-dados.cmd, que faz os dois passos na ordem.
+`);
+}
+
+main().catch((error) => {
+  console.error(`\n  ${error instanceof Error ? error.message : String(error)}\n`);
+  if (error instanceof SourceUnreachableError) {
+    console.error(
+      `  Se o endereço mudou de novo, ache o atual em\n` +
+        `  https://dados.gov.br/dados/conjuntos-dados/cadastro-nacional-da-pessoa-juridica---cnpj\n` +
+        `  e passe assim:  npm run download:br -- --url <endereço novo>\n`,
+    );
+  }
+  if (!existsSync(resolve(ROOT, 'dados-cnpj'))) {
+    console.error('  Nada foi baixado. Nenhum arquivo parcial ficou para trás.\n');
+  } else {
+    console.error('  O que já tinha sido baixado continua lá. Rode o comando de novo para continuar.\n');
+  }
+  process.exit(1);
+});
