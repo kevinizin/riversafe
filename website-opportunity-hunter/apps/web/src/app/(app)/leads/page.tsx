@@ -28,11 +28,14 @@ export default async function LeadsPage({ searchParams }: PageProps) {
     Object.entries(params).flatMap(([k, v]) => (typeof v === 'string' ? [[k, v] as [string, string]] : [])),
   );
   const exportHref = `/api/export?${exportParams.toString()}`;
-  // A day's calling list rather than the whole filter. Same order as the
-  // screen, so these are the best-scoring ones.
-  const shortlistParams = new URLSearchParams(exportParams);
-  shortlistParams.set('limite', '30');
-  const shortlistHref = `/api/export?${shortlistParams.toString()}`;
+  // A day's calling list rather than the whole filter, in the sizes a day
+  // actually comes in. Same order as the screen, so these are the
+  // best-scoring ones and the rows cut are the weakest.
+  const shortlistHref = (limit: number) => {
+    const shortlist = new URLSearchParams(exportParams);
+    shortlist.set('limite', String(limit));
+    return `/api/export?${shortlist.toString()}`;
+  };
 
   return (
     <div className="space-y-4">
@@ -45,7 +48,14 @@ export default async function LeadsPage({ searchParams }: PageProps) {
           </p>
         </div>
         <div className="flex gap-2">
-          <a href={shortlistHref} className="btn-ghost">Exportar 30 melhores</a>
+          <span className="flex items-center gap-1 text-sm text-slate-600">
+            Exportar melhores:
+            {[30, 50, 100].map((limit) => (
+              <a key={limit} href={shortlistHref(limit)} className="btn-ghost px-2">
+                {limit}
+              </a>
+            ))}
+          </span>
           <a href={exportHref} className="btn-ghost">Exportar tudo</a>
           <Link href="/search" className="btn-primary">Nova busca</Link>
         </div>
