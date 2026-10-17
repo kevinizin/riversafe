@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Orçamentos · Vértice</title>
+  <meta name="description" content="Gerador de orçamentos para distribuidora de materiais de construção.">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#142D4E">
+  <link rel="icon" href="img/icone.png" type="image/png" sizes="64x64">
+  <link rel="icon" href="img/icone-512.png" type="image/png" sizes="512x512">
+  <link rel="apple-touch-icon" href="img/icone-app.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-menos" viewBox="0 0 24 24"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-busca" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-lixo" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4.8c0-.4.4-.8.8-.8h4.4c.4 0 .8.4.8.8V7m-8.5 0 .8 12.2c0 .5.5.8 1 .8h6.4c.5 0 1-.3 1-.8L17.5 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-pasta" viewBox="0 0 24 24"><path d="M3.5 7.2c0-.9.7-1.7 1.7-1.7h4.2l2 2.2h7.4c.9 0 1.7.7 1.7 1.7v8.4c0 .9-.8 1.7-1.7 1.7H5.2c-1 0-1.7-.8-1.7-1.7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-novo" viewBox="0 0 24 24"><path d="M14 3.5H7.2c-1 0-1.7.8-1.7 1.7v13.6c0 .9.7 1.7 1.7 1.7h9.6c.9 0 1.7-.8 1.7-1.7V8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3.5V8h4.5M12 11v6m-3-3h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3.5H7.2c-1 0-1.7.8-1.7 1.7v13.6c0 .9.7 1.7 1.7 1.7h9.6c.9 0 1.7-.8 1.7-1.7V8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3.5V8h4.5M9 12.5h6M9 16h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-imprimir" viewBox="0 0 24 24"><path d="M7 8.5V4h10v4.5M7 16.5H5.2c-.9 0-1.7-.8-1.7-1.7V10.2c0-.9.8-1.7 1.7-1.7h13.6c.9 0 1.7.8 1.7 1.7v4.6c0 .9-.8 1.7-1.7 1.7H17M7 13.5h10V20H7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-msg" viewBox="0 0 24 24"><path d="M4.5 19.5 5.6 16A7.8 7.8 0 1 1 8.4 18.6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 10.5h6M9 13.5h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-salvar" viewBox="0 0 24 24"><path d="M5.2 3.5h10.6L20.5 8v10.8c0 .9-.8 1.7-1.7 1.7H5.2c-.9 0-1.7-.8-1.7-1.7V5.2c0-.9.8-1.7 1.7-1.7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 3.5v4.5h7V3.5M7.5 20.5v-6h9v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-copiar" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="1.7" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M15.5 8.5V5.2c0-.9-.8-1.7-1.7-1.7H5.2c-.9 0-1.7.8-1.7 1.7v8.6c0 .9.8 1.7 1.7 1.7h3.3" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  </svg>
+
+  <header class="topo">
+    <div class="topo__in">
+      <a class="logo logo--escuro" id="marca-topo" href="./" aria-label="Início"></a>
+      <span class="topo__modulo">Orçamentos</span>
+      <nav class="topo__acoes" aria-label="Ações">
+        <button class="btn btn--fantasma" type="button" id="bt-salvos" aria-label="Orçamentos salvos">
+          <svg class="ic" aria-hidden="true"><use href="#i-pasta"/></svg>
+          <span>Salvos</span><span class="contador" id="ct-salvos" hidden>0</span>
+        </button>
+        <button class="btn btn--destaque" type="button" id="bt-novo" aria-label="Novo orçamento">
+          <svg class="ic" aria-hidden="true"><use href="#i-novo"/></svg>
+          <span>Novo orçamento</span>
+        </button>
+      </nav>
+    </div>
+    <div class="faixa" aria-hidden="true"></div>
+  </header>
+
+  <main class="app">
+    <!-- Catálogo -->
+    <section class="painel catalogo" aria-labelledby="t-catalogo">
+      <div class="painel__cab">
+        <div>
+          <h2 class="painel__titulo" id="t-catalogo">Catálogo</h2>
+          <p class="painel__nota" id="nota-catalogo">60 produtos</p>
+        </div>
+        <button class="btn btn--linha" type="button" id="bt-avulso">
+          <svg class="ic" aria-hidden="true"><use href="#i-mais"/></svg>
+          <span>Produto avulso</span>
+        </button>
+      </div>
+
+      <div class="busca">
+        <svg class="busca__ic" aria-hidden="true"><use href="#i-busca"/></svg>
+        <input type="search" id="busca" placeholder="Buscar por nome ou código" autocomplete="off" aria-label="Buscar produto">
+        <kbd class="busca__atalho" aria-hidden="true">/</kbd>
+      </div>
+      <div class="chips" id="chips" role="group" aria-label="Categorias"></div>
+
+      <ul class="lista-prod" id="lista-prod"></ul>
+      <div class="vazio-busca" id="vazio-busca" hidden>
+        <p>Nenhum produto encontrado.</p>
+        <button class="btn btn--linha" type="button" data-acao="avulso-da-busca">Lançar como produto avulso</button>
+      </div>
+    </section>
+
+    <!-- Orçamento -->
+    <section class="painel orc" id="orc" aria-labelledby="t-orc">
+      <div class="orc__cab">
+        <div>
+          <h2 class="painel__titulo" id="t-orc">Orçamento <span class="orc__num" id="orc-num"></span></h2>
+          <p class="painel__nota" id="orc-data"></p>
+        </div>
+        <span class="selo" id="orc-selo" hidden>Salvo</span>
+      </div>
+
+      <div class="orc__corpo">
+        <details class="bloco" id="bloco-cliente" open>
+          <summary>Cliente <span class="bloco__resumo" id="resumo-cliente"></span></summary>
+          <div class="campos">
+            <label class="campo campo--largo">
+              <span>Nome ou razão social</span>
+              <input type="text" data-campo="cliente.nome" autocomplete="off" placeholder="Ex.: Construtora Vale Verde">
+            </label>
+            <label class="campo">
+              <span>CPF ou CNPJ</span>
+              <input type="text" data-campo="cliente.doc" inputmode="numeric" autocomplete="off">
+            </label>
+            <label class="campo">
+              <span>WhatsApp</span>
+              <input type="tel" data-campo="cliente.tel" inputmode="tel" autocomplete="off" placeholder="(92) 9____-____">
+            </label>
+            <label class="campo campo--largo">
+              <span>Endereço da obra ou entrega</span>
+              <input type="text" data-campo="cliente.endereco" autocomplete="off">
+            </label>
+          </div>
+        </details>
+
+        <div class="bloco bloco--itens">
+          <div class="bloco__cab">
+            <h3>Itens <span class="bloco__resumo" id="resumo-itens"></span></h3>
+          </div>
+          <ul class="itens" id="itens"></ul>
+          <div class="itens-vazio" id="itens-vazio">
+            <svg class="itens-vazio__ic" aria-hidden="true"><use href="#i-doc"/></svg>
+            <p><strong>Nenhum item ainda.</strong> Escolha a quantidade no catálogo e toque em <em>Adicionar</em>.</p>
+            <button class="btn btn--linha btn--p" type="button" id="bt-exemplo">Carregar orçamento de exemplo</button>
+          </div>
+        </div>
+
+        <details class="bloco" open>
+          <summary>Desconto, frete e condições</summary>
+          <div class="campos">
+            <div class="campo">
+              <span id="lb-desc">Desconto geral</span>
+              <div class="combo" role="group" aria-labelledby="lb-desc">
+                <div class="seg" id="seg-desc">
+                  <button type="button" data-tipo="pct" aria-pressed="true">%</button>
+                  <button type="button" data-tipo="valor" aria-pressed="false">R$</button>
+                </div>
+                <input type="text" id="desc-geral" inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Valor do desconto geral">
+              </div>
+            </div>
+            <label class="campo">
+              <span>Frete (R$)</span>
+              <input type="text" id="frete" inputmode="decimal" autocomplete="off" placeholder="0,00">
+            </label>
+            <label class="campo">
+              <span>Pagamento</span>
+              <select data-campo="pagamento">
+                <option>PIX à vista</option>
+                <option>Dinheiro à vista</option>
+                <option>Cartão de débito</option>
+                <option>Cartão de crédito em até 3×</option>
+                <option>Cartão de crédito em até 6×</option>
+                <option>Boleto 28 dias</option>
+                <option>Boleto 28/56 dias</option>
+              </select>
+            </label>
+            <label class="campo">
+              <span>Entrega</span>
+              <select data-campo="entrega">
+                <option>Entrega em até 48 h</option>
+                <option>Entrega em até 24 h</option>
+                <option>Entrega agendada</option>
+                <option>Retirada na loja</option>
+              </select>
+            </label>
+            <label class="campo">
+              <span>Validade</span>
+              <select data-campo="validade" data-num>
+                <option value="7">7 dias</option>
+                <option value="15">15 dias</option>
+                <option value="30">30 dias</option>
+              </select>
+            </label>
+            <label class="campo">
+              <span>Vendedor</span>
+              <input type="text" data-campo="vendedor" autocomplete="off">
+            </label>
+            <label class="campo campo--largo">
+              <span>Observações</span>
+              <textarea data-campo="obs" rows="2" placeholder="Ex.: descarregar no portão lateral; obra funciona até 17 h."></textarea>
+            </label>
+          </div>
+        </details>
+      </div>
+
+      <div class="orc__rodape">
+        <dl class="totais" aria-live="polite">
+          <div><dt>Subtotal</dt><dd id="t-subtotal">R$ 0,00</dd></div>
+          <div class="totais__desc" id="linha-desc" hidden><dt>Descontos <small id="t-desc-pct"></small></dt><dd id="t-desc">− R$ 0,00</dd></div>
+          <div id="linha-frete" hidden><dt>Frete</dt><dd id="t-frete">R$ 0,00</dd></div>
+          <div class="totais__total"><dt>Total</dt><dd id="t-total">R$ 0,00</dd></div>
+        </dl>
+        <p class="alerta" id="alerta-desc" hidden></p>
+        <div class="orc__botoes">
+          <button class="btn btn--linha" type="button" id="bt-salvar">
+            <svg class="ic" aria-hidden="true"><use href="#i-salvar"/></svg><span>Salvar</span>
+          </button>
+          <button class="btn btn--destaque btn--g" type="button" id="bt-gerar">
+            <svg class="ic" aria-hidden="true"><use href="#i-doc"/></svg><span>Gerar orçamento</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Barra do celular -->
+  <div class="barra-movel" id="barra-movel">
+    <div>
+      <span class="barra-movel__itens" id="bm-itens">0 itens</span>
+      <strong class="barra-movel__total" id="bm-total">R$ 0,00</strong>
+    </div>
+    <button class="btn btn--destaque" type="button" id="bt-ver-orc">Ver orçamento</button>
+  </div>
+
+  <!-- Produto avulso -->
+  <dialog class="dlg" id="dlg-avulso" aria-labelledby="t-avulso">
+    <form method="dialog" class="dlg__caixa" id="form-avulso" novalidate>
+      <div class="dlg__cab">
+        <h2 id="t-avulso">Produto avulso</h2>
+        <button class="btn-ic" type="button" data-fechar aria-label="Fechar"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+      </div>
+      <p class="dlg__nota">Para item fora do catálogo, como encomenda ou material especial.</p>
+      <div class="campos">
+        <label class="campo campo--largo">
+          <span>Descrição</span>
+          <input type="text" name="nome" required autocomplete="off" placeholder="Ex.: Porta de madeira semi-oca 80 × 210 cm">
+        </label>
+        <label class="campo">
+          <span>Unidade</span>
+          <select name="un" id="avulso-un"></select>
+        </label>
+        <label class="campo">
+          <span>Preço unitário (R$)</span>
+          <input type="text" name="preco" required inputmode="decimal" autocomplete="off" placeholder="0,00">
+        </label>
+        <label class="campo">
+          <span>Quantidade</span>
+          <input type="text" name="qtd" inputmode="decimal" autocomplete="off" value="1">
+        </label>
+        <label class="campo">
+          <span>Categoria</span>
+          <select name="cat" id="avulso-cat"></select>
+        </label>
+        <label class="marcar campo--largo">
+          <input type="checkbox" name="salvar" checked>
+          <span>Guardar no catálogo para os próximos orçamentos</span>
+        </label>
+      </div>
+      <p class="erro" id="erro-avulso" hidden></p>
+      <div class="dlg__acoes">
+        <button class="btn btn--linha" type="button" data-fechar>Cancelar</button>
+        <button class="btn btn--destaque" type="submit">Adicionar ao orçamento</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Prévia do documento -->
+  <dialog class="dlg dlg--doc" id="dlg-doc" aria-labelledby="t-doc">
+    <div class="doc-barra">
+      <h2 id="t-doc">Prévia do orçamento</h2>
+      <div class="doc-barra__acoes">
+        <button class="btn btn--fantasma" type="button" id="bt-copiar" aria-label="Copiar texto">
+          <svg class="ic" aria-hidden="true"><use href="#i-copiar"/></svg><span>Copiar texto</span>
+        </button>
+        <button class="btn btn--fantasma" type="button" id="bt-whats" aria-label="Enviar pelo WhatsApp">
+          <svg class="ic" aria-hidden="true"><use href="#i-msg"/></svg><span>WhatsApp</span>
+        </button>
+        <button class="btn btn--destaque" type="button" id="bt-imprimir">
+          <svg class="ic" aria-hidden="true"><use href="#i-imprimir"/></svg><span>Imprimir / PDF</span>
+        </button>
+        <button class="btn-ic btn-ic--claro" type="button" data-fechar aria-label="Fechar prévia"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+      </div>
+    </div>
+    <div class="doc-palco" id="doc-palco"></div>
+  </dialog>
+
+  <!-- Orçamentos salvos -->
+  <dialog class="dlg dlg--largo" id="dlg-salvos" aria-labelledby="t-salvos">
+    <div class="dlg__caixa">
+      <div class="dlg__cab">
+        <h2 id="t-salvos">Orçamentos salvos</h2>
+        <button class="btn-ic" type="button" data-fechar aria-label="Fechar"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+      </div>
+      <div id="lista-salvos"></div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div id="print-root" aria-hidden="true"></div>
+
+  <script src="js/dados.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
