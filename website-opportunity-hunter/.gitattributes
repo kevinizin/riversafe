@@ -1,0 +1,5 @@
+# Batch files must keep CRLF line endings: cmd.exe mis-parses LF-only scripts,
+# and a checkout on macOS or Linux would otherwise normalise them.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.sh text eol=lf
