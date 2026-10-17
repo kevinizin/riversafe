@@ -1,6 +1,5 @@
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
 import { APP_NAME } from '@woh/config';
+import { findLogo } from '@/lib/brandAsset';
 
 /**
  * The Azven mark in the header and on the sign-in page.
@@ -11,26 +10,15 @@ import { APP_NAME } from '@woh/config';
  * the corner of every page, which looks worse than no logo at all and is the
  * kind of thing nobody gets round to fixing.
  *
- * To use a real logo, put a file at one of the paths in `CANDIDATES` below.
- * Nothing else needs changing — no rebuild step, no import, no config. SVG is
+ * To use a real logo, drop a file into `apps/web/public` under one of the
+ * names `findLogo` checks. Nothing else needs changing — no rebuild step, no
+ * import, no config, and the browser tab icon picks up the same file. SVG is
  * the best choice because it stays sharp on any screen; a PNG at roughly 3×
  * the displayed height is the practical alternative.
  */
 
-const PUBLIC_DIR = join(process.cwd(), 'public');
-
-/** Checked in order; the first one present wins. */
-const CANDIDATES = ['logo.svg', 'logo.png', 'logo.webp', 'logo.jpg'];
-
-function logoFile(): string | null {
-  for (const name of CANDIDATES) {
-    if (existsSync(join(PUBLIC_DIR, name))) return `/${name}`;
-  }
-  return null;
-}
-
 export function Brand({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
-  const file = logoFile();
+  const file = findLogo()?.url;
   const height = size === 'lg' ? 40 : 24;
 
   if (file) {
