@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+
+  /* Identidade Sobremesas Sofi: rosa do logo + chocolate */
+  --color-cream: #fdf6f3;
+  --color-cream-deep: #f8e8e2;
+  --color-ink: #3b1f17;
+  --color-ink-soft: #6b4a40;
+  --color-muted: #94766c;
+  --color-line: #efdcd5;
+  --color-accent: #d2345c;
+  --color-accent-deep: #a8203f;
+  --color-accent-soft: #fbe3e8;
+  --color-gold: #e9a8b6;
+  --color-leaf: #3f6b4e;
+  --color-leaf-soft: #e3eee5;
+
+  --shadow-card: 0 1px 2px rgb(43 27 20 / 0.04), 0 8px 24px -12px rgb(43 27 20 / 0.18);
+  --shadow-lift: 0 2px 4px rgb(43 27 20 / 0.06), 0 24px 48px -20px rgb(43 27 20 / 0.35);
+
+  --animate-sheet-up: sheet-up 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-slide-in: slide-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-fade-in: fade-in 240ms ease-out;
+  --animate-pop: pop 360ms cubic-bezier(0.3, 1.6, 0.5, 1);
+
+  @keyframes sheet-up {
+    from { transform: translateY(24px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes slide-in {
+    from { transform: translateX(32px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes pop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.18); }
+    100% { transform: scale(1); }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-padding-top: 8.5rem;
+  }
+  body {
+    @apply bg-cream text-ink font-sans antialiased;
+  }
+  ::selection {
+    @apply bg-accent text-white;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
+  }
+}
+
+dialog::backdrop {
+  background: rgb(43 27 20 / 0.45);
+  backdrop-filter: blur(3px);
+  animation: fade-in 200ms ease-out;
+}
+
+body:has(dialog[open]) {
+  overflow: hidden;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
