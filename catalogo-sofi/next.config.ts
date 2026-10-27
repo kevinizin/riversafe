@@ -1,9 +1,5 @@
 import type { NextConfig } from "next";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL)
-  : null;
-
 // Cabeçalhos de segurança para todas as respostas.
 // A Content-Security-Policy (com nonce por requisição) é montada em src/proxy.ts.
 const securityHeaders = [
@@ -19,19 +15,6 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   images: {
     formats: ["image/avif", "image/webp"],
-    remotePatterns: [
-      { protocol: "https", hostname: "images.unsplash.com", pathname: "/photo-**" },
-      ...(supabaseUrl
-        ? [
-            {
-              protocol: supabaseUrl.protocol === "http:" ? ("http" as const) : ("https" as const),
-              hostname: supabaseUrl.hostname,
-              port: supabaseUrl.port,
-              pathname: "/storage/v1/object/public/catalogo/**",
-            },
-          ]
-        : []),
-    ],
   },
   experimental: {
     serverActions: {

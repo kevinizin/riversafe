@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAdmin } from "@/lib/auth";
+import { changePassword as changeStoredPassword, login, logout, requireAdmin } from "@/lib/auth";
 import { isDemoMode } from "@/lib/env";
+import { mutateCatalog } from "@/lib/store";
 import { removeImage, uploadImage, UserFacingError } from "@/lib/upload";
-import { createSessionClient } from "@/lib/supabase/server";
 import {
   categorySchema,
   fieldErrors,
@@ -30,10 +30,16 @@ function refreshCatalog() {
   revalidatePath("/", "layout");
 }
 
-function failure(err: unknown): FormState {
-  if (err instanceof UserFacingError) return { errors: { image: err.message } };
+function failure(err: unknown, field = "image"): FormState {
+  if (err instanceof UserFacingError) return { errors: { [field]: err.message } };
   console.error(err);
   return { message: GENERIC_ERROR };
+}
+
+function readId(formData: FormData): string | null | false {
+  const raw = formData.get("id");
+  if (typeof raw !== "string" || raw === "") return null;
+  return uuid.safeParse(raw).success ? raw : false;
 }
 
 // ---------------------------------------------------------------------------
@@ -41,47 +47,34 @@ function failure(err: unknown): FormState {
 // ---------------------------------------------------------------------------
 
 export async function signIn(_prev: FormState, formData: FormData): Promise<FormState> {
-  if (isDemoMode) {
-    return { message: "Painel desativado no modo demonstração. Configure o Supabase (veja o README)." };
+  if (isDemoMode) return { message: "Painel ainda não configurado neste servidor." };
+
+  const parsed = loginSchema.safeParse(formValues(formData, ["user", "password"]));
+  if (!parsed.success) return { message: "Usuário ou senha incorretos." };
+
+  const result = await login(parsed.data.user, parsed.data.password);
+  if (result === "locked") {
+    return { message: "Muitas tentativas erradas. Aguarde 15 minutos e tente de novo." };
   }
-
-  const parsed = loginSchema.safeParse(formValues(formData, ["email", "password"]));
-  if (!parsed.success) return { message: "E-mail ou senha incorretos." };
-
-  const supabase = await createSessionClient();
-  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
-  // Mesma mensagem para qualquer falha: não revela se o e-mail existe.
-  if (error || !data.user) return { message: "E-mail ou senha incorretos." };
-
-  const { data: admin } = await supabase
-    .from("admins")
-    .select("user_id")
-    .eq("user_id", data.user.id)
-    .maybeSingle();
-  if (!admin) {
-    await supabase.auth.signOut();
-    return { message: "Esta conta não tem acesso ao painel." };
-  }
+  // Mesma mensagem para usuário ou senha errados.
+  if (result !== "ok") return { message: "Usuário ou senha incorretos." };
 
   redirect("/admin");
 }
 
 export async function signOut() {
-  if (!isDemoMode) {
-    const supabase = await createSessionClient();
-    await supabase.auth.signOut();
-  }
+  await logout();
   redirect("/admin/login");
 }
 
 export async function changePassword(_prev: FormState, formData: FormData): Promise<FormState> {
-  const { supabase } = await requireAdmin();
-  const parsed = passwordSchema.safeParse(formValues(formData, ["password", "confirm"]));
+  await requireAdmin();
+  const parsed = passwordSchema.safeParse(formValues(formData, ["current", "password", "confirm"]));
   if (!parsed.success) return { errors: fieldErrors(parsed.error) };
 
-  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
-  if (error) return { message: "Não foi possível trocar a senha. Tente outra senha." };
-  return { ok: true, message: "Senha alterada." };
+  const ok = await changeStoredPassword(parsed.data.current, parsed.data.password);
+  if (!ok) return { errors: { current: "Senha atual incorreta." } };
+  return { ok: true, message: "Senha alterada. Os outros aparelhos precisarão entrar de novo." };
 }
 
 // ---------------------------------------------------------------------------
@@ -103,65 +96,70 @@ const PRODUCT_FIELDS = [
 ] as const;
 
 export async function saveProduct(_prev: FormState, formData: FormData): Promise<FormState> {
-  const { supabase } = await requireAdmin();
+  await requireAdmin();
 
-  const rawId = formData.get("id");
-  const id = typeof rawId === "string" && rawId !== "" ? rawId : null;
-  if (id && !uuid.safeParse(id).success) return { message: GENERIC_ERROR };
+  const id = readId(formData);
+  if (id === false) return { message: GENERIC_ERROR };
 
   const parsed = productSchema.safeParse(formValues(formData, PRODUCT_FIELDS));
   if (!parsed.success) return { errors: fieldErrors(parsed.error) };
 
-  let previousImage: string | null = null;
-  if (id) {
-    const { data: current } = await supabase
-      .from("products")
-      .select("image_path")
-      .eq("id", id)
-      .maybeSingle();
-    if (!current) return { message: "Produto não encontrado." };
-    previousImage = current.image_path;
-  }
-
   let newImage: string | null = null;
   try {
-    newImage = await uploadImage(supabase, formData.get("image"), "produtos");
+    newImage = await uploadImage(formData.get("image"), "produtos");
   } catch (err) {
     return failure(err);
   }
-
   const removeCurrent = formData.get("remove_image") === "on";
-  const image_path = newImage ?? (removeCurrent ? null : previousImage);
-  const row = { ...parsed.data, image_path };
 
-  const { error } = id
-    ? await supabase.from("products").update(row).eq("id", id)
-    : await supabase.from("products").insert(row);
+  let previousImage = null as string | null;
+  let found = true as boolean;
+  try {
+    await mutateCatalog((doc) => {
+      if (parsed.data.category_id && !doc.categories.some((c) => c.id === parsed.data.category_id)) {
+        parsed.data.category_id = null;
+      }
+      if (id) {
+        const product = doc.products.find((p) => p.id === id);
+        if (!product) {
+          found = false;
+          return;
+        }
+        previousImage = product.image_path;
+        Object.assign(product, parsed.data, {
+          image_path: newImage ?? (removeCurrent ? null : product.image_path),
+        });
+      } else {
+        doc.products.push({ id: crypto.randomUUID(), ...parsed.data, image_path: newImage });
+      }
+    });
+  } catch (err) {
+    await removeImage(newImage);
+    return failure(err);
+  }
 
-  if (error) {
-    await removeImage(supabase, newImage);
-    return failure(error);
+  if (!found) {
+    await removeImage(newImage);
+    return { message: "Produto não encontrado." };
   }
-  if (previousImage && previousImage !== image_path) {
-    await removeImage(supabase, previousImage);
-  }
+  if (previousImage && (newImage || removeCurrent)) await removeImage(previousImage);
 
   refreshCatalog();
   redirect(`/admin?salvo=${encodeURIComponent(parsed.data.name)}`);
 }
 
 export async function deleteProduct(formData: FormData) {
-  const { supabase } = await requireAdmin();
-  const id = uuid.safeParse(formData.get("id"));
-  if (!id.success) return;
+  await requireAdmin();
+  const id = readId(formData);
+  if (!id) return;
 
-  const { data } = await supabase
-    .from("products")
-    .delete()
-    .eq("id", id.data)
-    .select("image_path")
-    .maybeSingle();
-  await removeImage(supabase, data?.image_path);
+  const image = await mutateCatalog((doc) => {
+    const index = doc.products.findIndex((p) => p.id === id);
+    if (index === -1) return null;
+    const [removed] = doc.products.splice(index, 1);
+    return removed.image_path;
+  });
+  await removeImage(image);
 
   refreshCatalog();
   redirect("/admin?removido=1");
@@ -170,16 +168,16 @@ export async function deleteProduct(formData: FormData) {
 const TOGGLES = new Set(["is_visible", "is_available", "is_featured"]);
 
 export async function toggleProduct(formData: FormData) {
-  const { supabase } = await requireAdmin();
-  const id = uuid.safeParse(formData.get("id"));
+  await requireAdmin();
+  const id = readId(formData);
   const field = formData.get("field");
-  if (!id.success || typeof field !== "string" || !TOGGLES.has(field)) return;
+  if (!id || typeof field !== "string" || !TOGGLES.has(field)) return;
 
   const value = formData.get("value") === "true";
-  await supabase
-    .from("products")
-    .update({ [field]: value })
-    .eq("id", id.data);
+  await mutateCatalog((doc) => {
+    const product = doc.products.find((p) => p.id === id);
+    if (product) product[field as "is_visible" | "is_available" | "is_featured"] = value;
+  });
 
   refreshCatalog();
 }
@@ -189,33 +187,43 @@ export async function toggleProduct(formData: FormData) {
 // ---------------------------------------------------------------------------
 
 export async function saveCategory(_prev: FormState, formData: FormData): Promise<FormState> {
-  const { supabase } = await requireAdmin();
+  await requireAdmin();
 
-  const rawId = formData.get("id");
-  const id = typeof rawId === "string" && rawId !== "" ? rawId : null;
-  if (id && !uuid.safeParse(id).success) return { message: GENERIC_ERROR };
+  const id = readId(formData);
+  if (id === false) return { message: GENERIC_ERROR };
 
   const parsed = categorySchema.safeParse(
     formValues(formData, ["name", "sort_order", "is_active"]),
   );
   if (!parsed.success) return { errors: fieldErrors(parsed.error) };
 
-  const { error } = id
-    ? await supabase.from("categories").update(parsed.data).eq("id", id)
-    : await supabase.from("categories").insert(parsed.data);
-  if (error) return failure(error);
+  try {
+    await mutateCatalog((doc) => {
+      if (id) {
+        const category = doc.categories.find((c) => c.id === id);
+        if (category) Object.assign(category, parsed.data);
+      } else {
+        doc.categories.push({ id: crypto.randomUUID(), ...parsed.data });
+      }
+    });
+  } catch (err) {
+    return failure(err);
+  }
 
   refreshCatalog();
   return { ok: true, message: id ? "Categoria atualizada." : "Categoria criada." };
 }
 
 export async function deleteCategory(formData: FormData) {
-  const { supabase } = await requireAdmin();
-  const id = uuid.safeParse(formData.get("id"));
-  if (!id.success) return;
+  await requireAdmin();
+  const id = readId(formData);
+  if (!id) return;
 
   // Os produtos da categoria continuam existindo, só ficam "Sem categoria".
-  await supabase.from("categories").delete().eq("id", id.data);
+  await mutateCatalog((doc) => {
+    doc.categories = doc.categories.filter((c) => c.id !== id);
+    for (const p of doc.products) if (p.category_id === id) p.category_id = null;
+  });
   refreshCatalog();
 }
 
@@ -238,49 +246,46 @@ const SETTINGS_FIELDS = [
 ] as const;
 
 export async function saveSettings(_prev: FormState, formData: FormData): Promise<FormState> {
-  const { supabase } = await requireAdmin();
+  await requireAdmin();
 
   const parsed = settingsSchema.safeParse(formValues(formData, SETTINGS_FIELDS));
   if (!parsed.success) return { errors: fieldErrors(parsed.error) };
 
-  const { data: current } = await supabase
-    .from("store_settings")
-    .select("cover_image_path, logo_image_path")
-    .eq("id", 1)
-    .single();
-  const previousCover: string | null = current?.cover_image_path ?? null;
-  const previousLogo: string | null = current?.logo_image_path ?? null;
-
   let newCover: string | null = null;
   let newLogo: string | null = null;
   try {
-    newCover = await uploadImage(supabase, formData.get("image"), "capa");
-    newLogo = await uploadImage(supabase, formData.get("logo"), "logo");
+    newCover = await uploadImage(formData.get("image"), "capa");
   } catch (err) {
-    await removeImage(supabase, newCover);
-    if (err instanceof UserFacingError && newCover) return { errors: { logo: err.message } };
+    return failure(err, "image");
+  }
+  try {
+    newLogo = await uploadImage(formData.get("logo"), "logo");
+  } catch (err) {
+    await removeImage(newCover);
+    return failure(err, "logo");
+  }
+
+  const removeCover = formData.get("remove_image") === "on";
+  const removeLogo = formData.get("remove_logo") === "on";
+  let previous = { cover: null as string | null, logo: null as string | null };
+
+  try {
+    await mutateCatalog((doc) => {
+      const s = doc.settings;
+      previous = { cover: s.cover_image_path, logo: s.logo_image_path };
+      Object.assign(s, parsed.data, {
+        cover_image_path: newCover ?? (removeCover ? null : s.cover_image_path),
+        logo_image_path: newLogo ?? (removeLogo ? null : s.logo_image_path),
+      });
+    });
+  } catch (err) {
+    await removeImage(newCover);
+    await removeImage(newLogo);
     return failure(err);
   }
 
-  const cover_image_path =
-    newCover ?? (formData.get("remove_image") === "on" ? null : previousCover);
-  const logo_image_path = newLogo ?? (formData.get("remove_logo") === "on" ? null : previousLogo);
-
-  const { error } = await supabase
-    .from("store_settings")
-    .update({ ...parsed.data, cover_image_path, logo_image_path })
-    .eq("id", 1);
-  if (error) {
-    await removeImage(supabase, newCover);
-    await removeImage(supabase, newLogo);
-    return failure(error);
-  }
-  if (previousCover && previousCover !== cover_image_path) {
-    await removeImage(supabase, previousCover);
-  }
-  if (previousLogo && previousLogo !== logo_image_path) {
-    await removeImage(supabase, previousLogo);
-  }
+  if (previous.cover && (newCover || removeCover)) await removeImage(previous.cover);
+  if (previous.logo && (newLogo || removeLogo)) await removeImage(previous.logo);
 
   refreshCatalog();
   return { ok: true, message: "Configurações salvas." };

@@ -129,12 +129,13 @@ export const settingsSchema = z
   });
 
 export const loginSchema = z.object({
-  email: z.email("E-mail inválido.").max(254),
+  user: z.string().trim().min(1, "Informe o usuário.").max(60),
   password: z.string().min(1, "Informe a senha.").max(128),
 });
 
 export const passwordSchema = z
   .object({
+    current: z.string().min(1, "Informe a senha atual.").max(128),
     password: z
       .string()
       .min(10, "A senha precisa ter pelo menos 10 caracteres.")

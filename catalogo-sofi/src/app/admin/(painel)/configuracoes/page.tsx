@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth";
 import { publicImageUrl } from "@/lib/images";
-import type { StoreSettings } from "@/lib/types";
+import { readCatalog } from "@/lib/store";
 import { PasswordForm, SettingsForm } from "./SettingsForm";
 
 export const metadata: Metadata = { title: "Loja · Painel" };
 
 export default async function SettingsPage() {
-  const { supabase } = await requireAdmin();
-  const { data } = await supabase.from("store_settings").select("*").eq("id", 1).single();
-  const settings = data as StoreSettings;
+  await requireAdmin();
+  const { settings } = (await readCatalog()).doc;
 
   return (
     <>

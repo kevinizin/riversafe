@@ -1,4 +1,4 @@
-# Azven Catálogo
+# Catálogo Sobremesas Sofi (Azven)
 
 Catálogo digital para confeitarias, docerias e restaurantes. O cliente final
 monta a sacola e envia o pedido pronto pelo WhatsApp. A loja tem um painel
@@ -14,100 +14,70 @@ para cadastrar produtos, trocar fotos e preços, pausar pedidos e mais.
 
 **Cliente atual: Sobremesas Sofi** (@Sobremesas_Sofi). Cores da marca em
 `src/app/globals.css`, fotos e logo em `public/sofi/` e produtos iniciais em
-`src/lib/demo-data.ts` / `supabase/seed.sql`.
+`src/lib/demo-data.ts`.
 
-Stack: Next.js 16 (App Router, Server Actions) + Supabase (Postgres, Auth,
-Storage) + Tailwind CSS 4. Hospedagem recomendada: Vercel.
+Stack: Next.js 16 (App Router, Server Actions) + Vercel Blob (privado) +
+Tailwind CSS 4, hospedado na Vercel.
 
 ---
 
-## Rodar localmente
+## Como funciona (Sobremesas Sofi)
+
+- **Site:** https://sobremesas-sofi.vercel.app (projeto `sobremesas-sofi` na Vercel,
+  Root Directory `catalogo-sofi`). Cada push neste branch publica sozinho.
+- **Painel:** https://sobremesas-sofi.vercel.app/admin (usuário `sofi`).
+- **Dados:** Vercel Blob **privado** `sobremesas-sofi-dados`:
+  - `data/catalog.json`: configurações, categorias e produtos;
+  - `data/auth.json`: hash da senha, criado quando ela é trocada pelo painel;
+  - `media/...`: fotos enviadas, servidas pela rota `/media/...`.
+  Enquanto ninguém salvar nada, o site usa os dados iniciais de `src/lib/demo-data.ts`.
+
+### Variáveis de ambiente (Vercel)
+
+| Variável | O que é |
+| --- | --- |
+| `BLOB_READ_WRITE_TOKEN` | Criada sozinha ao conectar o Blob |
+| `ADMIN_USER` | Usuário do painel (`sofi`) |
+| `ADMIN_PASSWORD_HASH` | Hash scrypt da senha inicial (`node scripts/hash-password.mjs 'senha'`) |
+| `SESSION_SECRET` | Chave aleatória das sessões (`openssl rand -base64 48`) |
+
+**Esqueceu a senha?** Gere um hash novo, troque `ADMIN_PASSWORD_HASH` na Vercel,
+apague `data/auth.json` do Blob (Storage → sobremesas-sofi-dados) e faça redeploy.
+
+### Rodar localmente
 
 ```bash
 npm install
+cp .env.example .env.local   # preencha; use LOCAL_STORE_DIR=./.data
 npm run dev
 ```
-
-Sem variáveis de ambiente o site abre em **modo demonstração**, com os
-produtos da Sobremesas Sofi, e o painel fica desligado. É útil para
-mostrar o layout ao cliente antes de configurar qualquer coisa.
-
-## Colocar no ar para um cliente
-
-### 1. Supabase
-
-1. Crie um projeto em [supabase.com](https://supabase.com) (região São Paulo).
-2. **SQL Editor → New query**: cole `supabase/schema.sql` inteiro e rode.
-   Isso cria as tabelas, as regras de segurança e o bucket de fotos.
-3. Rode `supabase/seed.sql` para começar com os produtos e fotos da loja.
-4. **Authentication → Sign In / Providers**:
-   - desligue **Allow new users to sign up** (ninguém cria conta sozinho);
-   - em Email, deixe **Confirm email** ligado.
-5. **Authentication → Users → Add user**: crie o usuário do dono da loja
-   (e-mail + senha forte, marque *Auto Confirm User*).
-6. Dê acesso de admin a esse usuário no SQL Editor:
-
-   ```sql
-   insert into public.admins (user_id)
-   select id from auth.users where email = 'dono@loja.com.br';
-   ```
-
-### 2. Vercel
-
-1. Importe o repositório na Vercel.
-2. Em **Environment Variables**, adicione (Supabase → Project Settings → API):
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-3. Deploy. Depois aponte o domínio do cliente.
-
-O cliente acessa `https://dominio-do-cliente/admin` para entrar no painel.
-
-### Remover um admin
-
-```sql
-delete from public.admins
-where user_id = (select id from auth.users where email = 'ex-funcionario@loja.com.br');
-```
-
-Para esquecimento de senha: **Authentication → Users → ⋯ → Send password
-recovery**, ou defina uma senha nova pelo próprio Supabase.
 
 ---
 
 ## Segurança
 
-O sistema foi feito para que, mesmo que alguém descubra o endereço do
-Supabase e a chave pública, não consiga alterar nada.
-
 | Camada | O que faz |
 | --- | --- |
-| **RLS no banco** | Toda tabela tem Row Level Security. Visitantes só *leem* o que está visível. Criar, editar e excluir exige estar na tabela `admins` — a regra vale dentro do Postgres, não só no site. |
-| **Sem chave secreta** | O app usa apenas a chave pública (anon). A `service_role` nunca é usada nem precisa existir na Vercel. |
-| **Admin conferido em toda ação** | Cada página e cada Server Action do painel confere no servidor do Supabase se o usuário está logado *e* é admin (`requireAdmin`). O redirecionamento do `proxy.ts` é só conveniência. |
-| **Catálogo isolado da sessão** | O catálogo público usa um cliente sem cookies, então um admin logado nunca vê nem expõe produtos ocultos por engano. |
-| **Validação no servidor** | Todos os campos passam por `zod` (tamanhos, formatos, valores) e o banco repete os limites com `CHECK`. |
-| **Upload de fotos seguro** | A foto é aberta e **regravada** como WebP pelo `sharp`: tira metadados (GPS do celular), descarta qualquer conteúdo escondido e limita tamanho e resolução. O bucket também restringe tipo e tamanho. Nomes de arquivo são aleatórios. |
-| **CSP com nonce** | `Content-Security-Policy` estrita por requisição: só scripts do próprio site com nonce, sem `eval` em produção, sem iframes de terceiros (`frame-ancestors 'none'`). |
-| **Cabeçalhos** | HSTS, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, `COOP`. Painel com `no-store` e `noindex`. |
+| **Dados privados** | O Blob é privado: só o servidor, com o token, lê ou grava. O navegador nunca recebe o token. |
+| **Senha** | Guardada só como hash scrypt (com salt). Nem a Vercel nem o código têm a senha em texto. |
+| **Sessão** | Cookie `httpOnly`, `Secure`, `SameSite=Strict`, assinado com HMAC-SHA256 e válido por 7 dias. Trocar a senha derruba todas as outras sessões. |
+| **Força bruta** | 5 senhas erradas seguidas bloqueiam por 15 minutos, mais espera fixa e o custo do scrypt em cada tentativa. |
+| **Admin conferido em toda ação** | Cada página e cada Server Action do painel valida a sessão (`requireAdmin`). O redirecionamento do `proxy.ts` é só conveniência. |
+| **Edições simultâneas** | Gravação condicional (ETag): duas pessoas editando ao mesmo tempo não apagam a alteração uma da outra. |
+| **Validação** | Todos os campos passam por `zod` (tamanhos, formatos, valores). |
+| **Fotos** | Regravadas como WebP pelo `sharp`, sem metadados (GPS) nem conteúdo escondido, com nome aleatório. A rota `/media` só entrega caminhos de foto no formato exato. |
+| **CSP com nonce** | Só scripts do próprio site, sem `eval` em produção, sem iframes (`frame-ancestors 'none'`). |
+| **Cabeçalhos** | HSTS, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, COOP. Painel com `no-store` e `noindex`. |
 | **CSRF** | Server Actions do Next.js recusam requisições de outra origem. |
-| **Login** | Mensagem de erro genérica (não revela se o e-mail existe), cadastro público desligado e limite de tentativas do Supabase Auth. Senha nova exige 10+ caracteres com letras e números. |
-
-Recomendações extras para produção:
-
-- Ative **MFA** para as contas da equipe Azven no Supabase e na Vercel.
-- Em **Authentication → Rate Limits**, mantenha os limites padrão (ou reduza).
-- Em **Authentication → Attack Protection**, ative CAPTCHA se a loja for alvo.
-- Mantenha as dependências atualizadas (`npm outdated`, Dependabot).
-
----
 
 ## Estrutura
 
 ```
 src/
-  proxy.ts                    CSP com nonce + renovação da sessão do painel
+  proxy.ts                    CSP com nonce + redirecionamento do painel
   app/
     page.tsx                  catálogo público
+    media/[...path]/route.ts  entrega as fotos enviadas (Blob privado)
     admin/
       actions.ts              todas as Server Actions (login, produtos, categorias, loja)
       login/                  tela de login
@@ -116,13 +86,14 @@ src/
     catalog/                  catálogo, sacola, ficha do produto, mensagem do WhatsApp
     admin/                    formulários, upload de foto, componentes do painel
   lib/
-    auth.ts                   requireAdmin()
-    catalog.ts                leitura pública do catálogo (ou dados de demonstração)
+    auth.ts                   login, sessão assinada, requireAdmin(), troca de senha
+    password.ts               hash scrypt da senha
+    store.ts                  leitura/gravação no Blob privado (ou pasta local)
+    catalog.ts                leitura pública do catálogo
     upload.ts                 validação e regravação das fotos
     validation.ts             esquemas zod
-supabase/
-  schema.sql                  tabelas, RLS, bucket e policies
-  seed.sql                    dados de exemplo (opcional)
+scripts/
+  hash-password.mjs           gera o ADMIN_PASSWORD_HASH
 ```
 
 ## Personalizar para outro cliente

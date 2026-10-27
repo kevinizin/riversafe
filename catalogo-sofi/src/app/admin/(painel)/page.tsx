@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
+import { bySort } from "@/lib/catalog";
+import { readCatalog } from "@/lib/store";
 import { publicImageUrl } from "@/lib/images";
-import type { Category, Product } from "@/lib/types";
 import { ProductList } from "./ProductList";
 
 export const metadata: Metadata = { title: "Produtos · Painel" };
@@ -12,15 +13,11 @@ export default async function ProductsPage({
 }: {
   searchParams: Promise<{ salvo?: string; removido?: string }>;
 }) {
-  const { supabase } = await requireAdmin();
+  await requireAdmin();
   const { salvo, removido } = await searchParams;
+  const { doc } = await readCatalog();
 
-  const [{ data: products }, { data: categories }] = await Promise.all([
-    supabase.from("products").select("*").order("sort_order").order("name"),
-    supabase.from("categories").select("*").order("sort_order").order("name"),
-  ]);
-
-  const rows = ((products ?? []) as Product[]).map((p) => ({
+  const rows = [...doc.products].sort(bySort).map((p) => ({
     ...p,
     image_url: publicImageUrl(p.image_path),
   }));
@@ -54,7 +51,7 @@ export default async function ProductsPage({
         </p>
       )}
 
-      <ProductList products={rows} categories={(categories ?? []) as Category[]} />
+      <ProductList products={rows} categories={[...doc.categories].sort(bySort)} />
     </>
   );
 }

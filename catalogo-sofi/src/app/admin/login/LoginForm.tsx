@@ -8,13 +8,13 @@ export function LoginForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <FormMessage message={state.message} />
-      <Field label="E-mail">
+      <Field label="Usuário">
         <input
-          name="email"
-          type="email"
+          name="user"
           autoComplete="username"
+          autoCapitalize="none"
           required
-          maxLength={254}
+          maxLength={60}
           className={inputClass}
         />
       </Field>

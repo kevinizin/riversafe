@@ -5,7 +5,8 @@ import { ConfirmDelete } from "@/components/admin/ConfirmDelete";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { requireAdmin } from "@/lib/auth";
 import { publicImageUrl } from "@/lib/images";
-import type { Category, Product } from "@/lib/types";
+import { bySort } from "@/lib/catalog";
+import { readCatalog } from "@/lib/store";
 import { uuid } from "@/lib/validation";
 import { deleteProduct } from "../../../actions";
 
@@ -15,13 +16,10 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   const { id } = await params;
   if (!uuid.safeParse(id).success) notFound();
 
-  const { supabase } = await requireAdmin();
-  const [{ data: product }, { data: categories }] = await Promise.all([
-    supabase.from("products").select("*").eq("id", id).maybeSingle(),
-    supabase.from("categories").select("*").order("sort_order").order("name"),
-  ]);
-  if (!product) notFound();
-  const p = product as Product;
+  await requireAdmin();
+  const { doc } = await readCatalog();
+  const p = doc.products.find((x) => x.id === id);
+  if (!p) notFound();
 
   return (
     <>
@@ -40,7 +38,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       <ProductForm
         product={p}
         imageUrl={publicImageUrl(p.image_path)}
-        categories={(categories ?? []) as Category[]}
+        categories={[...doc.categories].sort(bySort)}
       />
     </>
   );

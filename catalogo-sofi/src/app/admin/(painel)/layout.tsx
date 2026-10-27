@@ -16,7 +16,7 @@ export default async function PainelLayout({ children }: { children: React.React
           </span>
           <AdminNav />
           <div className="ml-auto flex items-center gap-2">
-            <span className="hidden max-w-48 truncate text-sm text-muted lg:block">{user.email}</span>
+            <span className="hidden max-w-48 truncate text-sm text-muted lg:block">{user}</span>
             <form action={signOut}>
               <button
                 type="submit"

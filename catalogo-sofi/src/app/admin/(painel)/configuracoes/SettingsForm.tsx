@@ -148,11 +148,14 @@ export function PasswordForm() {
   return (
     <form ref={formRef} onSubmit={onSubmit} className="mt-4 max-w-xl space-y-4 rounded-2xl border border-line bg-white p-5">
       <FormMessage ok={state.ok} message={state.message} />
+      <Field label="Senha atual" error={e.current} className="sm:max-w-xs">
+        <input name="current" type="password" autoComplete="current-password" maxLength={128} className={inputClass} />
+      </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Nova senha" hint="Mínimo 10 caracteres, com letras e números" error={e.password}>
           <input name="password" type="password" autoComplete="new-password" maxLength={128} className={inputClass} />
         </Field>
-        <Field label="Repita a senha" error={e.confirm}>
+        <Field label="Repita a nova senha" error={e.confirm}>
           <input name="confirm" type="password" autoComplete="new-password" maxLength={128} className={inputClass} />
         </Field>
       </div>
