@@ -15,6 +15,8 @@ import type { Category, Product, StoreSettings } from "@/lib/types";
  */
 
 export type CatalogDoc = {
+  /** Aumenta a cada gravação; serve para saber qual cópia é a mais nova. */
+  rev?: number;
   settings: StoreSettings;
   categories: Category[];
   products: Product[];
@@ -75,9 +77,9 @@ export async function writeFile(
   body: Buffer | string,
   contentType: string,
   ifMatch?: string | null,
-) {
+): Promise<string | null> {
   if (hasBlobStore) {
-    await put(pathname, body, {
+    const result = await put(pathname, body, {
       access: "private",
       contentType,
       addRandomSuffix: false,
@@ -85,16 +87,17 @@ export async function writeFile(
       cacheControlMaxAge: pathname.startsWith("media/") ? 31536000 : 60,
       ...(ifMatch ? { ifMatch } : {}),
     });
-    return;
+    return result.etag;
   }
   const full = path.join(localStoreDir, pathname);
   await fs.mkdir(path.dirname(full), { recursive: true });
   await fs.writeFile(full, body);
+  return null;
 }
 
 export async function deleteFile(pathname: string) {
   if (hasBlobStore) {
-    await del(pathname).catch(() => {});
+    await del(pathname).catch((err) => console.error(`Falha ao apagar ${pathname}`, err));
     return;
   }
   await fs.rm(path.join(localStoreDir, pathname), { force: true });
@@ -104,10 +107,20 @@ export async function deleteFile(pathname: string) {
 // Catálogo
 // --------------------------------------------------------------------------
 
+// O Blob pode levar alguns instantes para devolver o que acabou de ser gravado.
+// Guardamos a última versão gravada por esta instância e usamos a mais nova
+// (pelo número de revisão), assim o painel mostra a alteração na hora.
+let lastWrite: { doc: CatalogDoc; etag: string | null } | null = null;
+
 export async function readCatalog(): Promise<{ doc: CatalogDoc; etag: string | null }> {
   const file = await readFile(CATALOG);
-  if (!file) return { doc: seed(), etag: null };
-  return { doc: JSON.parse(file.data.toString("utf8")) as CatalogDoc, etag: file.etag };
+  const stored = file
+    ? { doc: JSON.parse(file.data.toString("utf8")) as CatalogDoc, etag: file.etag }
+    : null;
+  if (lastWrite && (lastWrite.doc.rev ?? 0) > (stored?.doc.rev ?? -1)) {
+    return { doc: structuredClone(lastWrite.doc), etag: lastWrite.etag };
+  }
+  return stored ?? { doc: seed(), etag: null };
 }
 
 /**
@@ -118,8 +131,10 @@ export async function mutateCatalog<T>(change: (doc: CatalogDoc) => T): Promise<
   for (let attempt = 0; ; attempt++) {
     const { doc, etag } = await readCatalog();
     const result = change(doc);
+    doc.rev = (doc.rev ?? 0) + 1;
     try {
-      await writeFile(CATALOG, JSON.stringify(doc), "application/json", etag);
+      const newEtag = await writeFile(CATALOG, JSON.stringify(doc), "application/json", etag);
+      lastWrite = { doc: structuredClone(doc), etag: newEtag };
       return result;
     } catch (err) {
       if (err instanceof BlobPreconditionFailedError && attempt < 2) continue;

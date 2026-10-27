@@ -18,7 +18,11 @@ export const SESSION_COOKIE = "sofi_session";
 const SESSION_DAYS = 7;
 const AUTH_FILE = "data/auth.json";
 
-type Credentials = { user: string; hash: string };
+type Credentials = { user: string; hash: string; rev?: number };
+
+// Mesma ideia do catálogo: logo após trocar a senha o Blob pode ainda devolver
+// a versão anterior por alguns instantes; usamos a mais nova pela revisão.
+let lastAuthWrite: Credentials | null = null;
 
 function secret(): Buffer {
   const s = process.env.SESSION_SECRET ?? "";
@@ -28,7 +32,9 @@ function secret(): Buffer {
 
 async function getCredentials(): Promise<Credentials | null> {
   const file = await readFile(AUTH_FILE);
-  if (file) return JSON.parse(file.data.toString("utf8")) as Credentials;
+  const stored = file ? (JSON.parse(file.data.toString("utf8")) as Credentials) : null;
+  if (lastAuthWrite && (lastAuthWrite.rev ?? 0) > (stored?.rev ?? 0)) return lastAuthWrite;
+  if (stored) return stored;
   const user = process.env.ADMIN_USER;
   const hash = process.env.ADMIN_PASSWORD_HASH;
   return user && hash ? { user, hash } : null;
@@ -142,8 +148,9 @@ export async function logout() {
 export async function changePassword(current: string, next: string): Promise<boolean> {
   const creds = await getCredentials();
   if (!creds || !(await verifyPassword(current, creds.hash))) return false;
-  const updated = { user: creds.user, hash: await hashPassword(next) };
+  const updated = { user: creds.user, hash: await hashPassword(next), rev: (creds.rev ?? 0) + 1 };
   await writeFile(AUTH_FILE, JSON.stringify(updated), "application/json");
+  lastAuthWrite = updated;
   await setSessionCookie(updated); // mantém este aparelho logado; os outros saem
   return true;
 }
