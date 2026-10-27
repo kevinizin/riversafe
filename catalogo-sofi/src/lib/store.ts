@@ -1,7 +1,7 @@
 import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { BlobPreconditionFailedError, del, get, put } from "@vercel/blob";
+import { BlobNotFoundError, BlobPreconditionFailedError, del, get, head, put } from "@vercel/blob";
 import { demoCategories, demoProducts, demoSettings } from "@/lib/demo-data";
 import { hasBlobStore, localStoreDir } from "@/lib/env";
 import type { Category, Product, StoreSettings } from "@/lib/types";
@@ -30,6 +30,15 @@ function seed(): CatalogDoc {
   });
 }
 
+async function headOrNull(pathname: string) {
+  try {
+    return await head(pathname);
+  } catch (err) {
+    if (err instanceof BlobNotFoundError) return null;
+    throw err;
+  }
+}
+
 async function streamToBuffer(stream: ReadableStream<Uint8Array>) {
   return Buffer.from(await new Response(stream).arrayBuffer());
 }
@@ -40,9 +49,18 @@ async function streamToBuffer(stream: ReadableStream<Uint8Array>) {
 
 export async function readFile(pathname: string): Promise<{ data: Buffer; etag: string | null } | null> {
   if (hasBlobStore) {
-    const res = await get(pathname, { access: "private", useCache: false });
-    if (!res || res.statusCode !== 200) return null;
-    return { data: await streamToBuffer(res.stream), etag: res.blob.etag };
+    // O ETag aceito pelo put(ifMatch) é o da API (head), não o do cabeçalho HTTP
+    // devolvido pelo get(). Lê head → conteúdo → head e só aceita se não mudou no meio.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const before = await headOrNull(pathname);
+      if (!before) return null;
+      const res = await get(pathname, { access: "private", useCache: false });
+      if (!res || res.statusCode !== 200) return null;
+      const data = await streamToBuffer(res.stream);
+      const after = await headOrNull(pathname);
+      if (after && after.etag === before.etag) return { data, etag: before.etag };
+    }
+    throw new Error(`Não foi possível ler ${pathname} de forma consistente.`);
   }
   try {
     const data = await fs.readFile(path.join(localStoreDir, pathname));
@@ -104,7 +122,7 @@ export async function mutateCatalog<T>(change: (doc: CatalogDoc) => T): Promise<
       await writeFile(CATALOG, JSON.stringify(doc), "application/json", etag);
       return result;
     } catch (err) {
-      if (err instanceof BlobPreconditionFailedError && attempt === 0) continue;
+      if (err instanceof BlobPreconditionFailedError && attempt < 2) continue;
       throw err;
     }
   }
