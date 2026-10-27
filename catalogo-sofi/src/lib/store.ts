@@ -60,6 +60,10 @@ export async function readFile(pathname: string): Promise<{ data: Buffer; etag: 
       if (!res || res.statusCode !== 200) return null;
       const data = await streamToBuffer(res.stream);
       const after = await headOrNull(pathname);
+      if (process.env.STORE_DEBUG === "1" && pathname === CATALOG) {
+        const rev = (JSON.parse(data.toString("utf8")) as CatalogDoc).rev;
+        console.log("[store] read", { rev, headBefore: before.etag, getEtag: res.blob.etag, headAfter: after?.etag, instanceRev: lastWrite?.doc.rev });
+      }
       if (after && after.etag === before.etag) return { data, etag: before.etag };
     }
     throw new Error(`Não foi possível ler ${pathname} de forma consistente.`);
@@ -135,6 +139,7 @@ export async function mutateCatalog<T>(change: (doc: CatalogDoc) => T): Promise<
     try {
       const newEtag = await writeFile(CATALOG, JSON.stringify(doc), "application/json", etag);
       lastWrite = { doc: structuredClone(doc), etag: newEtag };
+      if (process.env.STORE_DEBUG === "1") console.log("[store] write", { rev: doc.rev, ifMatch: etag, newEtag });
       return result;
     } catch (err) {
       if (err instanceof BlobPreconditionFailedError && attempt < 2) continue;
